@@ -1,0 +1,129 @@
+install.packages("ggplot2", repos="http://R-Forge.R-project.org", lib="/home/daniela/Documents/NLeSC/Biodiversity/RPackages")
+install.packages("biomod2", repos="http://R-Forge.R-project.org", lib="/home/daniela/Documents/NLeSC/Biodiversity/RPackages")
+install.packages("biomod2", repos="http://R-Forge.R-project.org", lib="/home/daniela/Documents/NLeSC/Biodiversity/RPackages")
+install.packages("ggplot2")
+install.packages("biomod2", repos="http://R-Forge.R-project.org", lib="/home/daniela/Documents/NLeSC/Biodiversity/RPackages")
+install.packages("biomod2", repos="http://R-Forge.R-project.org", lib="/home/daniela/Documents/NLeSC/Biodiversity/RPackages", dep=TRUE)
+install.packages("biomod2", repos="http://R-Forge.R-project.org", lib="/home/daniela/Documents/NLeSC/Biodiversity/RPackages", dep=TRUE)
+install.packages("biomod", repos="http://R-Forge.R-project.org", lib="/home/daniela/Documents/NLeSC/Biodiversity/RPackages", dep=TRUE)
+install.packages("biomod2", repos="http://R-Forge.R-project.org", lib="/home/daniela/Documents/NLeSC/Biodiversity/RPackages", dep=TRUE)
+install.packages(pkgs = "caret",
+dependencies = c("Depends", "Imports"))
+install.packages("nloptr", repos="http://R-Forge.R-project.org")
+install.packages("lme4")
+install.packages("nloptr", repos="http://R-Forge.R-project.org")
+install.packages(pkgs = "caret",
+dependencies = c("Depends", "Imports"))
+install.packages("biomod2", repos="http://R-Forge.R-project.org", lib="/home/daniela/Documents/NLeSC/Biodiversity/RPackages", dep=TRUE)
+install.packages("biomod2", repos="http://R-Forge.R-project.org", lib="/home/daniela/Documents/NLeSC/Biodiversity/RPackages", dep = TRUE)
+myPackages <- .packages(all = TRUE)
+myPackages
+install.packages("hexbin")
+install.packages("rasterVis")
+install.packages("raster")
+install.packages("biomod2", repos="http://R-Forge.R-project.org", lib="/home/daniela/Documents/NLeSC/Biodiversity/RPackages", dep = TRUE)
+install.packages("reshape")
+install.packages("maxent")
+install.packages("biomod2", repos="http://R-Forge.R-project.org", lib="/home/daniela/Documents/NLeSC/Biodiversity/RPackages", dep = TRUE)
+install.packages("earth")
+install.packages("biomod2", repos="http://R-Forge.R-project.org", lib="/home/daniela/Documents/NLeSC/Biodiversity/RPackages", dep = TRUE)
+install.packages("mda")
+install.packages("gbm")
+install.packages("pROC")
+install.packages("PresenceAbsence")
+install.packages("biomod2", repos="http://R-Forge.R-project.org", lib="/home/daniela/Documents/NLeSC/Biodiversity/RPackages", dep = TRUE)
+library(biomod2)
+browseVignettes(package= biomod2)
+browseVignettes(package= 'biomod2')
+DataMammals <- read.csv(system.file("/home/daniela/git/iSDM/mammals.csv"))
+head(DataMammals)
+DataMammals <- read.csv(system.file("/home/daniela/git/iSDM/mammals.csv"))
+DataMammals <- read.csv(system.file("/home/daniela/git/iSDM/mammals.csv", package="biomod2"))
+DataSpecies <- read.csv(system.file("/home/daniela/git/iSDM/mammals.csv", package = "biomod2"),
+row.names = 1)
+DataSpecies <- read.csv(system.file("/home/daniela/git/iSDM/mammals.csv", sep=",", package = "biomod2"),
+row.names = 1)
+DataSpecies <- read.csv(system.file("/home/daniela/git/iSDM/mammals.csv", sep=",", package = "biomod2"),
+row.names = 0)
+DataSpecies <- read.csv(system.file("/home/daniela/git/iSDM/mammals.csv", sep=",", package = "biomod2"),
+row.names = 0)
+DataSpecies <- read.csv(system.file("/home/daniela/git/iSDM/mammals.csv", sep = ',', package = "biomod2"),
+row.names = 0)
+DataSpecies <- read.csv(file = system.file("/home/daniela/git/iSDM/mammals.csv", sep = ',', package = "biomod2"),
+row.names = 0)
+DataSpecies <- read.csv(file = system.file("/home/daniela/git/iSDM/mammals.csv", sep = ',', package = "biomod2"), row.names = 1)
+DataSpecies <- read.csv(file = system.file("/home/daniela/git/iSDM/beav1.csv", sep = ',', package = "biomod2"), row.names = 1)
+DataSpecies <- read.csv(system.file("/home/daniela/git/iSDM/beav1.csv", sep = ',', package = "biomod2"), row.names = 1)
+DataSpecies <- read.csv(system.file("/home/daniela/git/iSDM/beav1.csv", package = "biomod2"), row.names = 1)
+cwd()
+getwd()
+DataSpecies <- read.csv(system.file("git/iSDM/beav1.csv", package = "biomod2"), row.names = 1)
+getwd()
+DataSpecies <- read.csv(system.file("git/iSDM/beav1.csv", package = "biomod2"), row.names = 1)
+library(biomod2)
+DataSpecies <- read.csv(system.file("git/iSDM/beav1.csv", package = "biomod2"), row.names = 1)
+DataSpecies <- read.csv(system.file("git/iSDM/beav1.csv", package = "biomod2", sep="\n"), row.names = 1)
+DataSpecies <- read.csv(system.file("git/iSDM/beav1.csv", package = "biomod2", sep=","), row.names = 1)
+DataSpecies <- read.csv(system.file("git/iSDM/beav1.csv", package = "biomod2"), row.names = 1)
+packages.needed <-
+setdiff(
+c('R2jags', 'MASS', 'MCMCpack', 'abind', 'random', 'mclust'),
+rownames(installed.packages())
+)
+if(length(packages.needed)) install.packages(packages.needed)
+packages.needed <-
+setdiff(
+c('jags', R2jags', 'MASS', 'MCMCpack', 'abind', 'random', 'mclust'),
+rownames(installed.packages())
+)
+if(length(packages.needed)) install.packages(packages.needed)
+install.packages("rjags")
+install.packages("JAGS")
+install.packages("jags")
+install.packages("graph")
+install.packages("curl")
+install.packages("libcurl")
+install.packages("curl")
+install.packages("graph")
+packages.needed <-
+setdiff(
+c('jags', R2jags', 'MASS', 'MCMCpack', 'abind', 'random', 'mclust'),
+rownames(installed.packages())
+)
+if(length(packages.needed)) install.packages(packages.needed)
+install.packages("jags")
+install.packages("rjags")
+install.packages("rjags", dep=T)
+install.packages("rjags", deps=T)
+install.packages("rjags", dep=T)
+module avail JAGS
+module list
+clear
+clear()
+install.packages("rjags", dep=T)
+install.packages("rjags")
+install.packages("rjags")
+install.packages("rjags")
+install.packages("rjags", dep=T)
+install.packages("R2jags")
+install.packages("R2jags")
+install.packages("rjags")
+help("cat")
+help(cat)
+save.image("~/git/iSDM/JSDM_workspace.RData")
+n_env_vars <- 2
+n_sites <- 500
+X <- matrix(rnorm(n_sites * n_env_vars), ncol=n_env_vars)
+head(X)
+save.image("~/git/iSDM/JSDM_workspace.RData")
+setwd("~/git/iSDM")
+n_species <- 8
+coefs <- matrix(runif(n_species * (n_env_vars + 1), -1, 1), ncol=n_env_vars + 1)
+coefs
+save.image("~/git/iSDM/JSDM_workspace.RData")
+mammals <- read.csv("~/git/iSDM/mammals.csv")
+View(mammals)
+history()
+Occur <- apply(pnorm(cbind(1, X) %*% t(coefs)), 1:2, function(x) rbinom(1, 1, x))
+head(Occur)
+savehistory("~/git/iSDM/JSDM_workspace.RData")
