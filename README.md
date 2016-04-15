@@ -8,5 +8,5 @@ bash Anaconda3-2.4.0-Linux-x86_64.sh  # Say 'yes' to appending to .bashrc and sp
 
 
 ```
-conda install pandas ipython-notebook pygbif basemap rpy2 matplotlib xlrd
+conda install pandas ipython-notebook pygbif basemap rpy2 matplotlib xlrd avro
 ```
