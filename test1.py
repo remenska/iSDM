@@ -1,3 +1,5 @@
+# calling R from python #2 (using rpy2)
+
 from numpy import *
 from pandas import *
 from rpy2.robjects.packages import importr

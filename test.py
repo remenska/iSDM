@@ -1,4 +1,4 @@
-# calling R from python #1
+# calling R from python #1 (using subprocess)
 import subprocess
 import sys
 
