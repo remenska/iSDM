@@ -5,7 +5,7 @@ import pandas as pd
 import logging
 import os
 import csv
-
+from enum import Enum
 try:
     import cPickle as pickle
 except:
@@ -14,6 +14,11 @@ except:
 logger = logging.getLogger('iSDM.species')
 logger.setLevel(logging.DEBUG)
 
+class Source(Enum):
+    GBIF = 1
+    IUCN = 2
+
+    
 class Species(object):
 
     def __init__(self, **kwargs):
@@ -75,6 +80,11 @@ class Species(object):
 
 class GBIFSpecies(Species):
 
+    def __init__(self, **kwargs):
+        Species.__init__(self, **kwargs)
+        self.source = Source.GBIF
+
+
     def find_species_occurrences(self, **kwargs):
         """
         Finds and loads species occurrence data into pandas DataFrame.
@@ -134,12 +144,16 @@ class IUCNSpecies(Species):
     Data are held in shapefiles, the ESRI native format. Ranges are depicted as polygons.
     The maps are available as shapefiles. Not as one layer per species, but one (very) large shapefile 
     that contains all the distribution maps of that group.
-    We will need to rasterize IUCN range polygons to grids with a predefined resolution. 
+    We will need to rasterize IUCN range polygons to grids with a predefined resolution. ("Gridify the data, and per species)
     """
-    
+    def __init__(self):
+        Species.__init__(self)
+        self.source=Source.IUCN   
 
 class MOLSpecies(Species):
     pass
+
+
 
 
 
