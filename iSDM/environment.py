@@ -1,22 +1,22 @@
 
-class EnvironmentalMap(object):
+class EnvironmentalLayer(object):
     def __init__(self, **kwargs):
         self.resolution = kwargs['resolution']
 
-    def convert_to(resolution):
+    def scale_resolution(degrees):
         pass
 
     def load_data(self, file_path=None):
         pass
-        
 
-class ClimateMap(EnvironmentalMap):
+
+class ClimateLayer(EnvironmentalLayer):
     pass
 
-class LandCoverMap(EnvironmentalMap):
+class LandCoverlayer(EnvironmentalLayer):
     pass
 
-class LandUse(EnvironmentalMap):
+class LandUseLayer(EnvironmentalLayer):
     pass
 
 

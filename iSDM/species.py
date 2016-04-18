@@ -32,7 +32,7 @@ class Species(object):
             self.ID=kwargs['ID']
 
 
-    def save_data(self, dirname=None, filename=None):
+    def save_data(self, dirname=None, filename=None): #TODO shall we store in HDF5 / PyTables also?
         """
         Serializes the loaded GBIF species occurrence filtered dataset (pandas.DataFrame) into a binary pickle file
         """
@@ -141,7 +141,7 @@ class GBIFSpecies(Species):
 
 class IUCNSpecies(Species):
     """
-    Data are held in shapefiles, the ESRI native format. Ranges are depicted as polygons.
+    Data are held in shapefiles, the ESRI native format and contains the known range of each species. Ranges are depicted as polygons.
     The maps are available as shapefiles. Not as one layer per species, but one (very) large shapefile 
     that contains all the distribution maps of that group.
     We will need to rasterize IUCN range polygons to grids with a predefined resolution. ("Gridify" the data, and per species rather than all in one region)
