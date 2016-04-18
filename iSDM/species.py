@@ -18,7 +18,7 @@ class Source(Enum):
     GBIF = 1
     IUCN = 2
 
-    
+
 class Species(object):
 
     def __init__(self, **kwargs):
@@ -144,11 +144,17 @@ class IUCNSpecies(Species):
     Data are held in shapefiles, the ESRI native format. Ranges are depicted as polygons.
     The maps are available as shapefiles. Not as one layer per species, but one (very) large shapefile 
     that contains all the distribution maps of that group.
-    We will need to rasterize IUCN range polygons to grids with a predefined resolution. ("Gridify the data, and per species)
+    We will need to rasterize IUCN range polygons to grids with a predefined resolution. ("Gridify" the data, and per species rather than all in one region)
+
+    http://www.petrkeil.com/?p=648
+    "   It does not matter that much what is (or will be in future) the pattern of species distribution at a single scale. It does not matter that much what predicts species occurrences at the finest grain resolutions. It is naive to say that, for applied and conservation purposes, it is fine grain that matters. All grains 
+        (potentially) matter. Appropriate scaling relationships are the baseline that links all of the grains together."
+
     """
     def __init__(self):
         Species.__init__(self)
-        self.source=Source.IUCN   
+        self.source=Source.IUCN
+
 
 class MOLSpecies(Species):
     pass
