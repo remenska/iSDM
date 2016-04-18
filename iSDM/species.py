@@ -69,6 +69,8 @@ class Species(object):
     def find_species_occurrences(self, **kwargs):
         raise NotImplementedError("You need to implement this method!")
 
+    def get_data(self):
+        return self.data_full
 
 
 class GBIFSpecies(Species):
@@ -128,8 +130,13 @@ class GBIFSpecies(Species):
 
 
 class IUCNSpecies(Species):
-    pass
-
+    """
+    Data are held in shapefiles, the ESRI native format. Ranges are depicted as polygons.
+    The maps are available as shapefiles. Not as one layer per species, but one (very) large shapefile 
+    that contains all the distribution maps of that group.
+    We will need to rasterize IUCN range polygons to grids with a predefined resolution. 
+    """
+    
 
 class MOLSpecies(Species):
     pass
