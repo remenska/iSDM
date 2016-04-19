@@ -38,23 +38,24 @@ class Species(object):
         if 'ID' in kwargs:
             self.ID=kwargs['ID']
 
-    #TODO: this is bad, one argument with full path should also be possible
-    def save_data(self, dirname=None, filename=None): #TODO shall we store in HDF5 / PyTables also?
+    def save_data(self, full_name=None, dir_name=None, file_name=None): 
         """
         Serializes the loaded GBIF species occurrence filtered dataset (pandas.DataFrame) into a binary pickle file
         """
+        #TODO shall we store in HDF5 / PyTables also?
+        
+        if full_name is None:
+            if file_name is None:
+                file_name = str(self.ID) + ".pkl"
+            if dir_name is None:
+                dir_name = os.getcwd()
 
-        if filename is None:
-            filename = str(self.ID) + ".pkl"
-        if dirname is None:
-            dirname = os.getcwd()
+            full_name = os.path.join(dir_name, file_name)
 
-        fullname = os.path.join(dirname, filename)
-
-        f = open(fullname, 'wb')
+        f = open(full_name, 'wb')
         try:
             pickle.dump(self.data_full, f)
-            logger.debug("Saved data: %s " %fullname)
+            logger.debug("Saved data: %s " %full_name)
         except AttributeError as e:
             logger.error("Occurrences data is not loaded! %s " %str(e))
         finally:
