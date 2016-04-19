@@ -6,6 +6,10 @@ import logging
 import os
 import csv
 from enum import Enum
+import matplotlib.pyplot as plt
+import numpy as np
+from mpl_toolkits.basemap import Basemap
+
 try:
     import cPickle as pickle
 except:
@@ -17,6 +21,8 @@ logger.setLevel(logging.DEBUG)
 class Source(Enum):
     GBIF = 1
     IUCN = 2
+    PREDICTS = 3
+    MOL = 4
 
 
 #TODO: split into train/test subset (some random manner?) for model evaluation
@@ -32,7 +38,7 @@ class Species(object):
         if 'ID' in kwargs:
             self.ID=kwargs['ID']
 
-
+    #TODO: this is bad, one argument with full path should also be possible
     def save_data(self, dirname=None, filename=None): #TODO shall we store in HDF5 / PyTables also?
         """
         Serializes the loaded GBIF species occurrence filtered dataset (pandas.DataFrame) into a binary pickle file
@@ -78,6 +84,40 @@ class Species(object):
     def get_data(self):
         return self.data_full
 
+    def set_data(self, data_frame):
+        # !!! Careful, overwrites the existing raw data!
+        self.data_full = data_frame
+
+    def plot_species_occurrence(self, figsize=(16,12), projection='merc'):
+        data_clean = self.data_full.dropna(how='any', subset=['decimalLatitude', 'decimalLongitude'])
+
+        # latitude/longitude lists
+        data_full_latitude = data_clean.decimalLatitude
+        data_full_longitude = data_clean.decimalLongitude
+
+        plt.figure(figsize=figsize)
+        plt.title("%s occurrence records from %s " 
+            % (data_clean['species'].dropna().tolist()[0], self.source.name)
+            )
+
+        my_map = Basemap(projection=projection, lat_0=50, lon_0=-100,
+                        resolution='l', area_thresh=1000.0, 
+                        llcrnrlon=data_full_longitude.min(),# lower left corner longitude point 
+                        llcrnrlat=data_full_latitude.min(), # lower left corner latitude point
+                        urcrnrlon=data_full_longitude.max(), # upper right longitude point
+                        urcrnrlat=data_full_latitude.max() # upper right latitude point
+                        )
+        # prepare longitude/latitude list for basemap
+        df_x, df_y = my_map(data_full_longitude.tolist(), data_full_latitude.tolist())
+        my_map.drawcoastlines()
+        my_map.drawcountries()
+        my_map.drawmapboundary(fill_color='#649eff')
+        my_map.fillcontinents(color='#cc9955')
+        # draw latitude and longitude
+        my_map.drawmeridians(np.arange(0, 360, 30))
+        my_map.drawparallels(np.arange(-90, 90, 30))
+        my_map.plot(df_x, df_y, 'bo', markersize=5, color="#b01a1a")
+
 
 class GBIFSpecies(Species):
 
@@ -118,6 +158,11 @@ class GBIFSpecies(Species):
         logger.info("Number of occurrences: %s " % full_results['count'])
         logger.debug(full_results['count'] == len(full_results['results'])) # match?
 
+        #TODO: do we want a special way of loading? say, suggesting data types in some columns?
+
+        #TODO: should we reformat the dtypes of the columns? at least day/month/year we care?
+        #data_cleaned[['day', 'month', 'year']] = data_cleaned[['day', 'month', 'year']].fillna(0.0).astype(int)
+        
         self.data_full = pd.DataFrame(full_results['results']) # load results in pandas dataframes
         if self.data_full.empty:
             logger.info("Could not retrieve any occurrences!")
