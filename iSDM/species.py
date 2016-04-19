@@ -19,6 +19,7 @@ class Source(Enum):
     IUCN = 2
 
 
+#TODO: split into train/test dataset (some random manner?)
 class Species(object):
 
     def __init__(self, **kwargs):
@@ -89,6 +90,8 @@ class GBIFSpecies(Species):
         """
         Finds and loads species occurrence data into pandas DataFrame.
         Data comes from the GBIF database, based on name or gbif ID
+        the occurrences.search(...) returns a list of json structures
+        which we load into Pandas DataFrame for easier manipulation.
 
         """
 

@@ -1,6 +1,8 @@
 
 class EnvironmentalLayer(object):
     def __init__(self, **kwargs):
+        # you want to be able to agregate at a different resolution
+        # and back/forth, right?
         self.resolution = kwargs['resolution']
 
     def scale_resolution(degrees):
