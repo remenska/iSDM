@@ -97,7 +97,7 @@ class Species(object):
 
         plt.figure(figsize=figsize)
         plt.title("%s occurrence records from %s " 
-            % (data_clean['species'].dropna().tolist()[0], self.source.name)
+            % (self.name_species, self.source.name)
             )
 
         my_map = Basemap(projection=projection, lat_0=50, lon_0=-100,
