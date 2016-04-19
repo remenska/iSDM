@@ -19,7 +19,7 @@ class Source(Enum):
     IUCN = 2
 
 
-#TODO: split into train/test dataset (some random manner?)
+#TODO: split into train/test subset (some random manner?) for model evaluation
 class Species(object):
 
     def __init__(self, **kwargs):
