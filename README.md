@@ -11,7 +11,7 @@ Do not install as Administrator unless admin privileges are required. If you enc
 ```
 conda create --name=biodiversity six pandas ipython-notebook scikit-learn git basemap matplotlib xlrd numba python=3
 ```
-Linux: &nbsp;&nbsp;&nbsp;&nbsp; ```source activate biodiversity```
+Linux: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ```source activate biodiversity```
 
 Windows:&nbsp;&nbsp; ```activate biodiversity```
 
