@@ -9,6 +9,8 @@ from enum import Enum
 import matplotlib.pyplot as plt
 import numpy as np
 from mpl_toolkits.basemap import Basemap
+from geopandas import GeoSeries, GeoDataFrame
+
 
 try:
     import cPickle as pickle
@@ -37,7 +39,7 @@ class Species(object):
     def __init__(self, **kwargs):
 
         if 'ID' not in kwargs and 'name_species' not in kwargs:
-            raise ValueError("Cannot initialize species without a 'species_name' or an 'ID' argument supplied")
+            raise ValueError("Cannot initialize species without a 'name_species' or an 'ID' argument supplied")
 
         if 'name_species' in kwargs:
             self.name_species=kwargs['name_species']
@@ -48,8 +50,9 @@ class Species(object):
         """
         Serializes the loaded GBIF species occurrence filtered dataset (pandas.DataFrame) into a binary pickle file
         """
-        #TODO shall we store in HDF5 / PyTables also?
-        
+        #TODO Either move this method in subclass or generalize 
+        #TODO save by default not by ID, but by name + ID maybe
+
         if full_name is None:
             if file_name is None:
                 file_name = str(self.ID) + ".pkl"
@@ -71,6 +74,7 @@ class Species(object):
         """
         Loads the serialized GBIF species occurrence filtered dataset into a pandas DataFrame
         """
+        #TODO either move this method in subclass or generalize
 
         if file_path is None:
             filename = str(self.ID) + ".pkl"
@@ -210,14 +214,28 @@ class IUCNSpecies(Species):
         (potentially) matter. Appropriate scaling relationships are the baseline that links all of the grains together."
 
     """
-    def __init__(self):
-        Species.__init__(self)
+
+    def __init__(self, **kwargs):
+        Species.__init__(self, **kwargs)
         self.source=Source.IUCN
         self.observations_type=ObservationsType.PRESENCE_ONLY
 
     def load_shapefile(self, file_path):
         logger.info("Loading data from: %s" %file_path)
+        self.data_full = GeoDataFrame.from_file(file_path)
 
+    def filter_species(self):
+        all_data = self.data_full[self.data_full['binomial']==self.name_species]
+
+        if all_data.shape[0]==0:
+            logger.error("There is no species with the name '%s' in the shapefile" % self.name_species)
+            return
+        else:
+            self.data_full = all_data
+            logger.info("Data is filtered to contain only species: %s " % self.name_species)
+
+        if self.data_full['id_no'].shape[0]==1:
+            self.ID = int(self.data_full['id_no'].iloc[0])
 
 class MOLSpecies(Species):
     pass
