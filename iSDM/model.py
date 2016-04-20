@@ -21,7 +21,7 @@ class Evaluation(Enum):
 class Model(object):
     algorithm = None
     method = None
-    species = None
+    species = None # Should be an object of type Species?
 
     def __init__(self, algorithm = Algorithm.GAM):
         self.algorithm = algorithm
