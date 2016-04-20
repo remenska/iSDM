@@ -19,10 +19,9 @@ class Evaluation(Enum):
 
 
 class Model(object):
-
     algorithm = None
     method = None
-  species = None
+    species = None
 
     def __init__(self, algorithm = Algorithm.GAM):
         self.algorithm = algorithm
