@@ -1,5 +1,11 @@
 import os
-from enum import Enum 
+from enum import Enum
+
+import logging
+logger = logging.getLogger('iSDM.model')
+logger.setLevel(logging.DEBUG)
+
+
 class Algorithm(Enum):
 	GAM = 1
 	GLM = 2

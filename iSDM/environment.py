@@ -1,4 +1,8 @@
 
+import logging
+logger = logging.getLogger('iSDM.environment')
+logger.setLevel(logging.DEBUG)
+
 class EnvironmentalLayer(object):
     def __init__(self, **kwargs):
         # you want to be able to agregate at a different resolution

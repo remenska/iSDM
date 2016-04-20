@@ -24,6 +24,12 @@ class Source(Enum):
     PREDICTS = 3
     MOL = 4
 
+class ObservationsType(Enum):
+    PRESENCE_ONLY = 1
+    PRESENCE_ABSENCE = 2
+    RICHNESS = 3
+    ABUNDANCE = 4
+
 
 #TODO: split into train/test subset (some random manner?) for model evaluation
 class Species(object):
@@ -125,6 +131,7 @@ class GBIFSpecies(Species):
     def __init__(self, **kwargs):
         Species.__init__(self, **kwargs)
         self.source = Source.GBIF
+        self.observations_type = ObservationsType.PRESENCE_ONLY
 
 
     def find_species_occurrences(self, **kwargs):
