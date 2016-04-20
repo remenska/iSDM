@@ -10,10 +10,12 @@ Do not install as Administrator unless admin privileges are required. If you enc
 ##### Step 2: Create a python environment and install the following packages:
 ```
 conda create --name=biodiversity six pandas ipython-notebook scikit-learn git basemap matplotlib xlrd numba python=3
-source activate biodiversity
 ```
+Linux: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ```source activate biodiversity```
 
-##### Step 3: nstall these additional packages:
+Windows:&nbsp; ```activate biodiversity```
+
+##### Step 3: Install these additional packages:
 ```
 pip install pygbif rpy2
 ```
