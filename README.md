@@ -17,7 +17,7 @@ Windows:&nbsp;&nbsp; ```activate biodiversity```
 
 ##### Step 3: Install these additional packages:
 ```
-pip install pygbif rpy2
+pip install pygbif rpy2 geopy
 ```
 
 ##### Step 4: Install iSDM: 
