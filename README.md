@@ -27,3 +27,15 @@ cd iSDM/
 python setup.py install
 ```
 
+##### Step 5: Test if it works:
+```
+$ ipython
+Python 3.5.1 |Continuum Analytics, Inc.| (default, Dec  7 2015, 11:16:01) 
+[...]
+In [1]: import iSDM
+
+In [2]: iSDM.__version__
+Out[2]: '0.0.1'
+```
+
+
