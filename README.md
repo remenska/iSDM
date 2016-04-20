@@ -9,7 +9,7 @@ Do not install as Administrator unless admin privileges are required. If you enc
 
 Step 2: Create a python environment and install the following packages:
 ```
-conda create --name=biodiversity six pandas ipython-notebook scikit-learn numpy pygbif basemap rpy2 matplotlib xlrd numba python=3
+conda create --name=biodiversity six pandas ipython-notebook scikit-learn numpy git basemap rpy2 matplotlib xlrd numba python=3
 source activate biodiversity
 ```
 
