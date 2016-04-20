@@ -2,15 +2,15 @@
 Towards a species-by-species approach to global biodiversity modelling.
 
 
-Step 1: Get Anaconda
-```
-wget http://repo.continuum.io/archive/Anaconda3-2.4.0-Linux-x86_64.sh  # Linux
-bash Anaconda3-2.4.0-Linux-x86_64.sh  # Say 'yes' to appending to .bashrc and specify the installation directory
-```
+Step 1: Download [Anaconda](https://www.continuum.io/downloads) for Python 3.
 
-Step 2: install packages
+NOTE for Windows:
+Do not install as Administrator unless admin privileges are required. If you encounter any issues during installation, please temporarily disable your anti-virus software during install, then immediately re-enable it.
+
+Step 2: Create a python environment and install the following packages:
 ```
-conda install six pandas ipython-notebook scikit-learn numpy pygbif basemap rpy2 matplotlib xlrd numba python=3
+conda create --name=biodiversity six pandas ipython-notebook scikit-learn numpy pygbif basemap rpy2 matplotlib xlrd numba python=3
+source activate biodiversity
 ```
 
 Step 2.1 install pygbif
@@ -20,6 +20,8 @@ pip install pygbif
 
 Step 3: install iSDM 
 ```
+git clone https://github.com/remenska/iSDM.git
+cd iSDM/
 python setup.py install
 ```
 
