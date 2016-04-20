@@ -153,6 +153,8 @@ class GBIFSpecies(Species):
         except AttributeError: # name not provided, assume at least ID is provided
             first_res = occurrences.search(taxonKey=self.ID, limit=100000, **kwargs)
         
+        #TODO: more efficient way than copying...appending to the same dataframe?
+        
         full_results = copy.copy(first_res)
 
         # results are paginated so we need a loop to fetch them all
