@@ -85,7 +85,7 @@ class Species(object):
         try:
             self.data_full = pickle.load(f)
             logger.info("Succesfully loaded previously saved data.")
-            return self.data_full
+            return self.data_full # TODO maybe don't return the full frame?
         finally:
             f.close()
 
