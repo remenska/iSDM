@@ -118,8 +118,9 @@ class Species(object):
         df_x, df_y = my_map(data_full_longitude.tolist(), data_full_latitude.tolist())
         my_map.drawcoastlines()
         my_map.drawcountries()
-        my_map.drawmapboundary(fill_color='#649eff')
-        my_map.fillcontinents(color='#cc9955')
+        my_map.drawrivers(color='lightskyblue', linewidth=1.5)
+        my_map.drawmapboundary(fill_color='lightskyblue')
+        my_map.fillcontinents(color='cornsilk')
         # draw latitude and longitude
         my_map.drawmeridians(np.arange(0, 360, 30))
         my_map.drawparallels(np.arange(-90, 90, 30))
@@ -154,7 +155,7 @@ class GBIFSpecies(Species):
             first_res = occurrences.search(taxonKey=self.ID, limit=100000, **kwargs)
         
         #TODO: more efficient way than copying...appending to the same dataframe?
-        
+
         full_results = copy.copy(first_res)
 
         # results are paginated so we need a loop to fetch them all
@@ -212,6 +213,10 @@ class IUCNSpecies(Species):
     def __init__(self):
         Species.__init__(self)
         self.source=Source.IUCN
+        self.observations_type=ObservationsType.PRESENCE_ONLY
+
+    def load_shapefile(self, file_path):
+        logger.info("Loading data from: %s" %file_path)
 
 
 class MOLSpecies(Species):
