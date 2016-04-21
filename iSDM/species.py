@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from mpl_toolkits.basemap import Basemap
 from geopandas import GeoSeries, GeoDataFrame
+from osgeo import gdal, ogr
 
 
 try:
@@ -225,9 +226,16 @@ class IUCNSpecies(Species):
         logger.info("Loading data from: %s" %file_path)
         self.data_full = GeoDataFrame.from_file(file_path)
         logger.info("The shapefile contains data on %d species." %self.data_full.shape[0])
+        self.shape_file = file_path
 
 
     def filter_species(self):
+
+        #TODO check if shape_file is loaded, data_full is not none
+        if not self.data_full:
+            logger.error("You have not provided a shapefile to load data from. Do that first!")
+            return
+
         all_data = self.data_full[self.data_full['binomial']==self.name_species]
 
         if all_data.shape[0]==0:
@@ -240,7 +248,7 @@ class IUCNSpecies(Species):
         if self.data_full['id_no'].shape[0]==1:
             self.ID = int(self.data_full['id_no'].iloc[0])
 
-    def save_shapefile(self, full_name=None, driver = 'ESRI Shapefile'):
+    def save_shapefile(self, full_name=None, driver = 'ESRI Shapefile', overwrite = False):
         """
         saves the current data as a shapefile. The geopandas data needs to have geometry as a column, besides the metadata
         """
@@ -249,7 +257,10 @@ class IUCNSpecies(Species):
             logger.error("The data is not of a Geometry type (GeoSeries or GeoDataFrame")
             return
 
-        if full_name is None:
+        if overwrite:
+            full_name = self.shape_file
+
+        elif full_name is None:
             if file_name is None:
                 file_name = str(self.name_species) + str(self.ID) + ".pkl"
             if dir_name is None:
@@ -263,8 +274,11 @@ class IUCNSpecies(Species):
         except AttributeError as e:
             logger.error("Could not save data! %s " %str(e))
         finally:
-            f.close()        
+            f.close()
 
+
+    def rasterize_data(self, pixel_size, raster_file, x_res=None, y_res=None):
+        pass
 
 class MOLSpecies(Species):
     pass
