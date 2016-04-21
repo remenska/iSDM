@@ -35,6 +35,8 @@ class ObservationsType(Enum):
 
 #TODO: split into train/test subset (some random manner?) for model evaluation
 class Species(object):
+    ID = int(0)
+    name_species = 'Unknown'
 
     def __init__(self, **kwargs):
 
@@ -48,14 +50,13 @@ class Species(object):
 
     def save_data(self, full_name=None, dir_name=None, file_name=None): 
         """
-        Serializes the loaded GBIF species occurrence filtered dataset (pandas.DataFrame) into a binary pickle file
+        Serializes the loaded species occurrence filtered dataset (pandas.DataFrame) into a binary pickle file
         """
         #TODO Either move this method in subclass or generalize 
-        #TODO save by default not by ID, but by name + ID maybe
 
         if full_name is None:
             if file_name is None:
-                file_name = str(self.ID) + ".pkl"
+                file_name = str(self.name_species) + str(self.ID) + ".pkl"
             if dir_name is None:
                 dir_name = os.getcwd()
 
@@ -77,7 +78,7 @@ class Species(object):
         #TODO either move this method in subclass or generalize
 
         if file_path is None:
-            filename = str(self.ID) + ".pkl"
+            filename = str(self.name_species) + str(self.ID) + ".pkl"
             file_path = os.path.join(os.getcwd(), filename)
 
         logger.info("Loading data from: %s" %file_path)
@@ -205,9 +206,9 @@ class GBIFSpecies(Species):
 class IUCNSpecies(Species):
     """
     Data are held in shapefiles, the ESRI native format and contains the known range of each species. Ranges are depicted as polygons.
-    The maps are available as shapefiles. Not as one layer per species, but one (very) large shapefile 
-    that contains all the distribution maps of that group.
-    We will need to rasterize IUCN range polygons to grids with a predefined resolution. ("Gridify" the data, and per species rather than all in one region)
+    The maps are available as shapefiles. Not as one layer per species, but one (very) large shapefile that contains all the distribution maps of that group.
+    We will need to rasterize IUCN range polygons to grids with a predefined resolution. 
+    "Gridify" the data, and per species rather than all in one region)
 
     http://www.petrkeil.com/?p=648
     "   It does not matter that much what is (or will be in future) the pattern of species distribution at a single scale. It does not matter that much what predicts species occurrences at the finest grain resolutions. It is naive to say that, for applied and conservation purposes, it is fine grain that matters. All grains 
@@ -223,6 +224,8 @@ class IUCNSpecies(Species):
     def load_shapefile(self, file_path):
         logger.info("Loading data from: %s" %file_path)
         self.data_full = GeoDataFrame.from_file(file_path)
+        logger.info("The shapefile contains data on %d species." %self.data_full.shape[0])
+
 
     def filter_species(self):
         all_data = self.data_full[self.data_full['binomial']==self.name_species]
@@ -236,6 +239,32 @@ class IUCNSpecies(Species):
 
         if self.data_full['id_no'].shape[0]==1:
             self.ID = int(self.data_full['id_no'].iloc[0])
+
+    def save_shapefile(self, full_name=None, driver = 'ESRI Shapefile'):
+        """
+        saves the current data as a shapefile. The geopandas data needs to have geometry as a column, besides the metadata
+        """
+
+        if not (isinstance(self.data_full, GeoSeries) or isinstance(self.data_full, GeoDataFrame):
+            logger.error("The data is not of a Geometry type (GeoSeries or GeoDataFrame")
+            return
+
+        if full_name is None:
+            if file_name is None:
+                file_name = str(self.name_species) + str(self.ID) + ".pkl"
+            if dir_name is None:
+                dir_name = os.getcwd()
+
+            full_name = os.path.join(dir_name, file_name)
+
+        try:
+            self.data_full.to_file(full_name, driver = "ESRI Shapefile")
+            logger.debug("Saved data: %s " %full_name)
+        except AttributeError as e:
+            logger.error("Could not save data! %s " %str(e))
+        finally:
+            f.close()        
+
 
 class MOLSpecies(Species):
     pass

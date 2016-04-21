@@ -1,6 +1,6 @@
 import os
 from enum import Enum
-
+from iSDM.species import *
 import logging
 logger = logging.getLogger('iSDM.model')
 logger.setLevel(logging.DEBUG)
