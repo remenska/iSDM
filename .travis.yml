@@ -31,7 +31,7 @@ install:
 
   - source activate biodiversity
 
-  - pip install pygbif rpy2 geopy geopandas
+  - pip install pygbif geopy geopandas
 
   - python setup.py install
   # see if it works
