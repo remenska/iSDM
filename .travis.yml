@@ -6,7 +6,7 @@ notifications:
 
 before_install:
   - sudo apt-get -qq update
-  - sudo apt-get install -y install libgdal-dev
+  - sudo apt-get -y install libgdal-dev
 
 before_script:
     - if [ "$TRAVIS_OS_NAME" == "linux" ]; then  
