@@ -267,8 +267,9 @@ class IUCNSpecies(Species):
             logger.error("Could not save data! %s " %str(e))
 
 
-    def rasterize_data(self, raster_file=None, pixel_size=None, x_res=None, y_res=None):
+    def rasterize_data(self, raster_file=None, pixel_size=None, x_res=None, y_res=None, *args, **kwargs):
         #TODO or maybe load it with rasterio?
+        #options = ["ALL_TOUCHED=TRUE"]
 
         if not (pixel_size or raster_file):
             raise AttributeError("Please provide pixel_size and a target raster_file.")
@@ -288,7 +289,7 @@ class IUCNSpecies(Species):
         band = target_ds.GetRasterBand(1)
         band.SetNoDataValue(NoData_value)
         # Rasterize
-        gdal.RasterizeLayer(target_ds, [1], source_layer, burn_values=[255])
+        gdal.RasterizeLayer(target_ds, [1], source_layer, burn_values=[255], *args, **kwargs)
 
         # WOW: https://trac.osgeo.org/gdal/wiki/PythonGotchas
         #"To save and close GDAL raster datasets or OGR vector datasources, the object needs to be dereferenced,"

@@ -28,7 +28,7 @@ install:
   - conda update -q conda
   - conda info -a # Useful for debugging any issues with conda
   - conda config --add channels http://conda.anaconda.org/NLeSC  
-  - conda create -q -n biodiversity six pandas ipython-notebook scikit-learn git basemap matplotlib xlrd numba rasterio gdal geos libgdal=2.0.0=0 python=3
+  - conda create -q -n biodiversity six pandas ipython-notebook scikit-learn git basemap matplotlib xlrd numba rasterio gdal geos libgdal=2.0.0=0 krb5 python=3
 
   - source activate biodiversity
 
