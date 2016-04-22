@@ -1,4 +1,4 @@
-# iSDM
+# iSDM [![Build Status](https://travis-ci.org/remenska/iSDM.svg?branch=master)](https://travis-ci.org/remenska/iSDM)
 Towards a species-by-species approach to global biodiversity modelling.
 
 
