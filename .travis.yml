@@ -6,7 +6,8 @@ notifications:
 
 before_install:
   - sudo apt-get -qq update
-  - sudo apt-get -y install libgdal-dev
+  - sudo apt-get -y install libgdal-dev libgeos-dev
+  #- sudo apt-get -y install r-base
 
 before_script:
     - if [ "$TRAVIS_OS_NAME" == "linux" ]; then  
