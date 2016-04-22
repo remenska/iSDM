@@ -298,7 +298,7 @@ class IUCNSpecies(Species):
         logger.info("Data rasterized into file %s " % raster_file)
         logger.info("Resolution: x_res={0} y_res={1}".format(x_res, y_res))
 
-        #TODO save_data needs to save all these attributes in json and serialize
+        #TODO we need to save the resolution?
         self.raster_file = raster_file
         self.x_res = x_res
         self.y_res = y_res
