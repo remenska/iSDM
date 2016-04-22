@@ -34,7 +34,6 @@ class ObservationsType(Enum):
     ABUNDANCE = 4
 
 
-#TODO: split into train/test subset (some random manner?) for model evaluation
 class Species(object):
     ID = int(0)
     name_species = 'Unknown'
@@ -42,7 +41,7 @@ class Species(object):
     def __init__(self, **kwargs):
 
         if 'ID' not in kwargs and 'name_species' not in kwargs:
-            raise ValueError("Cannot initialize species without a 'name_species' or an 'ID' argument supplied")
+            raise AttributeError("Cannot initialize species without a 'name_species' or an 'ID' argument supplied")
 
         if 'name_species' in kwargs:
             self.name_species=kwargs['name_species']
@@ -229,18 +228,18 @@ class IUCNSpecies(Species):
         self.shape_file = file_path
 
 
-    def filter_species(self):
-
-        #TODO check if shape_file is loaded, data_full is not none
-        if not self.data_full:
-            logger.error("You have not provided a shapefile to load data from. Do that first!")
-            return
+    def filter_species(self, name_species=None):
+        if not self.shape_file:
+            raise AttributeError("You have not provided a shapefile to load data from.")
+        if name_species:
+            self.name_species = name_species
+        if not self.name_species:
+            raise AttributeError("You have not provided a name for the species.")   
 
         all_data = self.data_full[self.data_full['binomial']==self.name_species]
 
         if all_data.shape[0]==0:
-            logger.error("There is no species with the name '%s' in the shapefile" % self.name_species)
-            return
+            raise ValueError("There is no species with the name '%s' in the shapefile" % self.name_species)
         else:
             self.data_full = all_data
             logger.info("Data is filtered to contain only species: %s " % self.name_species)
@@ -253,32 +252,72 @@ class IUCNSpecies(Species):
         saves the current data as a shapefile. The geopandas data needs to have geometry as a column, besides the metadata
         """
 
-        if not (isinstance(self.data_full, GeoSeries) or isinstance(self.data_full, GeoDataFrame):
-            logger.error("The data is not of a Geometry type (GeoSeries or GeoDataFrame")
-            return
+        if not (isinstance(self.data_full, GeoSeries) or isinstance(self.data_full, GeoDataFrame)):
+            raise AttributeError("The data is not of a Geometry type (GeoSeries or GeoDataFrame")
 
         if overwrite:
             full_name = self.shape_file
-
-        elif full_name is None:
-            if file_name is None:
-                file_name = str(self.name_species) + str(self.ID) + ".pkl"
-            if dir_name is None:
-                dir_name = os.getcwd()
-
-            full_name = os.path.join(dir_name, file_name)
+        elif not overwrite and full_name is None:
+            raise AttributeError("Please provide a shape_file location, or set overwrite=True")
 
         try:
             self.data_full.to_file(full_name, driver = "ESRI Shapefile")
             logger.debug("Saved data: %s " %full_name)
         except AttributeError as e:
             logger.error("Could not save data! %s " %str(e))
-        finally:
-            f.close()
 
 
-    def rasterize_data(self, pixel_size, raster_file, x_res=None, y_res=None):
-        pass
+    def rasterize_data(self, raster_file=None, pixel_size=None, x_res=None, y_res=None):
+        #TODO or maybe load it with rasterio?
+
+        if not (pixel_size or raster_file):
+            raise AttributeError("Please provide pixel_size and a target raster_file.")
+
+        NoData_value = -9999
+
+        # Open the data source and read in the extent
+        source_ds = ogr.Open(self.shape_file)
+        source_layer = source_ds.GetLayer()
+        x_min, x_max, y_min, y_max = source_layer.GetExtent() # boundaries
+
+        # Create the destination data source
+        x_res = int((x_max - x_min) / pixel_size)
+        y_res = int((y_max - y_min) / pixel_size)
+        target_ds = gdal.GetDriverByName('GTiff').Create(raster_file, x_res, y_res, 1, gdal.GDT_Byte)
+        target_ds.SetGeoTransform((x_min, pixel_size, 0, y_max, 0, -pixel_size))
+        band = target_ds.GetRasterBand(1)
+        band.SetNoDataValue(NoData_value)
+        # Rasterize
+        gdal.RasterizeLayer(target_ds, [1], source_layer, burn_values=[255])
+
+        # WOW: https://trac.osgeo.org/gdal/wiki/PythonGotchas
+        #"To save and close GDAL raster datasets or OGR vector datasources, the object needs to be dereferenced,"
+        #"such as setting it to None, a different value, or deleting the object. "
+        band = None
+        target_ds = None
+        logger.info("Data rasterized into file %s " % raster_file)
+        logger.info("Resolution: x_res={0} y_res={1}".format(x_res, y_res))
+
+        #TODO save_data needs to save all these attributes in json and serialize
+        self.raster_file = raster_file
+        self.x_res = x_res
+        self.y_res = y_res
+
+    def load_raster_data(self, raster_file=None):
+        if raster_file:
+            self.raster_file = raster_file
+        if not self.raster_file:
+            raise AttributeError("Please rasterize the data first, or provide a raster_file to read from.")
+
+        geo = gdal.Open(self.raster_file)
+        drv = geo.GetDriver()
+
+        logger.info("Driver name: %s " %drv.GetMetadataItem('DMD_LONGNAME'))
+        logger.info("Raster data from %s loaded." % self.raster_file)
+        
+        img = geo.ReadAsArray()
+        return img
+
 
 class MOLSpecies(Species):
     pass
