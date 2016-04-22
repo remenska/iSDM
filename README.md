@@ -9,7 +9,7 @@ Do not install as Administrator unless admin privileges are required. If you enc
 
 ##### Step 2: Create a python environment and install the following packages:
 ```
-conda create --name=biodiversity six pandas ipython-notebook scikit-learn git basemap matplotlib xlrd numba rasterio python=3
+conda create --name=biodiversity six pandas ipython-notebook scikit-learn git basemap matplotlib xlrd numba gdal rasterio python=3
 ```
 Linux: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ```source activate biodiversity```
 
