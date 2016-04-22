@@ -298,7 +298,7 @@ class IUCNSpecies(Species):
         logger.info("Data rasterized into file %s " % raster_file)
         logger.info("Resolution: x_res={0} y_res={1}".format(x_res, y_res))
 
-        #TODO we need to save the resolution?
+        #TODO do we need to save extra information on the resolution? no, all info is in the TIF file, maybe we should expose it though. geo.RasterXSize/RasterYSize geo.GetGeoTransform() provide all
         self.raster_file = raster_file
         self.x_res = x_res
         self.y_res = y_res
