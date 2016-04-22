@@ -32,5 +32,4 @@ setup(
     'Topic :: Software Development :: Libraries :: Application Frameworks',
     ],
     test_suite='tests'
-
     )

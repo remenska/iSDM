@@ -1,0 +1,38 @@
+# Config file for automatic testing at travis-ci.org
+
+language: python
+
+sudo: false
+
+notifications:
+  email:
+    - remenska@gmail.com
+
+before_script:
+    - if [ "$TRAVIS_OS_NAME" == "linux" ]; then  
+          export DISPLAY=:99.0; 
+          sh -e /etc/init.d/xvfb start; 
+          sleep 3; 
+      fi
+
+install:
+  # Conda
+  - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then curl --silent http://repo.continuum.io/miniconda/Miniconda-latest-MacOSX-x86_64.sh -o miniconda.sh; fi
+  - if [ "${TRAVIS_OS_NAME}" == "linux" ]; then wget -nv http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh; fi
+  
+  - bash miniconda.sh -b -p $HOME/miniconda
+  - export PATH="$HOME/miniconda/bin:$PATH"
+  - hash -r
+  - conda config --set always_yes yes --set changeps1 no
+  - conda update -q conda
+  - conda info -a # Useful for debugging any issues with conda
+  - conda config --add channels http://conda.anaconda.org/NLeSC  
+  - conda create -q -n biodiversity six pandas ipython-notebook scikit-learn git basemap matplotlib xlrd numba rasterio python=3
+
+  - source activate biodiversity
+
+  - pip install pygbif rpy2 geopy geopandas
+
+  - python setup.py install
+  
+  - python tests/test_GBIF.py
