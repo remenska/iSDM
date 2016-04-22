@@ -1,4 +1,5 @@
 # Config file for automatic testing at travis-ci.org
+sudo: required
 
 language: python
 
@@ -7,6 +8,10 @@ sudo: false
 notifications:
   email:
     - remenska@gmail.com
+
+before_install:
+  - sudo apt-get -qq update
+  - sudo apt-get install -y install libgdal-dev
 
 before_script:
     - if [ "$TRAVIS_OS_NAME" == "linux" ]; then  
@@ -27,7 +32,7 @@ install:
   - conda update -q conda
   - conda info -a # Useful for debugging any issues with conda
   - conda config --add channels http://conda.anaconda.org/NLeSC  
-  - conda create -q -n biodiversity six pandas ipython-notebook scikit-learn git basemap matplotlib xlrd numba rasterio gdal libgdal=2.0.0=0 geos python=3
+  - conda create -q -n biodiversity six pandas ipython-notebook scikit-learn git basemap matplotlib xlrd numba rasterio gdal geos python=3
 
   - source activate biodiversity
 
