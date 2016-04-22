@@ -10,7 +10,7 @@ except ImportError:
 readme = open('README.md').read()
 
 requirements = open('requirements.txt').read().splitlines()
-
+test_requirements = requirements + ['nose', 'coverage']
 if six.PY2:
     requirements.append('configparser')
 
@@ -22,8 +22,8 @@ setup(
     author='Daniela Remenska',
     author_email='d.remenska@esciencecenter.nl',
     packages = ['iSDM'],
+    package_dir={'iSDM': 'iSDM'},
     license='Apache Software License',
-    tests_require=['nosetests'],
     platforms='any',
     long_description=readme,
     install_requires=requirements,
@@ -31,5 +31,6 @@ setup(
     'Programming Language :: Python',
     'Topic :: Software Development :: Libraries :: Application Frameworks',
     ],
-    test_suite='tests'
+    test_suite="tests",
+    tests_require=test_requirements
     )
