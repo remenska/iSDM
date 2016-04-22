@@ -228,7 +228,7 @@ class IUCNSpecies(Species):
         self.shape_file = file_path
 
 
-    def filter_species(self, name_species=None):
+    def find_species_occurrences(self, name_species=None):
         if not self.shape_file:
             raise AttributeError("You have not provided a shapefile to load data from.")
         if name_species:
@@ -242,7 +242,7 @@ class IUCNSpecies(Species):
             raise ValueError("There is no species with the name '%s' in the shapefile" % self.name_species)
         else:
             self.data_full = all_data
-            logger.info("Data is filtered to contain only species: %s " % self.name_species)
+            logger.info("Loaded species: %s " % self.data_full['binomial'].unique())
 
         if self.data_full['id_no'].shape[0]==1:
             self.ID = int(self.data_full['id_no'].iloc[0])
