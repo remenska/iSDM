@@ -21,9 +21,3 @@ cat("maximum is:", max(nums),"\n")
 
 
 
- ro.r('''
-newDef <- function(a,b){
-   x = runif(10,a,b)
-   mean(x)
-}
-''')

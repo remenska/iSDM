@@ -10,7 +10,7 @@ except ImportError:
 readme = open('README.md').read()
 
 requirements = open('requirements.txt').read().splitlines()
-test_requirements = requirements + ['nose', 'coverage']
+test_requirements = requirements + ['nose', 'coverage', 'flake8']
 if six.PY2:
     requirements.append('configparser')
 

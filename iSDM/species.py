@@ -1,4 +1,4 @@
-from pygbif import species # http://pygbif.readthedocs.org/en/latest/
+from pygbif import species   # http://pygbif.readthedocs.org/en/latest/
 from pygbif import occurrences
 import copy
 import pandas as pd
@@ -21,11 +21,13 @@ except:
 logger = logging.getLogger('iSDM.species')
 logger.setLevel(logging.DEBUG)
 
+
 class Source(Enum):
     GBIF = 1
     IUCN = 2
     PREDICTS = 3
     MOL = 4
+
 
 class ObservationsType(Enum):
     PRESENCE_ONLY = 1
@@ -44,16 +46,14 @@ class Species(object):
             raise AttributeError("Cannot initialize species without a 'name_species' or an 'ID' argument supplied")
 
         if 'name_species' in kwargs:
-            self.name_species=kwargs['name_species']
+            self.name_species = kwargs['name_species']
         if 'ID' in kwargs:
-            self.ID=kwargs['ID']
+            self.ID = kwargs['ID']
 
-    def save_data(self, full_name=None, dir_name=None, file_name=None): 
-        """
-        Serializes the loaded species occurrence filtered dataset (pandas.DataFrame) into a binary pickle file
-        """
-        #TODO Either move this method in subclass or generalize 
-
+    def save_data(self, full_name=None, dir_name=None, file_name=None):
+        """ Serializes the loaded species occurrence
+    filtered dataset (pandas.DataFrame) into a binary pickle file TODO: Either move this method in subclass or
+    generalize """
         if full_name is None:
             if file_name is None:
                 file_name = str(self.name_species) + str(self.ID) + ".pkl"
@@ -65,28 +65,26 @@ class Species(object):
         f = open(full_name, 'wb')
         try:
             pickle.dump(self.data_full, f)
-            logger.debug("Saved data: %s " %full_name)
+            logger.debug("Saved data: %s " % full_name)
         except AttributeError as e:
-            logger.error("Occurrences data is not loaded! %s " %str(e))
+            logger.error("Occurrences data is not loaded! %s " % str(e))
         finally:
             f.close()
 
     def load_data(self, file_path=None):
-        """
-        Loads the serialized GBIF species occurrence filtered dataset into a pandas DataFrame
-        """
-        #TODO either move this method in subclass or generalize
-
+        """ Loads the serialized GBIF species occurrence filtered dataset into a pandas
+    DataFrame. #TODO either move this method in subclass or generalize
+    """
         if file_path is None:
             filename = str(self.name_species) + str(self.ID) + ".pkl"
             file_path = os.path.join(os.getcwd(), filename)
 
-        logger.info("Loading data from: %s" %file_path)
+        logger.info("Loading data from: %s" % file_path)
         f = open(file_path, 'rb')
         try:
             self.data_full = pickle.load(f)
             logger.info("Succesfully loaded previously saved data.")
-            return self.data_full # TODO maybe don't return the full frame?
+            return self.data_full   # TODO maybe don't return the full frame?
         finally:
             f.close()
 
@@ -100,7 +98,7 @@ class Species(object):
         # !!! Careful, overwrites the existing raw data!
         self.data_full = data_frame
 
-    def plot_species_occurrence(self, figsize=(16,12), projection='merc'):
+    def plot_species_occurrence(self, figsize=(16, 12), projection='merc'):
         data_clean = self.data_full.dropna(how='any', subset=['decimalLatitude', 'decimalLongitude'])
 
         # latitude/longitude lists
@@ -108,17 +106,15 @@ class Species(object):
         data_full_longitude = data_clean.decimalLongitude
 
         plt.figure(figsize=figsize)
-        plt.title("%s occurrence records from %s " 
-            % (self.name_species, self.source.name)
-            )
+        plt.title("%s occurrence records from %s " % (self.name_species, self.source.name))
 
         my_map = Basemap(projection=projection, lat_0=50, lon_0=-100,
-                        resolution='l', area_thresh=1000.0, 
-                        llcrnrlon=data_full_longitude.min(),# lower left corner longitude point 
-                        llcrnrlat=data_full_latitude.min(), # lower left corner latitude point
-                        urcrnrlon=data_full_longitude.max(), # upper right longitude point
-                        urcrnrlat=data_full_latitude.max() # upper right latitude point
-                        )
+                         resolution='l', area_thresh=1000.0,
+                         llcrnrlon=data_full_longitude.min(),  # lower left corner longitude point
+                         llcrnrlat=data_full_latitude.min(),   # lower left corner latitude point
+                         urcrnrlon=data_full_longitude.max(),  # upper right longitude point
+                         urcrnrlat=data_full_latitude.max()    # upper right latitude point
+                         )
         # prepare longitude/latitude list for basemap
         df_x, df_y = my_map(data_full_longitude.tolist(), data_full_latitude.tolist())
         my_map.drawcoastlines()
@@ -139,7 +135,6 @@ class GBIFSpecies(Species):
         self.source = Source.GBIF
         self.observations_type = ObservationsType.PRESENCE_ONLY
 
-
     def find_species_occurrences(self, **kwargs):
         """
         Finds and loads species occurrence data into pandas DataFrame.
@@ -151,15 +146,14 @@ class GBIFSpecies(Species):
 
         try:
             species_result = species.name_backbone(name=self.name_species, verbose=False)
-            if species_result['matchType']=='NONE':
+            if species_result['matchType'] == 'NONE':
                 raise ValueError("No match for the species %s " % self.name_species)
             self.ID = species_result['usageKey']
             first_res = occurrences.search(taxonKey=self.ID, limit=100000, **kwargs)
 
-        except AttributeError: # name not provided, assume at least ID is provided
+        except AttributeError:   # name not provided, assume at least ID is provided
             first_res = occurrences.search(taxonKey=self.ID, limit=100000, **kwargs)
-        
-        #TODO: more efficient way than copying...appending to the same dataframe?
+        # TODO: more efficient way than copying...appending to the same dataframe?
 
         full_results = copy.copy(first_res)
 
@@ -168,27 +162,26 @@ class GBIFSpecies(Species):
         while first_res['endOfRecords'] is False:
             first_res = occurrences.search(taxonKey=self.ID, offset=300*counter, limit=10000)
             full_results['results'] = copy.copy(full_results['results']) + copy.copy(first_res['results'])
-            counter+=1
-        
+            counter += 1
+
         logger.info("Loading species ... ")
         logger.info("Number of occurrences: %s " % full_results['count'])
-        logger.debug(full_results['count'] == len(full_results['results'])) # match?
+        logger.debug(full_results['count'] == len(full_results['results']))   # match?
 
-        #TODO: do we want a special way of loading? say, suggesting data types in some columns?
+        # TODO: do we want a special way of loading? say, suggesting data types in some columns?
 
-        #TODO: should we reformat the dtypes of the columns? at least day/month/year we care?
-        #data_cleaned[['day', 'month', 'year']] = data_cleaned[['day', 'month', 'year']].fillna(0.0).astype(int)
-        
-        self.data_full = pd.DataFrame(full_results['results']) # load results in pandas dataframes
+        # TODO: should we reformat the dtypes of the columns? at least day/month/year we care?
+        # data_cleaned[['day', 'month', 'year']] = data_cleaned[['day', 'month', 'year']].fillna(0.0).astype(int)
+
+        self.data_full = pd.DataFrame(full_results['results'])  # load results in pandas DF
         if self.data_full.empty:
             logger.info("Could not retrieve any occurrences!")
-        else:   
+        else:
             logger.info("Loaded species: %s " % self.data_full['species'].unique())
         return self.data_full
 
-
     def load_csv(self, file_path):
-        logger.info("Loading data from: %s" %file_path)
+        logger.info("Loading data from: %s" % file_path)
         f = open(file_path, 'r')
         try:
             dialect = csv.Sniffer().sniff(f.read(10240))
@@ -196,7 +189,7 @@ class GBIFSpecies(Species):
             logger.info("Succesfully loaded previously CSV data.")
             if 'specieskey' in self.data_full and self.data_full['specieskey'].unique().size == 1:
                 self.ID = self.data_full['specieskey'].unique()[0]
-                logger.info("Updated species ID: %s " %self.ID)
+                logger.info("Updated species ID: %s " % self.ID)
 
             return self.data_full
         finally:
@@ -205,28 +198,33 @@ class GBIFSpecies(Species):
 
 class IUCNSpecies(Species):
     """
-    Data are held in shapefiles, the ESRI native format and contains the known range of each species. Ranges are depicted as polygons.
-    The maps are available as shapefiles. Not as one layer per species, but one (very) large shapefile that contains all the distribution maps of that group.
-    We will need to rasterize IUCN range polygons to grids with a predefined resolution. 
-    "Gridify" the data, and per species rather than all in one region)
+
+    Data are held in shapefiles, the ESRI native format and contains the known range of each species. Ranges are
+    depicted as polygons.
+
+    The maps are available as shapefiles. Not as one layer per species, but one (very) large shapefile that contains all
+    the distribution maps of that group.
+
+    We will need to rasterize IUCN range polygons to grids with a predefined resolution. "Gridify" the data, and per
+    species rather than all in one region.
 
     http://www.petrkeil.com/?p=648
-    "   It does not matter that much what is (or will be in future) the pattern of species distribution at a single scale. It does not matter that much what predicts species occurrences at the finest grain resolutions. It is naive to say that, for applied and conservation purposes, it is fine grain that matters. All grains 
-        (potentially) matter. Appropriate scaling relationships are the baseline that links all of the grains together."
-
+    "It does not matter that much what is (or will be in future) the pattern of species distribution at a single scale.
+    "It does not matter that much what predicts species occurrences at the finest grain resolutions. It is naive to say
+    "that, for applied and conservation purposes, it is fine grain that matters. All grains (potentially) matter.
+    "Appropriate scaling relationships are the baseline that links all of the grains together.
     """
 
     def __init__(self, **kwargs):
         Species.__init__(self, **kwargs)
-        self.source=Source.IUCN
-        self.observations_type=ObservationsType.PRESENCE_ONLY
+        self.source = Source.IUCN
+        self.observations_type = ObservationsType.PRESENCE_ONLY
 
     def load_shapefile(self, file_path):
-        logger.info("Loading data from: %s" %file_path)
+        logger.info("Loading data from: %s" % file_path)
         self.data_full = GeoDataFrame.from_file(file_path)
-        logger.info("The shapefile contains data on %d species." %self.data_full.shape[0])
+        logger.info("The shapefile contains data on %d species." % self.data_full.shape[0])
         self.shape_file = file_path
-
 
     def find_species_occurrences(self, name_species=None):
         if not self.shape_file:
@@ -234,22 +232,21 @@ class IUCNSpecies(Species):
         if name_species:
             self.name_species = name_species
         if not self.name_species:
-            raise AttributeError("You have not provided a name for the species.")   
+            raise AttributeError("You have not provided a name for the species.")
 
-        all_data = self.data_full[self.data_full['binomial']==self.name_species]
+        all_data = self.data_full[self.data_full['binomial'] == self.name_species]
 
-        if all_data.shape[0]==0:
+        if all_data.shape[0] == 0:
             raise ValueError("There is no species with the name '%s' in the shapefile" % self.name_species)
         else:
             self.data_full = all_data
             logger.info("Loaded species: %s " % self.data_full['binomial'].unique())
 
-        if self.data_full['id_no'].shape[0]==1:
+        if self.data_full['id_no'].shape[0] == 1:
             self.ID = int(self.data_full['id_no'].iloc[0])
 
-    def save_shapefile(self, full_name=None, driver = 'ESRI Shapefile', overwrite = False):
-        """
-        saves the current data as a shapefile. The geopandas data needs to have geometry as a column, besides the metadata
+    def save_shapefile(self, full_name=None, driver='ESRI Shapefile', overwrite=False):
+        """ Saves the current data as a shapefile. The geopandas data needs to have geometry as a column, besides the metadata.
         """
 
         if not (isinstance(self.data_full, GeoSeries) or isinstance(self.data_full, GeoDataFrame)):
@@ -261,15 +258,14 @@ class IUCNSpecies(Species):
             raise AttributeError("Please provide a shape_file location, or set overwrite=True")
 
         try:
-            self.data_full.to_file(full_name, driver = "ESRI Shapefile")
-            logger.debug("Saved data: %s " %full_name)
+            self.data_full.to_file(full_name, driver="ESRI Shapefile")
+            logger.debug("Saved data: %s " % full_name)
         except AttributeError as e:
-            logger.error("Could not save data! %s " %str(e))
-
+            logger.error("Could not save data! %s " % str(e))
 
     def rasterize_data(self, raster_file=None, pixel_size=None, x_res=None, y_res=None, *args, **kwargs):
-        #TODO or maybe load it with rasterio?
-        #options = ["ALL_TOUCHED=TRUE"]
+        # TODO or maybe load it with rasterio?
+        # options = ["ALL_TOUCHED=TRUE"]
 
         if not (pixel_size or raster_file):
             raise AttributeError("Please provide pixel_size and a target raster_file.")
@@ -279,7 +275,7 @@ class IUCNSpecies(Species):
         # Open the data source and read in the extent
         source_ds = ogr.Open(self.shape_file)
         source_layer = source_ds.GetLayer()
-        x_min, x_max, y_min, y_max = source_layer.GetExtent() # boundaries
+        x_min, x_max, y_min, y_max = source_layer.GetExtent()   # boundaries
 
         # Create the destination data source
         x_res = int((x_max - x_min) / pixel_size)
@@ -291,15 +287,16 @@ class IUCNSpecies(Species):
         # Rasterize
         gdal.RasterizeLayer(target_ds, [1], source_layer, burn_values=[255], *args, **kwargs)
 
-        # WOW: https://trac.osgeo.org/gdal/wiki/PythonGotchas
-        #"To save and close GDAL raster datasets or OGR vector datasources, the object needs to be dereferenced,"
-        #"such as setting it to None, a different value, or deleting the object. "
+        # WOW: https://trac.osgeo.org/gdal/wiki/PythonGotchas "To save and close GDAL raster datasets or OGR vector
+        # datasources, the object needs to be dereferenced, such as setting it to None, a different value, or deleting
+        # the object. "
         band = None
         target_ds = None
         logger.info("Data rasterized into file %s " % raster_file)
         logger.info("Resolution: x_res={0} y_res={1}".format(x_res, y_res))
 
-        #TODO do we need to save extra information on the resolution? no, all info is in the TIF file, maybe we should expose it though. geo.RasterXSize/RasterYSize geo.GetGeoTransform() provide all
+        # TODO do we need to save extra information on the resolution? no, all info is in the TIF file, maybe we should
+        # expose it though. geo.RasterXSize/RasterYSize geo.GetGeoTransform() provide all
         self.raster_file = raster_file
         self.x_res = x_res
         self.y_res = y_res
@@ -313,18 +310,12 @@ class IUCNSpecies(Species):
         geo = gdal.Open(self.raster_file)
         drv = geo.GetDriver()
 
-        logger.info("Driver name: %s " %drv.GetMetadataItem('DMD_LONGNAME'))
+        logger.info("Driver name: %s " % drv.GetMetadataItem('DMD_LONGNAME'))
         logger.info("Raster data from %s loaded." % self.raster_file)
-        
+
         img = geo.ReadAsArray()
         return img
 
 
 class MOLSpecies(Species):
     pass
-
-
-
-
-
-

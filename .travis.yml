@@ -30,3 +30,4 @@ install:
 
 script:  
   - python tests/test_GBIF.py # for now
+  - flake8 --max-line-length=120 iSDM/species.py
