@@ -12,7 +12,7 @@ NOTE for Linux (and Mac OSX): to add Anaconda to your PATH (environment variable
 
 ```export PATH=~/anaconda3/bin:$PATH  # assuming you installed Anaconda at ~/anaconda3/```
                                    
-##### Step 2: Create a python environment and install the following packages:
+##### Step 2: Open a command prompt, to create a python environment and install the following packages:
 ```
 conda create --name=biodiversity six pandas ipython-notebook scikit-learn git basemap matplotlib xlrd numba gdal rasterio python=3
 ```
