@@ -135,14 +135,17 @@ class GBIFSpecies(Species):
         self.source = Source.GBIF
         self.observations_type = ObservationsType.PRESENCE_ONLY
 
-    def find_species_occurrences(self, **kwargs):
+    def find_species_occurrences(self,  name_species=None, **kwargs):
         """
         Finds and loads species occurrence data into pandas DataFrame.
         Data comes from the GBIF database, based on name or gbif ID
         the occurrences.search(...) returns a list of json structures
         which we load into Pandas DataFrame for easier manipulation.
-
         """
+        if name_species:
+            self.name_species = name_species
+        if not self.name_species:
+            raise AttributeError("You have not provided a name for the species.")
 
         try:
             species_result = species.name_backbone(name=self.name_species, verbose=False)
