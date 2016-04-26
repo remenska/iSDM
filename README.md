@@ -6,7 +6,7 @@ Towards a species-by-species approach to global biodiversity modelling.
 
 NOTE for Windows:
 Do not install as Administrator unless admin privileges are required. If you encounter any issues during installation, please temporarily disable your anti-virus software during install, then immediately re-enable it.
-
+In the dialog **Advanced Options**, check both options: *Add Anaconda to my PATH environment variable*, and *Register Anaconda as my default Python*. 
 ##### Step 2: Create a python environment and install the following packages:
 ```
 conda create --name=biodiversity six pandas ipython-notebook scikit-learn git basemap matplotlib xlrd numba gdal rasterio python=3
