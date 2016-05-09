@@ -1,3 +1,12 @@
+"""
+Some interesting text.
+
+:synopsis: A useful module indeed.
+
+.. moduleauthor:: Daniela Remenska <andrew@invalid.com>
+
+"""
+
 from pygbif import species   # http://pygbif.readthedocs.org/en/latest/
 from pygbif import occurrences
 import copy
@@ -37,6 +46,14 @@ class ObservationsType(Enum):
 
 
 class Species(object):
+    """
+    py:class: Species
+    A generic Species class used for subclassing different global-scale species data sources.
+
+    :ivar ID: a unique ID for a particular species. For example, for GBIF sources, it is the gbifid metadata field.
+    :ivar name_species: initial value: 'Unknown'
+    """
+
     ID = int(0)
     name_species = 'Unknown'
 
@@ -51,9 +68,16 @@ class Species(object):
             self.ID = kwargs['ID']
 
     def save_data(self, full_name=None, dir_name=None, file_name=None):
-        """ Serializes the loaded species occurrence
-    filtered dataset (pandas.DataFrame) into a binary pickle file TODO: Either move this method in subclass or
-    generalize """
+        """
+        Serializes the loaded species occurrence filtered dataset (`pandas <http://pandas.pydata.org/pandas-docs/stable/dsintro.html>`_ or `geopandas <http://geopandas.org/user.html>`_ DataFrame) into a binary `pickle <https://en.wikipedia.org/wiki/Pickle_%28Python%29>`_  file.
+
+       :param str full_name: The full path of the file (including the directory and name in one string),
+        where the data will be saved.
+       :param str dir_name: The directory where the file will be stored. If :attr:`file_name` is not specified, the default one :attr:`name_species` + :attr:`ID`.pkl is given.
+       :param str file_name: The name of the file where the data will be saved. If :attr:`dir_name` is not specified, the current working directory is taken by default.
+       :raises AttributeError: if the data has not been loaded in the object before. See :func:`load_data` and :func:`find_species_occurrences`
+
+        """
         if full_name is None:
             if file_name is None:
                 file_name = str(self.name_species) + str(self.ID) + ".pkl"
@@ -73,7 +97,7 @@ class Species(object):
 
     def load_data(self, file_path=None):
         """ Loads the serialized GBIF species occurrence filtered dataset into a pandas
-    DataFrame. #TODO either move this method in subclass or generalize
+    DataFrame. #TODO either move this method in subclass or generalize.
     """
         if file_path is None:
             filename = str(self.name_species) + str(self.ID) + ".pkl"
@@ -88,10 +112,28 @@ class Species(object):
         finally:
             f.close()
 
-    def find_species_occurrences(self, **kwargs):
+    def find_species_occurrences(self,  name_species=None, **kwargs):
         raise NotImplementedError("You need to implement this method!")
 
     def get_data(self):
+        """This function does something.
+
+    Args:
+       name (str):  The name to use.
+
+    Kwargs:
+       state (bool): Current state to be in.
+
+    Returns:
+       int.  The return code::
+
+          0 -- Success!
+          1 -- No good.
+          2 -- Try again.
+
+    Raises:
+       AttributeError, KeyError
+        """
         return self.data_full
 
     def set_data(self, data_frame):
@@ -99,6 +141,7 @@ class Species(object):
         self.data_full = data_frame
 
     def plot_species_occurrence(self, figsize=(16, 12), projection='merc'):
+
         data_clean = self.data_full.dropna(how='any', subset=['decimalLatitude', 'decimalLongitude'])
 
         # latitude/longitude lists
@@ -131,6 +174,7 @@ class Species(object):
 class GBIFSpecies(Species):
 
     def __init__(self, **kwargs):
+
         Species.__init__(self, **kwargs)
         self.source = Source.GBIF
         self.observations_type = ObservationsType.PRESENCE_ONLY
@@ -141,6 +185,7 @@ class GBIFSpecies(Species):
         Data comes from the GBIF database, based on name or gbif ID
         the occurrences.search(...) returns a list of json structures
         which we load into Pandas DataFrame for easier manipulation.
+
         """
         if name_species:
             self.name_species = name_species
@@ -184,6 +229,7 @@ class GBIFSpecies(Species):
         return self.data_full
 
     def load_csv(self, file_path):
+
         logger.info("Loading data from: %s" % file_path)
         f = open(file_path, 'r')
         try:
@@ -201,21 +247,11 @@ class GBIFSpecies(Species):
 
 class IUCNSpecies(Species):
     """
-
-    Data are held in shapefiles, the ESRI native format and contains the known range of each species. Ranges are
-    depicted as polygons.
-
-    The maps are available as shapefiles. Not as one layer per species, but one (very) large shapefile that contains all
-    the distribution maps of that group.
-
-    We will need to rasterize IUCN range polygons to grids with a predefined resolution. "Gridify" the data, and per
+    The input data is in shapefiles(ESRI native format) and contains the known expert range of each species. Ranges are
+    depicted as polygons. One large shapefile contains all the distribution maps of that group, i.e., all geometries. We
+    will need to rasterize IUCN range polygons to grids with a predefined resolution. "Gridify" the data, and that per
     species rather than all in one region.
 
-    http://www.petrkeil.com/?p=648
-    "It does not matter that much what is (or will be in future) the pattern of species distribution at a single scale.
-    "It does not matter that much what predicts species occurrences at the finest grain resolutions. It is naive to say
-    "that, for applied and conservation purposes, it is fine grain that matters. All grains (potentially) matter.
-    "Appropriate scaling relationships are the baseline that links all of the grains together.
     """
 
     def __init__(self, **kwargs):
@@ -224,12 +260,17 @@ class IUCNSpecies(Species):
         self.observations_type = ObservationsType.PRESENCE_ONLY
 
     def load_shapefile(self, file_path):
+        """
+        A GeoDataFrame is a tablular data structure that contains a column called geometry which contains a GeoSeries.
+        So data_full will be a geopandas dataframe, you can obtain it by .get_data()
+        """
         logger.info("Loading data from: %s" % file_path)
-        self.data_full = GeoDataFrame.from_file(file_path)
+        self.data_full = GeoDataFrame.from_file(file_path)   # shapely.geometry type of objects are used
         logger.info("The shapefile contains data on %d species." % self.data_full.shape[0])
         self.shape_file = file_path
 
-    def find_species_occurrences(self, name_species=None):
+    def find_species_occurrences(self, name_species=None, **kwargs):
+
         if not self.shape_file:
             raise AttributeError("You have not provided a shapefile to load data from.")
         if name_species:
@@ -249,7 +290,9 @@ class IUCNSpecies(Species):
             self.ID = int(self.data_full['id_no'].iloc[0])
 
     def save_shapefile(self, full_name=None, driver='ESRI Shapefile', overwrite=False):
-        """ Saves the current data as a shapefile. The geopandas data needs to have geometry as a column, besides the metadata.
+        """
+        Saves the current data as a shapefile.
+        The geopandas data needs to have geometry as a column, besides the metadata.
         """
 
         if not (isinstance(self.data_full, GeoSeries) or isinstance(self.data_full, GeoDataFrame)):

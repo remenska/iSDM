@@ -1,5 +1,5 @@
 """
-interacting Species Distribution Models fraamework
+Interacting Species Distribution Models framework.
 """
 
 # -*- coding: utf-8 -*-
