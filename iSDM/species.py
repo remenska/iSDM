@@ -22,11 +22,6 @@ from geopandas import GeoSeries, GeoDataFrame
 from osgeo import gdal, ogr
 
 
-try:
-    import cPickle as pickle
-except:
-    import pickle
-
 logger = logging.getLogger('iSDM.species')
 logger.setLevel(logging.DEBUG)
 
@@ -86,33 +81,32 @@ class Species(object):
 
             full_name = os.path.join(dir_name, file_name)
 
-        f = open(full_name, 'wb')
         try:
-            pickle.dump(self.data_full, f)
+            self.data_full.to_pickle(full_name)
             logger.debug("Saved data: %s " % full_name)
+            logger.debug("Type of data: %s " % type(self.data_full))
+        except IOError as e:
+            logger.error("Could not save data! %s " % str(e))
         except AttributeError as e:
-            logger.error("Occurrences data is not loaded! %s " % str(e))
-        finally:
-            f.close()
+            logger.error("No data to save. Please load it first.")
 
     def load_data(self, file_path=None):
-        """ Loads the serialized GBIF species occurrence filtered dataset into a pandas
-    DataFrame. #TODO either move this method in subclass or generalize.
+        """ Loads the serialized species pickle file into a pandas DataFrame.
     """
         if file_path is None:
             filename = str(self.name_species) + str(self.ID) + ".pkl"
             file_path = os.path.join(os.getcwd(), filename)
 
         logger.info("Loading data from: %s" % file_path)
-        f = open(file_path, 'rb')
-        try:
-            self.data_full = pickle.load(f)
-            logger.info("Succesfully loaded previously saved data.")
-            return self.data_full   # TODO maybe don't return the full frame?
-        finally:
-            f.close()
 
-    def find_species_occurrences(self,  name_species=None, **kwargs):
+        try:
+            self.data_full = pd.read_pickle(file_path)
+            logger.info("Succesfully loaded previously saved data.")
+            return self.data_full
+        except IOError as e:
+            logger.error("Problem loading data! %s " % str(e))
+
+    def find_species_occurrences(self, name_species=None, **kwargs):
         raise NotImplementedError("You need to implement this method!")
 
     def get_data(self):
@@ -179,7 +173,7 @@ class GBIFSpecies(Species):
         self.source = Source.GBIF
         self.observations_type = ObservationsType.PRESENCE_ONLY
 
-    def find_species_occurrences(self,  name_species=None, **kwargs):
+    def find_species_occurrences(self, name_species=None, **kwargs):
         """
         Finds and loads species occurrence data into pandas DataFrame.
         Data comes from the GBIF database, based on name or gbif ID
@@ -208,7 +202,7 @@ class GBIFSpecies(Species):
         # results are paginated so we need a loop to fetch them all
         counter = 1
         while first_res['endOfRecords'] is False:
-            first_res = occurrences.search(taxonKey=self.ID, offset=300*counter, limit=10000)
+            first_res = occurrences.search(taxonKey=self.ID, offset=300 * counter, limit=10000)
             full_results['results'] = copy.copy(full_results['results']) + copy.copy(first_res['results'])
             counter += 1
 
@@ -235,7 +229,7 @@ class GBIFSpecies(Species):
         try:
             dialect = csv.Sniffer().sniff(f.read(10240))
             self.data_full = pd.read_csv(file_path, sep=dialect.delimiter)
-            logger.info("Succesfully loaded previously CSV data.")
+            logger.info("Succesfully loaded previously saved CSV data.")
             if 'specieskey' in self.data_full and self.data_full['specieskey'].unique().size == 1:
                 self.ID = self.data_full['specieskey'].unique()[0]
                 logger.info("Updated species ID: %s " % self.ID)
@@ -341,8 +335,6 @@ class IUCNSpecies(Species):
         logger.info("Data rasterized into file %s " % raster_file)
         logger.info("Resolution: x_res={0} y_res={1}".format(x_res, y_res))
 
-        # TODO do we need to save extra information on the resolution? no, all info is in the TIF file, maybe we should
-        # expose it though. geo.RasterXSize/RasterYSize geo.GetGeoTransform() provide all
         self.raster_file = raster_file
         self.x_res = x_res
         self.y_res = y_res
@@ -354,12 +346,18 @@ class IUCNSpecies(Species):
             raise AttributeError("Please rasterize the data first, or provide a raster_file to read from.")
 
         geo = gdal.Open(self.raster_file)
+        # sillly gdal python wrappings don't throw exceptions
+        if not geo:
+            logger.error("Unable to open %s " % raster_file)
+            return None
+
         drv = geo.GetDriver()
 
         logger.info("Driver name: %s " % drv.GetMetadataItem('DMD_LONGNAME'))
         logger.info("Raster data from %s loaded." % self.raster_file)
-
+        logger.info("Resolution: x_res={0} y_res={1}. GeoTransform: {2}".format(geo.RasterXSize, geo.RasterYSize, geo.GetGeoTransform()))
         img = geo.ReadAsArray()
+
         return img
 
 
