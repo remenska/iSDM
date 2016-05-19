@@ -195,7 +195,6 @@ class GBIFSpecies(Species):
 
         except AttributeError:   # name not provided, assume at least ID is provided
             first_res = occurrences.search(taxonKey=self.ID, limit=100000, **kwargs)
-        # TODO: more efficient way than copying...appending to the same dataframe?
 
         full_results = copy.copy(first_res)
 
@@ -203,7 +202,7 @@ class GBIFSpecies(Species):
         counter = 1
         while first_res['endOfRecords'] is False:
             first_res = occurrences.search(taxonKey=self.ID, offset=300 * counter, limit=10000)
-            full_results['results'] = copy.copy(full_results['results']) + copy.copy(first_res['results'])
+            full_results['results'].extend(first_res['results'])
             counter += 1
 
         logger.info("Loading species ... ")
