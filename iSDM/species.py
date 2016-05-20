@@ -20,7 +20,7 @@ import numpy as np
 from mpl_toolkits.basemap import Basemap
 from geopandas import GeoSeries, GeoDataFrame
 from osgeo import gdal, ogr
-
+from shapely.geometry import Point
 
 logger = logging.getLogger('iSDM.species')
 logger.setLevel(logging.DEBUG)
@@ -136,11 +136,11 @@ class Species(object):
 
     def plot_species_occurrence(self, figsize=(16, 12), projection='merc'):
 
-        data_clean = self.data_full.dropna(how='any', subset=['decimalLatitude', 'decimalLongitude'])
+        data_clean = self.data_full.dropna(how='any', subset=['decimallatitude', 'decimallongitude'])
 
         # latitude/longitude lists
-        data_full_latitude = data_clean.decimalLatitude
-        data_full_longitude = data_clean.decimalLongitude
+        data_full_latitude = data_clean.decimallatitude
+        data_full_longitude = data_clean.decimallongitude
 
         plt.figure(figsize=figsize)
         plt.title("%s occurrence records from %s " % (self.name_species, self.source.name))
@@ -215,6 +215,8 @@ class GBIFSpecies(Species):
         # data_cleaned[['day', 'month', 'year']] = data_cleaned[['day', 'month', 'year']].fillna(0.0).astype(int)
 
         self.data_full = pd.DataFrame(full_results['results'])  # load results in pandas DF
+        self.data_full.columns = map(str.lower, self.data_full.columns)  # convert all column headers to lowercase
+
         if self.data_full.empty:
             logger.info("Could not retrieve any occurrences!")
         else:
@@ -228,6 +230,7 @@ class GBIFSpecies(Species):
         try:
             dialect = csv.Sniffer().sniff(f.read(10240))
             self.data_full = pd.read_csv(file_path, sep=dialect.delimiter)
+            self.data_full.columns = map(str.lower, self.data_full.columns)  # convert all column headers to lowercase
             logger.info("Succesfully loaded previously saved CSV data.")
             if 'specieskey' in self.data_full and self.data_full['specieskey'].unique().size == 1:
                 self.ID = self.data_full['specieskey'].unique()[0]
@@ -236,6 +239,18 @@ class GBIFSpecies(Species):
             return self.data_full
         finally:
             f.close()
+
+    # vectorize? better name
+    def geometrize(self):
+        # Converts to geopandas. First convert the latitude/longitude into shapely geometry Point.
+        # TODO how to convert points into a polygon? multiple methods?
+        try:
+            crs = None
+            geometry = [Point(xy) for xy in zip(self.data_full['decimallongitude'], self.data_full['decimallatitude'])]
+            self.data_full = GeoDataFrame(self.data_full, crs=crs, geometry=geometry)
+            return self.data_full
+        except AttributeError:
+            logger.error("No latitude/longitude data to convert into a geometry. Please load the data first.")
 
 
 class IUCNSpecies(Species):
@@ -259,6 +274,7 @@ class IUCNSpecies(Species):
         """
         logger.info("Loading data from: %s" % file_path)
         self.data_full = GeoDataFrame.from_file(file_path)   # shapely.geometry type of objects are used
+        self.data_full.columns = map(str.lower, self.data_full.columns)   # convert all column headers to lowercase
         logger.info("The shapefile contains data on %d species." % self.data_full.shape[0])
         self.shape_file = file_path
 
@@ -282,14 +298,16 @@ class IUCNSpecies(Species):
         if self.data_full['id_no'].shape[0] == 1:
             self.ID = int(self.data_full['id_no'].iloc[0])
 
+        return self.data_full
+
     def save_shapefile(self, full_name=None, driver='ESRI Shapefile', overwrite=False):
         """
-        Saves the current data as a shapefile.
+        Saves the current (geopandas) data as a shapefile.
         The geopandas data needs to have geometry as a column, besides the metadata.
         """
 
         if not (isinstance(self.data_full, GeoSeries) or isinstance(self.data_full, GeoDataFrame)):
-            raise AttributeError("The data is not of a Geometry type (GeoSeries or GeoDataFrame")
+            raise AttributeError("The data is not of a Geometry type (GeoSeries or GeoDataFrame). Please geometrize first!")
 
         if overwrite:
             full_name = self.shape_file
@@ -302,8 +320,7 @@ class IUCNSpecies(Species):
         except AttributeError as e:
             logger.error("Could not save data! %s " % str(e))
 
-    def rasterize_data(self, raster_file=None, pixel_size=None, x_res=None, y_res=None, *args, **kwargs):
-        # TODO or maybe load it with rasterio?
+    def rasterize(self, raster_file=None, pixel_size=None, x_res=None, y_res=None, *args, **kwargs):
         # options = ["ALL_TOUCHED=TRUE"]
 
         if not (pixel_size or raster_file):
