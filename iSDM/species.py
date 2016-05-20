@@ -21,6 +21,7 @@ from mpl_toolkits.basemap import Basemap
 from geopandas import GeoSeries, GeoDataFrame
 from osgeo import gdal, ogr
 from shapely.geometry import Point
+import shapely.ops
 
 logger = logging.getLogger('iSDM.species')
 logger.setLevel(logging.DEBUG)
@@ -241,16 +242,34 @@ class GBIFSpecies(Species):
             f.close()
 
     # vectorize? better name
-    def geometrize(self):
+    def geometrize(self, dropna=True):
         # Converts to geopandas. First convert the latitude/longitude into shapely geometry Point.
         # TODO how to convert points into a polygon? multiple methods?
         try:
             crs = None
-            geometry = [Point(xy) for xy in zip(self.data_full['decimallongitude'], self.data_full['decimallatitude'])]
-            self.data_full = GeoDataFrame(self.data_full, crs=crs, geometry=geometry)
-            return self.data_full
+            # exclude those points with NaN in coordinates
+            if dropna:
+                geometry = [Point(xy) for xy in zip(self.data_full['decimallongitude'].dropna(), self.data_full['decimallatitude'].dropna())]
+                self.data_full = GeoDataFrame(self.data_full.dropna(subset=['decimallatitude', 'decimallongitude']), crs=crs, geometry=geometry)
+            else:
+                geometry = [Point(xy) for xy in zip(self.data_full['decimallongitude'], self.data_full['decimallatitude'])]
+                self.data_full = GeoDataFrame(self.data_full, crs=crs, geometry=geometry)
         except AttributeError:
             logger.error("No latitude/longitude data to convert into a geometry. Please load the data first.")
+
+    def polygonize(self, buffer=1, simplify_tolerance=0.1, preserve_topology=False, with_envelope=False):
+        if not (isinstance(self.data_full, GeoSeries) or isinstance(self.data_full, GeoDataFrame)):
+            self.geometrize(dropna=True)
+
+        data_polygonized = self.data_full.copy(deep=True)
+        if with_envelope:
+            data_polygonized = data_polygonized.buffer(buffer).simplify(simplify_tolerance, preserve_topology).envelope
+        else:
+            data_polygonized = data_polygonized.buffer(buffer).simplify(simplify_tolerance, preserve_topology)
+        cascaded_union_multipolygon = shapely.ops.cascaded_union(data_polygonized.geometry)
+        df_polygonized = GeoDataFrame(geometry=[pol for pol in cascaded_union_multipolygon])  # no .tolist for MultiPolygon unfortunatelly
+
+        return df_polygonized
 
 
 class IUCNSpecies(Species):
