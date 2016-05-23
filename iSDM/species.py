@@ -22,6 +22,9 @@ from geopandas import GeoSeries, GeoDataFrame
 from osgeo import gdal, ogr
 from shapely.geometry import Point
 import shapely.ops
+from matplotlib.collections import PatchCollection
+from descartes import PolygonPatch
+
 
 logger = logging.getLogger('iSDM.species')
 logger.setLevel(logging.DEBUG)
@@ -89,7 +92,7 @@ class Species(object):
         except IOError as e:
             logger.error("Could not save data! %s " % str(e))
         except AttributeError as e:
-            logger.error("No data to save. Please load it first.")
+            logger.error("No data to save. Please load it first. %s " % str(e))
 
     def load_data(self, file_path=None):
         """ Loads the serialized species pickle file into a pandas DataFrame.
@@ -136,34 +139,57 @@ class Species(object):
         self.data_full = data_frame
 
     def plot_species_occurrence(self, figsize=(16, 12), projection='merc'):
+        if not isinstance(self.data_full, GeoDataFrame):
+            if not isinstance(self.data_full, pd.DataFrame):
+                raise AttributeError("No data to save. Please load it first.")
+            else:
+                self.geometrize(dropna=True)
 
-        data_clean = self.data_full.dropna(how='any', subset=['decimallatitude', 'decimallongitude'])
-
-        # latitude/longitude lists
-        data_full_latitude = data_clean.decimallatitude
-        data_full_longitude = data_clean.decimallongitude
-
-        plt.figure(figsize=figsize)
-        plt.title("%s occurrence records from %s " % (self.name_species, self.source.name))
-
+        # Now we have a geometry column (GeoPandas instance). Could be filled with Point/Polygon...
         my_map = Basemap(projection=projection, lat_0=50, lon_0=-100,
                          resolution='l', area_thresh=1000.0,
-                         llcrnrlon=data_full_longitude.min(),  # lower left corner longitude point
-                         llcrnrlat=data_full_latitude.min(),   # lower left corner latitude point
-                         urcrnrlon=data_full_longitude.max(),  # upper right longitude point
-                         urcrnrlat=data_full_latitude.max()    # upper right latitude point
+                         llcrnrlon=self.data_full.geometry.bounds.minx.min(),  # lower left corner longitude point
+                         llcrnrlat=self.data_full.geometry.bounds.miny.min(),   # lower left corner latitude point
+                         urcrnrlon=self.data_full.geometry.bounds.maxx.max(),  # upper right longitude point
+                         urcrnrlat=self.data_full.geometry.bounds.maxy.max()    # upper right latitude point
                          )
+
+        # data_full_longitude = [point.x for point in self.data_full.geometry]
+        # data_full_latitude = [point.y for point in self.data_full.geometry]
         # prepare longitude/latitude list for basemap
-        df_x, df_y = my_map(data_full_longitude.tolist(), data_full_latitude.tolist())
+        fig, ax1 = plt.subplots(figsize=figsize)
+        # df_x, df_y = my_map(data_full_longitude, data_full_latitude)
+
+        # plt.figure(figsize=figsize)
+        plt.title("%s occurrence records from %s " % (self.name_species, self.source.name))
+
         my_map.drawcoastlines()
         my_map.drawcountries()
         my_map.drawrivers(color='lightskyblue', linewidth=1.5)
         my_map.drawmapboundary(fill_color='lightskyblue')
         my_map.fillcontinents(color='cornsilk')
         # draw latitude and longitude
-        my_map.drawmeridians(np.arange(0, 360, 30))
-        my_map.drawparallels(np.arange(-90, 90, 30))
-        my_map.plot(df_x, df_y, 'bo', markersize=5, color="#b01a1a")
+        my_map.drawmeridians(np.arange(-180, 180, 10), labels=[False, False, False, True])
+        my_map.drawparallels(np.arange(-180, 180, 10), labels=[True, True, False, False])
+        # my_map.plot(df_x, df_y, 'bo', markersize=4, color="#b01a1a")
+
+        patches = []
+        selection = self.data_full
+        for poly in selection.geometry:
+            if poly.geom_type == 'Polygon':
+                mpoly = shapely.ops.transform(my_map, poly)
+                patches.append(PolygonPatch(mpoly))
+            elif poly.geom_type == 'MultiPolygon':
+                for subpoly in poly:
+                    mpoly = shapely.ops.transform(my_map, subpoly)
+                    patches.append(PolygonPatch(mpoly))
+            elif poly.geom_type == "Point":
+                patches.append(PolygonPatch(Point(my_map(poly.x, poly.y)).buffer(9999)))
+            else:
+                logger.warning("Geometry type %s not supported. Skipping ... " % poly.geom_type)
+                continue
+        ax1.add_collection(PatchCollection(patches, facecolor='crimson', match_original=True, zorder=100))
+        plt.show()
 
 
 class GBIFSpecies(Species):
@@ -243,21 +269,28 @@ class GBIFSpecies(Species):
 
     # vectorize? better name
     def geometrize(self, dropna=True):
-        # Converts to geopandas. First convert the latitude/longitude into shapely geometry Point.
-        # TODO how to convert points into a polygon? multiple methods?
+        # Converts to geopandas. First convert the latitude/longitude into shapely geometry Point. This is still one-dimensional.
         try:
             crs = None
             # exclude those points with NaN in coordinates
             if dropna:
                 geometry = [Point(xy) for xy in zip(self.data_full['decimallongitude'].dropna(), self.data_full['decimallatitude'].dropna())]
                 self.data_full = GeoDataFrame(self.data_full.dropna(subset=['decimallatitude', 'decimallongitude']), crs=crs, geometry=geometry)
+                logger.info("Data geometrized: converted into GeoPandas dataframe.")
+
             else:
                 geometry = [Point(xy) for xy in zip(self.data_full['decimallongitude'], self.data_full['decimallatitude'])]
                 self.data_full = GeoDataFrame(self.data_full, crs=crs, geometry=geometry)
+                logger.info("Data geometrized: converted into GeoPandas dataframe.")
         except AttributeError:
             logger.error("No latitude/longitude data to convert into a geometry. Please load the data first.")
 
     def polygonize(self, buffer=1, simplify_tolerance=0.1, preserve_topology=False, with_envelope=False):
+        """
+        Expand each sample point into its polygon of influence (buffer).
+        Merge the polygons that overlap into a cascaded union (multipolygon)
+        Return a GeoDataFrame
+        """
         if not (isinstance(self.data_full, GeoSeries) or isinstance(self.data_full, GeoDataFrame)):
             self.geometrize(dropna=True)
 
@@ -266,6 +299,7 @@ class GBIFSpecies(Species):
             data_polygonized = data_polygonized.buffer(buffer).simplify(simplify_tolerance, preserve_topology).envelope
         else:
             data_polygonized = data_polygonized.buffer(buffer).simplify(simplify_tolerance, preserve_topology)
+
         cascaded_union_multipolygon = shapely.ops.cascaded_union(data_polygonized.geometry)
         df_polygonized = GeoDataFrame(geometry=[pol for pol in cascaded_union_multipolygon])  # no .tolist for MultiPolygon unfortunatelly
 
