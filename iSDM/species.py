@@ -3,7 +3,7 @@ Some interesting text.
 
 :synopsis: A useful module indeed.
 
-.. moduleauthor:: Daniela Remenska <andrew@invalid.com>
+.. moduleauthor:: Daniela Remenska <remenska@gmail.com>
 
 """
 
@@ -148,10 +148,10 @@ class Species(object):
         # Now we have a geometry column (GeoPandas instance). Could be filled with Point/Polygon...
         mm = Basemap(projection=projection, lat_0=50, lon_0=-100,
                      resolution='l', area_thresh=1000.0,
-                     llcrnrlon=self.data_full.geometry.bounds.minx.min(),  # lower left corner longitude point
-                     llcrnrlat=self.data_full.geometry.bounds.miny.min(),  # lower left corner latitude point
-                     urcrnrlon=self.data_full.geometry.bounds.maxx.max(),  # upper right longitude point
-                     urcrnrlat=self.data_full.geometry.bounds.maxy.max()   # upper right latitude point
+                     llcrnrlon=self.data_full.geometry.total_bounds[0],  # lower left corner longitude point
+                     llcrnrlat=self.data_full.geometry.total_bounds[1],  # lower left corner latitude point
+                     urcrnrlon=self.data_full.geometry.total_bounds[2],  # upper right longitude point
+                     urcrnrlat=self.data_full.geometry.total_bounds[3]   # upper right latitude point
                      )
 
         # prepare longitude/latitude list for basemap
@@ -262,7 +262,7 @@ class GBIFSpecies(Species):
         finally:
             f.close()
 
-    # vectorize? better namef
+    # vectorize? better name
     def geometrize(self, dropna=True, longitude_col_name='decimallongitude', latitude_col_name='decimallatitude'):
         """
         Converts data to geopandas. The latitude/longitude is converted into shapely Point geometry.
@@ -281,7 +281,8 @@ class GBIFSpecies(Species):
                         subset=[latitude_col_name, longitude_col_name]),
                     crs=crs,
                     geometry=geometry)
-                logger.info("Data geometrized: converted into GeoPandas dataframe.")
+                logger.info("Data geometrized: converted into GeoPandas dataframe.",
+                            "Points with NaN coordinnates ignored. ")
             else:
                 geometry = [Point(xy) for xy in zip(
                     self.data_full[longitude_col_name],
@@ -312,13 +313,16 @@ class GBIFSpecies(Species):
                 buffer_distance,
                 buffer_resolution
             ).simplify(simplify_tolerance, preserve_topology).envelope
+            logger.debug("Data polygonized with envelope.")
         else:
             data_polygonized = data_polygonized.buffer(
                 buffer_distance,
                 buffer_resolution
             ).simplify(simplify_tolerance, preserve_topology)
+            logger.debug("Data polygonized without envelope.")
 
         cascaded_union_multipolygon = shapely.ops.cascaded_union(data_polygonized.geometry)
+        logger.debug("Cascaded union of polygons created.")
 
         # no .tolist for MultiPolygon unfortunatelly
         df_polygonized = GeoDataFrame(geometry=[pol for pol in cascaded_union_multipolygon])
