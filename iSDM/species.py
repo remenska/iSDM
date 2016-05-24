@@ -120,7 +120,7 @@ class Species(object):
        name (str):  The name to use.
 
     Kwargs:
-       state (bool): Current state to be in.
+       state (bool): Current state to be in.RrR
 
     Returns:
        int.  The return code::
@@ -144,6 +144,15 @@ class Species(object):
                 raise AttributeError("No data to save. Please load it first.")
             else:
                 self.geometrize(dropna=True)
+
+        # empty dataset
+        if self.data_full.shape[0] == 0:
+            logger.error("No data to plot.")
+            return
+        # dataset with one point (one dimensional) is also problematic for plotting, if no buffer around
+        if self.data_full.shape[0] == 1:
+            logger.error("Only one point in dataset.")
+            return
 
         # Now we have a geometry column (GeoPandas instance). Could be filled with Point/Polygon...
         mm = Basemap(projection=projection, lat_0=50, lon_0=-100,
@@ -281,8 +290,8 @@ class GBIFSpecies(Species):
                         subset=[latitude_col_name, longitude_col_name]),
                     crs=crs,
                     geometry=geometry)
-                logger.info("Data geometrized: converted into GeoPandas dataframe.",
-                            "Points with NaN coordinnates ignored. ")
+                logger.info("Data geometrized: converted into GeoPandas dataframe.")
+                logger.info("Points with NaN coordinnates ignored. ")
             else:
                 geometry = [Point(xy) for xy in zip(
                     self.data_full[longitude_col_name],
@@ -328,6 +337,24 @@ class GBIFSpecies(Species):
         df_polygonized = GeoDataFrame(geometry=[pol for pol in cascaded_union_multipolygon])
         return df_polygonized
 
+    def overlay(self, species_range_map):
+        if not (isinstance(species_range_map, GeoSeries) or isinstance(species_range_map, IUCNSpecies)):
+            raise AttributeError("Please provide a correct species rangemap input.")
+
+        if not isinstance(self.data_full, GeoDataFrame):
+            if not isinstance(self.data_full, pd.DataFrame):
+                raise AttributeError("No data to save. Please load it first.")
+            else:
+                self.geometrize(dropna=True)
+
+        if isinstance(species_range_map, GeoSeries):
+            range_map_union = species_range_map.unary_union
+        elif isinstance(species_range_map, IUCNSpecies):
+            range_map_union = species_range_map.data_full.geometry.unary_union
+
+        self.data_full = self.data_full[self.data_full.geometry.intersects(range_map_union)]
+        logger.info("Overlayed species occurrence data with the given range map.")
+
 
 class IUCNSpecies(Species):
     """
@@ -347,6 +374,7 @@ class IUCNSpecies(Species):
         """
         A GeoDataFrame is a tablular data structure that contains a column called geometry which contains a GeoSeries.
         So data_full will be a geopandas dataframe, you can obtain it by .get_data()
+        Supported input formats: Shapefiles, GeoJSON.
         """
         logger.info("Loading data from: %s" % file_path)
         self.data_full = GeoDataFrame.from_file(file_path)   # shapely.geometry type of objects are used
@@ -400,6 +428,7 @@ class IUCNSpecies(Species):
 
     def rasterize(self, raster_file=None, pixel_size=None, x_res=None, y_res=None, *args, **kwargs):
         # options = ["ALL_TOUCHED=TRUE"]
+        # right now it is pixel_size. But we could complicate further with cell width/height.
 
         if not (pixel_size or raster_file):
             raise AttributeError("Please provide pixel_size and a target raster_file.")
@@ -424,6 +453,9 @@ class IUCNSpecies(Species):
         # WOW: https://trac.osgeo.org/gdal/wiki/PythonGotchas "To save and close GDAL raster datasets or OGR vector
         # datasources, the object needs to be dereferenced, such as setting it to None, a different value, or deleting
         # the object. "
+        # From the book "Python Geospatial Analysis Essentials":
+        # dstFile.Destroy() This closes the destination file and makes sure everything
+        # has been saved to disk.
         band = None
         target_ds = None
         logger.info("Data rasterized into file %s " % raster_file)
