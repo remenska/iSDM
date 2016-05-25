@@ -138,7 +138,7 @@ class Species(object):
         # !!! Careful, overwrites the existing raw data!
         self.data_full = data_frame
 
-    def plot_species_occurrence(self, figsize=(16, 12), projection='merc'):
+    def plot_species_occurrence(self, figsize=(16, 12), projection='merc', facecolor='crimson'):
         if not isinstance(self.data_full, GeoDataFrame):
             if not isinstance(self.data_full, pd.DataFrame):
                 raise AttributeError("No data to save. Please load it first.")
@@ -150,7 +150,7 @@ class Species(object):
             logger.error("No data to plot.")
             return
         # dataset with one point (one dimensional) is also problematic for plotting, if no buffer around
-        if self.data_full.shape[0] == 1:
+        if self.data_full.shape[0] == 1 and isinstance(self.data_full.geometry.iat[0], shapely.geometry.Point):
             logger.error("Only one point in dataset.")
             return
 
@@ -192,7 +192,7 @@ class Species(object):
             else:
                 logger.warning("Geometry type %s not supported. Skipping ... " % poly.geom_type)
                 continue
-        ax1.add_collection(PatchCollection(patches, facecolor='crimson', match_original=True, zorder=100))
+        ax1.add_collection(PatchCollection(patches, facecolor=facecolor, match_original=True, zorder=100))
         plt.show()
 
 
@@ -338,6 +338,11 @@ class GBIFSpecies(Species):
         return df_polygonized
 
     def overlay(self, species_range_map):
+        """
+        Overlays the point records with a species range map. The map can be an instance of IUCNSpecies, or directly
+        a GeoSeries datastructure containing geometry data.
+        This overlaying effectively crops the point records to the area within the range map.
+        """
         if not (isinstance(species_range_map, GeoSeries) or isinstance(species_range_map, IUCNSpecies)):
             raise AttributeError("Please provide a correct species rangemap input.")
 
@@ -347,13 +352,15 @@ class GBIFSpecies(Species):
             else:
                 self.geometrize(dropna=True)
 
-        if isinstance(species_range_map, GeoSeries):
-            range_map_union = species_range_map.unary_union
-        elif isinstance(species_range_map, IUCNSpecies):
-            range_map_union = species_range_map.data_full.geometry.unary_union
-
-        self.data_full = self.data_full[self.data_full.geometry.intersects(range_map_union)]
-        logger.info("Overlayed species occurrence data with the given range map.")
+        try:
+            if isinstance(species_range_map, GeoSeries):
+                range_map_union = species_range_map.unary_union
+            elif isinstance(species_range_map, IUCNSpecies):
+                range_map_union = species_range_map.data_full.geometry.unary_union
+            self.data_full = self.data_full[self.data_full.geometry.intersects(range_map_union)]
+            logger.info("Overlayed species occurrence data with the given range map.")
+        except ValueError as e:
+            logger.error("The rangemap geometries seem to be invalid (possible self-intersections). %s " % str(e))
 
 
 class IUCNSpecies(Species):
