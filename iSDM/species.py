@@ -3,7 +3,7 @@ Some interesting text.
 
 :synopsis: A useful module indeed.
 
-.. moduleauthor:: Daniela Remenska <andrew@invalid.com>
+.. moduleauthor:: Daniela Remenska <remenska@gmail.com>
 
 """
 
@@ -120,7 +120,7 @@ class Species(object):
        name (str):  The name to use.
 
     Kwargs:
-       state (bool): Current state to be in.
+       state (bool): Current state to be in.RrR
 
     Returns:
        int.  The return code::
@@ -138,57 +138,61 @@ class Species(object):
         # !!! Careful, overwrites the existing raw data!
         self.data_full = data_frame
 
-    def plot_species_occurrence(self, figsize=(16, 12), projection='merc'):
+    def plot_species_occurrence(self, figsize=(16, 12), projection='merc', facecolor='crimson'):
         if not isinstance(self.data_full, GeoDataFrame):
             if not isinstance(self.data_full, pd.DataFrame):
                 raise AttributeError("No data to save. Please load it first.")
             else:
                 self.geometrize(dropna=True)
 
-        # Now we have a geometry column (GeoPandas instance). Could be filled with Point/Polygon...
-        my_map = Basemap(projection=projection, lat_0=50, lon_0=-100,
-                         resolution='l', area_thresh=1000.0,
-                         llcrnrlon=self.data_full.geometry.bounds.minx.min(),  # lower left corner longitude point
-                         llcrnrlat=self.data_full.geometry.bounds.miny.min(),   # lower left corner latitude point
-                         urcrnrlon=self.data_full.geometry.bounds.maxx.max(),  # upper right longitude point
-                         urcrnrlat=self.data_full.geometry.bounds.maxy.max()    # upper right latitude point
-                         )
+        # empty dataset
+        if self.data_full.shape[0] == 0:
+            logger.error("No data to plot.")
+            return
+        # dataset with one point (one dimensional) is also problematic for plotting, if no buffer around
+        if self.data_full.shape[0] == 1 and isinstance(self.data_full.geometry.iat[0], shapely.geometry.Point):
+            logger.error("Only one point in dataset.")
+            return
 
-        # data_full_longitude = [point.x for point in self.data_full.geometry]
-        # data_full_latitude = [point.y for point in self.data_full.geometry]
+        # Now we have a geometry column (GeoPandas instance). Could be filled with Point/Polygon...
+        mm = Basemap(projection=projection, lat_0=50, lon_0=-100,
+                     resolution='l', area_thresh=1000.0,
+                     llcrnrlon=self.data_full.geometry.total_bounds[0],  # lower left corner longitude point
+                     llcrnrlat=self.data_full.geometry.total_bounds[1],  # lower left corner latitude point
+                     urcrnrlon=self.data_full.geometry.total_bounds[2],  # upper right longitude point
+                     urcrnrlat=self.data_full.geometry.total_bounds[3]   # upper right latitude point
+                     )
+
         # prepare longitude/latitude list for basemap
         fig, ax1 = plt.subplots(figsize=figsize)
-        # df_x, df_y = my_map(data_full_longitude, data_full_latitude)
 
-        # plt.figure(figsize=figsize)
         plt.title("%s occurrence records from %s " % (self.name_species, self.source.name))
 
-        my_map.drawcoastlines()
-        my_map.drawcountries()
-        my_map.drawrivers(color='lightskyblue', linewidth=1.5)
-        my_map.drawmapboundary(fill_color='lightskyblue')
-        my_map.fillcontinents(color='cornsilk')
+        mm.drawcoastlines()
+        mm.drawcountries()
+        mm.drawrivers(color='lightskyblue', linewidth=1.5)
+        mm.drawmapboundary(fill_color='lightskyblue')
+        mm.fillcontinents(color='cornsilk')
         # draw latitude and longitude
-        my_map.drawmeridians(np.arange(-180, 180, 10), labels=[False, False, False, True])
-        my_map.drawparallels(np.arange(-180, 180, 10), labels=[True, True, False, False])
-        # my_map.plot(df_x, df_y, 'bo', markersize=4, color="#b01a1a")
+        mm.drawmeridians(np.arange(-180, 180, 10), labels=[False, False, False, True])
+        mm.drawparallels(np.arange(-180, 180, 10), labels=[True, True, False, False])
 
         patches = []
         selection = self.data_full
         for poly in selection.geometry:
             if poly.geom_type == 'Polygon':
-                mpoly = shapely.ops.transform(my_map, poly)
+                mpoly = shapely.ops.transform(mm, poly)
                 patches.append(PolygonPatch(mpoly))
             elif poly.geom_type == 'MultiPolygon':
                 for subpoly in poly:
-                    mpoly = shapely.ops.transform(my_map, subpoly)
+                    mpoly = shapely.ops.transform(mm, subpoly)
                     patches.append(PolygonPatch(mpoly))
             elif poly.geom_type == "Point":
-                patches.append(PolygonPatch(Point(my_map(poly.x, poly.y)).buffer(9999)))
+                patches.append(PolygonPatch(Point(mm(poly.x, poly.y)).buffer(9999)))
             else:
                 logger.warning("Geometry type %s not supported. Skipping ... " % poly.geom_type)
                 continue
-        ax1.add_collection(PatchCollection(patches, facecolor='crimson', match_original=True, zorder=100))
+        ax1.add_collection(PatchCollection(patches, facecolor=facecolor, match_original=True, zorder=100))
         plt.show()
 
 
@@ -268,24 +272,42 @@ class GBIFSpecies(Species):
             f.close()
 
     # vectorize? better name
-    def geometrize(self, dropna=True):
-        # Converts to geopandas. First convert the latitude/longitude into shapely geometry Point. This is still one-dimensional.
+    def geometrize(self, dropna=True, longitude_col_name='decimallongitude', latitude_col_name='decimallatitude'):
+        """
+        Converts data to geopandas. The latitude/longitude is converted into shapely Point geometry.
+        Geopandas/GeoSeries data structures have a geometry column.
+        """
         try:
             crs = None
             # exclude those points with NaN in coordinates
             if dropna:
-                geometry = [Point(xy) for xy in zip(self.data_full['decimallongitude'].dropna(), self.data_full['decimallatitude'].dropna())]
-                self.data_full = GeoDataFrame(self.data_full.dropna(subset=['decimallatitude', 'decimallongitude']), crs=crs, geometry=geometry)
+                geometry = [Point(xy) for xy in zip(
+                    self.data_full[longitude_col_name].dropna(),
+                    self.data_full[latitude_col_name].dropna()
+                )]
+                self.data_full = GeoDataFrame(
+                    self.data_full.dropna(
+                        subset=[latitude_col_name, longitude_col_name]),
+                    crs=crs,
+                    geometry=geometry)
                 logger.info("Data geometrized: converted into GeoPandas dataframe.")
-
+                logger.info("Points with NaN coordinnates ignored. ")
             else:
-                geometry = [Point(xy) for xy in zip(self.data_full['decimallongitude'], self.data_full['decimallatitude'])]
+                geometry = [Point(xy) for xy in zip(
+                    self.data_full[longitude_col_name],
+                    self.data_full[latitude_col_name]
+                )]
                 self.data_full = GeoDataFrame(self.data_full, crs=crs, geometry=geometry)
                 logger.info("Data geometrized: converted into GeoPandas dataframe.")
         except AttributeError:
             logger.error("No latitude/longitude data to convert into a geometry. Please load the data first.")
 
-    def polygonize(self, buffer=1, simplify_tolerance=0.1, preserve_topology=False, with_envelope=False):
+    def polygonize(self,
+                   buffer_distance=1,
+                   buffer_resolution=16,
+                   simplify_tolerance=0.1,
+                   preserve_topology=False,
+                   with_envelope=False):
         """
         Expand each sample point into its polygon of influence (buffer).
         Merge the polygons that overlap into a cascaded union (multipolygon)
@@ -296,14 +318,49 @@ class GBIFSpecies(Species):
 
         data_polygonized = self.data_full.copy(deep=True)
         if with_envelope:
-            data_polygonized = data_polygonized.buffer(buffer).simplify(simplify_tolerance, preserve_topology).envelope
+            data_polygonized = data_polygonized.buffer(
+                buffer_distance,
+                buffer_resolution
+            ).simplify(simplify_tolerance, preserve_topology).envelope
+            logger.debug("Data polygonized with envelope.")
         else:
-            data_polygonized = data_polygonized.buffer(buffer).simplify(simplify_tolerance, preserve_topology)
+            data_polygonized = data_polygonized.buffer(
+                buffer_distance,
+                buffer_resolution
+            ).simplify(simplify_tolerance, preserve_topology)
+            logger.debug("Data polygonized without envelope.")
 
         cascaded_union_multipolygon = shapely.ops.cascaded_union(data_polygonized.geometry)
-        df_polygonized = GeoDataFrame(geometry=[pol for pol in cascaded_union_multipolygon])  # no .tolist for MultiPolygon unfortunatelly
+        logger.debug("Cascaded union of polygons created.")
 
+        # no .tolist for MultiPolygon unfortunatelly
+        df_polygonized = GeoDataFrame(geometry=[pol for pol in cascaded_union_multipolygon])
         return df_polygonized
+
+    def overlay(self, species_range_map):
+        """
+        Overlays the point records with a species range map. The map can be an instance of IUCNSpecies, or directly
+        a GeoSeries datastructure containing geometry data.
+        This overlaying effectively crops the point records to the area within the range map.
+        """
+        if not (isinstance(species_range_map, GeoSeries) or isinstance(species_range_map, IUCNSpecies)):
+            raise AttributeError("Please provide a correct species rangemap input.")
+
+        if not isinstance(self.data_full, GeoDataFrame):
+            if not isinstance(self.data_full, pd.DataFrame):
+                raise AttributeError("No data to save. Please load it first.")
+            else:
+                self.geometrize(dropna=True)
+
+        try:
+            if isinstance(species_range_map, GeoSeries):
+                range_map_union = species_range_map.unary_union
+            elif isinstance(species_range_map, IUCNSpecies):
+                range_map_union = species_range_map.data_full.geometry.unary_union
+            self.data_full = self.data_full[self.data_full.geometry.intersects(range_map_union)]
+            logger.info("Overlayed species occurrence data with the given range map.")
+        except ValueError as e:
+            logger.error("The rangemap geometries seem to be invalid (possible self-intersections). %s " % str(e))
 
 
 class IUCNSpecies(Species):
@@ -324,6 +381,7 @@ class IUCNSpecies(Species):
         """
         A GeoDataFrame is a tablular data structure that contains a column called geometry which contains a GeoSeries.
         So data_full will be a geopandas dataframe, you can obtain it by .get_data()
+        Supported input formats: Shapefiles, GeoJSON.
         """
         logger.info("Loading data from: %s" % file_path)
         self.data_full = GeoDataFrame.from_file(file_path)   # shapely.geometry type of objects are used
@@ -343,7 +401,8 @@ class IUCNSpecies(Species):
         all_data = self.data_full[self.data_full['binomial'] == self.name_species]
 
         if all_data.shape[0] == 0:
-            raise ValueError("There is no species with the name '%s' in the shapefile" % self.name_species)
+            raise ValueError("There is no species with the name '%s' in the shapefile"
+                             % self.name_species)
         else:
             self.data_full = all_data
             logger.info("Loaded species: %s " % self.data_full['binomial'].unique())
@@ -360,7 +419,8 @@ class IUCNSpecies(Species):
         """
 
         if not (isinstance(self.data_full, GeoSeries) or isinstance(self.data_full, GeoDataFrame)):
-            raise AttributeError("The data is not of a Geometry type (GeoSeries or GeoDataFrame). Please geometrize first!")
+            raise AttributeError("The data is not of a Geometry type (GeoSeries or GeoDataFrame).",
+                                 "Please geometrize first!")
 
         if overwrite:
             full_name = self.shape_file
@@ -375,6 +435,7 @@ class IUCNSpecies(Species):
 
     def rasterize(self, raster_file=None, pixel_size=None, x_res=None, y_res=None, *args, **kwargs):
         # options = ["ALL_TOUCHED=TRUE"]
+        # right now it is pixel_size. But we could complicate further with cell width/height.
 
         if not (pixel_size or raster_file):
             raise AttributeError("Please provide pixel_size and a target raster_file.")
@@ -399,6 +460,9 @@ class IUCNSpecies(Species):
         # WOW: https://trac.osgeo.org/gdal/wiki/PythonGotchas "To save and close GDAL raster datasets or OGR vector
         # datasources, the object needs to be dereferenced, such as setting it to None, a different value, or deleting
         # the object. "
+        # From the book "Python Geospatial Analysis Essentials":
+        # dstFile.Destroy() This closes the destination file and makes sure everything
+        # has been saved to disk.
         band = None
         target_ds = None
         logger.info("Data rasterized into file %s " % raster_file)
@@ -412,7 +476,8 @@ class IUCNSpecies(Species):
         if raster_file:
             self.raster_file = raster_file
         if not self.raster_file:
-            raise AttributeError("Please rasterize the data first, or provide a raster_file to read from.")
+            raise AttributeError("Please rasterize the data first, ",
+                                 "or provide a raster_file to read from.")
 
         geo = gdal.Open(self.raster_file)
         # sillly gdal python wrappings don't throw exceptions
@@ -424,7 +489,8 @@ class IUCNSpecies(Species):
 
         logger.info("Driver name: %s " % drv.GetMetadataItem('DMD_LONGNAME'))
         logger.info("Raster data from %s loaded." % self.raster_file)
-        logger.info("Resolution: x_res={0} y_res={1}. GeoTransform: {2}".format(geo.RasterXSize, geo.RasterYSize, geo.GetGeoTransform()))
+        logger.info("Resolution: x_res={0} y_res={1}. GeoTransform: {2}"
+                    .format(geo.RasterXSize, geo.RasterYSize, geo.GetGeoTransform()))
         img = geo.ReadAsArray()
 
         return img
