@@ -248,7 +248,8 @@ class GBIFSpecies(Species):
         # data_cleaned[['day', 'month', 'year']] = data_cleaned[['day', 'month', 'year']].fillna(0.0).astype(int)
 
         self.data_full = pd.DataFrame(full_results['results'])  # load results in pandas DF
-        self.data_full.columns = map(str.lower, self.data_full.columns)  # convert all column headers to lowercase
+        # self.data_full.columns = map(str.lower, self.data_full.columns)  # convert all column headers to lowercase
+        self.data_full.columns = [x.lower() for x in self.data_full.columns]
 
         if self.data_full.empty:
             logger.info("Could not retrieve any occurrences!")
@@ -263,7 +264,8 @@ class GBIFSpecies(Species):
         try:
             dialect = csv.Sniffer().sniff(f.read(10240))
             self.data_full = pd.read_csv(file_path, sep=dialect.delimiter)
-            self.data_full.columns = map(str.lower, self.data_full.columns)  # convert all column headers to lowercase
+            # self.data_full.columns = map(str.lower, self.data_full.columns)  # convert all column headers to lowercase
+            self.data_full.columns = [x.lower() for x in self.data_full.columns]
             logger.info("Succesfully loaded previously saved CSV data.")
             if 'specieskey' in self.data_full and self.data_full['specieskey'].unique().size == 1:
                 self.ID = self.data_full['specieskey'].unique()[0]
