@@ -24,7 +24,9 @@ from shapely.geometry import Point
 import shapely.ops
 from matplotlib.collections import PatchCollection
 from descartes import PolygonPatch
-
+from rasterio.transform import Affine
+import rasterio
+import rasterio.features
 
 logger = logging.getLogger('iSDM.species')
 logger.setLevel(logging.DEBUG)
@@ -385,14 +387,16 @@ class IUCNSpecies(Species):
         """
         logger.info("Loading data from: %s" % file_path)
         self.data_full = GeoDataFrame.from_file(file_path)   # shapely.geometry type of objects are used
-        self.data_full.columns = map(str.lower, self.data_full.columns)   # convert all column headers to lowercase
+        # self.data_full.columns = map(str.lower, self.data_full.columns)   # convert all column headers to lowercase
+        self.data_full.columns = [x.lower() for x in self.data_full.columns]   # python 2
+
         logger.info("The shapefile contains data on %d species." % self.data_full.shape[0])
         self.shape_file = file_path
 
     def find_species_occurrences(self, name_species=None, **kwargs):
 
-        if not self.shape_file:
-            raise AttributeError("You have not provided a shapefile to load data from.")
+        if not hasattr(self, 'data_full'):
+            raise AttributeError("You have not loaded the data.")
         if name_species:
             self.name_species = name_species
         if not self.name_species:
@@ -433,9 +437,10 @@ class IUCNSpecies(Species):
         except AttributeError as e:
             logger.error("Could not save data! %s " % str(e))
 
-    def rasterize(self, raster_file=None, pixel_size=None, x_res=None, y_res=None, *args, **kwargs):
+    def rasterize_old(self, raster_file=None, pixel_size=None, x_res=None, y_res=None, *args, **kwargs):
         # options = ["ALL_TOUCHED=TRUE"]
         # right now it is pixel_size. But we could complicate further with cell width/height.
+        # TODO: no need for x_res y_res?
 
         if not (pixel_size or raster_file):
             raise AttributeError("Please provide pixel_size and a target raster_file.")
@@ -443,6 +448,7 @@ class IUCNSpecies(Species):
         NoData_value = -9999
 
         # Open the data source and read in the extent
+        # TODO: check shapefile exists
         source_ds = ogr.Open(self.shape_file)
         source_layer = source_ds.GetLayer()
         x_min, x_max, y_min, y_max = source_layer.GetExtent()   # boundaries
@@ -472,6 +478,46 @@ class IUCNSpecies(Species):
         self.x_res = x_res
         self.y_res = y_res
 
+    def rasterize(self, raster_file=None, pixel_size=None, all_touched=False, no_data_value=0, default_value=1, *args, **kwargs):
+        # do it with rasterio instead
+        if not (pixel_size or raster_file):
+            raise AttributeError("Please provide pixel_size and a target raster_file.")
+
+        if not hasattr(self, 'data_full'):
+            raise AttributeError("You have not loaded the data.")
+
+        # Open the data source and read in the extent
+
+        # TODO: check shape_file exists
+        # source_ds = GeoDataFrame.from_file(self.shape_file)
+        union_geometry = self.data_full.geometry.unary_union
+        x_min, y_min, x_max, y_max = union_geometry.bounds
+
+        x_res = int((x_max - x_min) / pixel_size)
+        y_res = int((y_max - y_min) / pixel_size)
+
+        # translate
+        transform = Affine.translation(x_min, y_max) * Affine.scale(pixel_size, -pixel_size)
+        result = rasterio.features.rasterize([(union_geometry)],
+                                             transform=transform,
+                                             out_shape=(y_res, x_res),
+                                             all_touched=all_touched,
+                                             fill=no_data_value,
+                                             default_value=default_value
+                                             )
+
+        with rasterio.open(raster_file, 'w', driver='GTiff', width=x_res, height=y_res,
+                           count=1,
+                           dtype=np.uint8,
+                           nodata=no_data_value,
+                           transform=transform,
+                           crs={'init': "EPSG:4326"}) as out:
+            out.write(result.astype(np.uint8), indexes=1)
+            out.close()
+        logger.info("RASTERIO: Data rasterized into file %s " % raster_file)
+        logger.info("RASTERIO: Resolution: x_res={0} y_res={1}".format(x_res, y_res))
+        self.raster_file = raster_file
+
     def load_raster_data(self, raster_file=None):
         if raster_file:
             self.raster_file = raster_file
@@ -487,7 +533,7 @@ class IUCNSpecies(Species):
 
         drv = geo.GetDriver()
 
-        logger.info("Driver name: %s " % drv.GetMetadataItem('DMD_LONGNAME'))
+        logger.info("Driver name: %s " % drv.LongName)
         logger.info("Raster data from %s loaded." % self.raster_file)
         logger.info("Resolution: x_res={0} y_res={1}. GeoTransform: {2}"
                     .format(geo.RasterXSize, geo.RasterYSize, geo.GetGeoTransform()))
