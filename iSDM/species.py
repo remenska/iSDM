@@ -532,21 +532,14 @@ class IUCNSpecies(Species):
             raise AttributeError("Please rasterize the data first, ",
                                  "or provide a raster_file to read from.")
 
-        geo = gdal.Open(self.raster_file)
-        # sillly gdal python wrappings don't throw exceptions
-        if not geo:
-            logger.error("Unable to open %s " % raster_file)
-            return None
-
-        drv = geo.GetDriver()
-
-        logger.info("Driver name: %s " % drv.LongName)
-        logger.info("Raster data from %s loaded." % self.raster_file)
-        logger.info("Resolution: x_res={0} y_res={1}. GeoTransform: {2}"
-                    .format(geo.RasterXSize, geo.RasterYSize, geo.GetGeoTransform()))
-        img = geo.ReadAsArray()
-
-        return img
+        with rasterio.open(self.raster_file) as src:
+            logger.info("Loaded raster data from %s " % self.raster_file)
+            logger.info("Driver name: %s " % src.driver)
+            logger.info("Resolution: x_res={0} y_res={1}.".format(src.width, src.height))
+            logger.info("Coordinate reference system: %s " % src.crs)
+            logger.info("Affine transformation: %s " % (src.affine.to_gdal(),))
+            logger.info("Number of layers: %s " % src.count)
+            return src.read()
 
 
 class MOLSpecies(Species):
