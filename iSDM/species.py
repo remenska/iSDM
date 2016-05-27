@@ -480,7 +480,11 @@ class IUCNSpecies(Species):
         self.x_res = x_res
         self.y_res = y_res
 
-    def rasterize(self, raster_file=None, pixel_size=None, all_touched=False, no_data_value=0, default_value=1, *args, **kwargs):
+    def rasterize(self, raster_file=None, pixel_size=None, all_touched=False,
+                  no_data_value=0,
+                  default_value=1,
+                  crs={'init': "EPSG:4326"},
+                  *args, **kwargs):
         # do it with rasterio instead
         if not (pixel_size or raster_file):
             raise AttributeError("Please provide pixel_size and a target raster_file.")
@@ -513,12 +517,13 @@ class IUCNSpecies(Species):
                            dtype=np.uint8,
                            nodata=no_data_value,
                            transform=transform,
-                           crs={'init': "EPSG:4326"}) as out:
+                           crs=crs) as out:
             out.write(result.astype(np.uint8), indexes=1)
             out.close()
         logger.info("RASTERIO: Data rasterized into file %s " % raster_file)
         logger.info("RASTERIO: Resolution: x_res={0} y_res={1}".format(x_res, y_res))
         self.raster_file = raster_file
+        return result
 
     def load_raster_data(self, raster_file=None):
         if raster_file:
