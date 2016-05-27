@@ -1,7 +1,15 @@
 
 import logging
+from enum import Enum
+
 logger = logging.getLogger('iSDM.environment')
 logger.setLevel(logging.DEBUG)
+
+
+class Source(Enum):
+    WORLDCLIM = 1
+    GLOBE = 2
+
 
 class EnvironmentalLayer(object):
     def __init__(self, **kwargs):
@@ -19,10 +27,10 @@ class EnvironmentalLayer(object):
 class ClimateLayer(EnvironmentalLayer):
     pass
 
+
 class LandCoverlayer(EnvironmentalLayer):
     pass
 
+
 class LandUseLayer(EnvironmentalLayer):
     pass
-
-
