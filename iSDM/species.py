@@ -24,7 +24,9 @@ from shapely.geometry import Point
 import shapely.ops
 from matplotlib.collections import PatchCollection
 from descartes import PolygonPatch
-
+from rasterio.transform import Affine
+import rasterio
+import rasterio.features
 
 logger = logging.getLogger('iSDM.species')
 logger.setLevel(logging.DEBUG)
@@ -246,7 +248,8 @@ class GBIFSpecies(Species):
         # data_cleaned[['day', 'month', 'year']] = data_cleaned[['day', 'month', 'year']].fillna(0.0).astype(int)
 
         self.data_full = pd.DataFrame(full_results['results'])  # load results in pandas DF
-        self.data_full.columns = map(str.lower, self.data_full.columns)  # convert all column headers to lowercase
+        # self.data_full.columns = map(str.lower, self.data_full.columns)  # convert all column headers to lowercase
+        self.data_full.columns = [x.lower() for x in self.data_full.columns]
 
         if self.data_full.empty:
             logger.info("Could not retrieve any occurrences!")
@@ -261,7 +264,8 @@ class GBIFSpecies(Species):
         try:
             dialect = csv.Sniffer().sniff(f.read(10240))
             self.data_full = pd.read_csv(file_path, sep=dialect.delimiter)
-            self.data_full.columns = map(str.lower, self.data_full.columns)  # convert all column headers to lowercase
+            # self.data_full.columns = map(str.lower, self.data_full.columns)  # convert all column headers to lowercase
+            self.data_full.columns = [x.lower() for x in self.data_full.columns]
             logger.info("Succesfully loaded previously saved CSV data.")
             if 'specieskey' in self.data_full and self.data_full['specieskey'].unique().size == 1:
                 self.ID = self.data_full['specieskey'].unique()[0]
@@ -385,14 +389,16 @@ class IUCNSpecies(Species):
         """
         logger.info("Loading data from: %s" % file_path)
         self.data_full = GeoDataFrame.from_file(file_path)   # shapely.geometry type of objects are used
-        self.data_full.columns = map(str.lower, self.data_full.columns)   # convert all column headers to lowercase
+        # self.data_full.columns = map(str.lower, self.data_full.columns)   # convert all column headers to lowercase
+        self.data_full.columns = [x.lower() for x in self.data_full.columns]   # python 2
+
         logger.info("The shapefile contains data on %d species." % self.data_full.shape[0])
         self.shape_file = file_path
 
     def find_species_occurrences(self, name_species=None, **kwargs):
 
-        if not self.shape_file:
-            raise AttributeError("You have not provided a shapefile to load data from.")
+        if not hasattr(self, 'data_full'):
+            raise AttributeError("You have not loaded the data.")
         if name_species:
             self.name_species = name_species
         if not self.name_species:
@@ -433,9 +439,10 @@ class IUCNSpecies(Species):
         except AttributeError as e:
             logger.error("Could not save data! %s " % str(e))
 
-    def rasterize(self, raster_file=None, pixel_size=None, x_res=None, y_res=None, *args, **kwargs):
+    def rasterize_old(self, raster_file=None, pixel_size=None, x_res=None, y_res=None, *args, **kwargs):
         # options = ["ALL_TOUCHED=TRUE"]
         # right now it is pixel_size. But we could complicate further with cell width/height.
+        # TODO: no need for x_res y_res?
 
         if not (pixel_size or raster_file):
             raise AttributeError("Please provide pixel_size and a target raster_file.")
@@ -443,6 +450,7 @@ class IUCNSpecies(Species):
         NoData_value = -9999
 
         # Open the data source and read in the extent
+        # TODO: check shapefile exists
         source_ds = ogr.Open(self.shape_file)
         source_layer = source_ds.GetLayer()
         x_min, x_max, y_min, y_max = source_layer.GetExtent()   # boundaries
@@ -472,6 +480,51 @@ class IUCNSpecies(Species):
         self.x_res = x_res
         self.y_res = y_res
 
+    def rasterize(self, raster_file=None, pixel_size=None, all_touched=False,
+                  no_data_value=0,
+                  default_value=1,
+                  crs={'init': "EPSG:4326"},
+                  *args, **kwargs):
+        # do it with rasterio instead
+        if not (pixel_size or raster_file):
+            raise AttributeError("Please provide pixel_size and a target raster_file.")
+
+        if not hasattr(self, 'data_full'):
+            raise AttributeError("You have not loaded the data.")
+
+        # Open the data source and read in the extent
+
+        # TODO: check shape_file exists
+        # source_ds = GeoDataFrame.from_file(self.shape_file)
+        union_geometry = self.data_full.geometry.unary_union
+        x_min, y_min, x_max, y_max = union_geometry.bounds
+
+        x_res = int((x_max - x_min) / pixel_size)
+        y_res = int((y_max - y_min) / pixel_size)
+
+        # translate
+        transform = Affine.translation(x_min, y_max) * Affine.scale(pixel_size, -pixel_size)
+        result = rasterio.features.rasterize([(union_geometry)],
+                                             transform=transform,
+                                             out_shape=(y_res, x_res),
+                                             all_touched=all_touched,
+                                             fill=no_data_value,
+                                             default_value=default_value
+                                             )
+
+        with rasterio.open(raster_file, 'w', driver='GTiff', width=x_res, height=y_res,
+                           count=1,
+                           dtype=np.uint8,
+                           nodata=no_data_value,
+                           transform=transform,
+                           crs=crs) as out:
+            out.write(result.astype(np.uint8), indexes=1)
+            out.close()
+        logger.info("RASTERIO: Data rasterized into file %s " % raster_file)
+        logger.info("RASTERIO: Resolution: x_res={0} y_res={1}".format(x_res, y_res))
+        self.raster_file = raster_file
+        return result
+
     def load_raster_data(self, raster_file=None):
         if raster_file:
             self.raster_file = raster_file
@@ -479,21 +532,14 @@ class IUCNSpecies(Species):
             raise AttributeError("Please rasterize the data first, ",
                                  "or provide a raster_file to read from.")
 
-        geo = gdal.Open(self.raster_file)
-        # sillly gdal python wrappings don't throw exceptions
-        if not geo:
-            logger.error("Unable to open %s " % raster_file)
-            return None
-
-        drv = geo.GetDriver()
-
-        logger.info("Driver name: %s " % drv.GetMetadataItem('DMD_LONGNAME'))
-        logger.info("Raster data from %s loaded." % self.raster_file)
-        logger.info("Resolution: x_res={0} y_res={1}. GeoTransform: {2}"
-                    .format(geo.RasterXSize, geo.RasterYSize, geo.GetGeoTransform()))
-        img = geo.ReadAsArray()
-
-        return img
+        with rasterio.open(self.raster_file) as src:
+            logger.info("Loaded raster data from %s " % self.raster_file)
+            logger.info("Driver name: %s " % src.driver)
+            logger.info("Resolution: x_res={0} y_res={1}.".format(src.width, src.height))
+            logger.info("Coordinate reference system: %s " % src.crs)
+            logger.info("Affine transformation: %s " % (src.affine.to_gdal(),))
+            logger.info("Number of layers: %s " % src.count)
+            return src.read()
 
 
 class MOLSpecies(Species):
