@@ -1,6 +1,5 @@
-import os
 from enum import Enum
-from iSDM.species import *
+
 import logging
 logger = logging.getLogger('iSDM.model')
 logger.setLevel(logging.DEBUG)
@@ -21,19 +20,16 @@ class Evaluation(Enum):
 class Model(object):
     algorithm = None
     method = None
-    species = None # Should be an object of type Species?
+    species = None  # Should be an object of type Species?
 
-    def __init__(self, algorithm = Algorithm.GAM):
+    def __init__(self, algorithm=Algorithm.GAM):
         self.algorithm = algorithm
 
-    def cross_validate(self, percentage, random_seed): 
+    def cross_validate(self, percentage, random_seed):
         pass
 
-    def evaluate_performance(self, method = Evaluation.ROC, **kwargs):
+    def evaluate_performance(self, method=Evaluation.ROC, **kwargs):
         self.method = method
 
     def fit(self):
         pass
-
-
-
