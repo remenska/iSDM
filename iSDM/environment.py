@@ -31,7 +31,7 @@ class EnvironmentalLayer(object):
         if file_path:
             self.file_path = file_path
 
-    def load_dataset(self, file_path=None):
+    def load_data(self, file_path=None):
         pass
 
     def set_source(self, source):
@@ -42,12 +42,15 @@ class EnvironmentalLayer(object):
     def get_source(self):
         return self.source.name
 
+    def save_data(self, full_name=None, dir_name=None, file_name=None):
+        pass
+
 
 class ClimateLayer(EnvironmentalLayer):
     def __init__(self, source=None, file_path=None, **kwargs):
         EnvironmentalLayer.__init__(self, source, file_path, **kwargs)
 
-    def load_dataset(self, file_path=None):
+    def load_data(self, file_path=None):
         if file_path:
             self.file_path = file_path
 
@@ -75,7 +78,7 @@ class ClimateLayer(EnvironmentalLayer):
 
     def get_data(self):
         if not self.climate_data or self.climate_data.closed:
-            logger.info("The dataset is closed. Please load it first using .load_dataset()")
+            logger.info("The dataset is closed. Please load it first using .load_data()")
             return
         return self.climate_data
 
@@ -136,7 +139,7 @@ class ClimateLayer(EnvironmentalLayer):
         if isinstance(range_map, EnvironmentalLayer) or isinstance(range_map, IUCNSpecies):
             for geometry in range_map.get_data()['geometry']:
                 if self.climate_data.closed:
-                    self.load_dataset(self.file_path)
+                    self.load_data(self.file_path)
                 with self.climate_data as raster:
                     # get pixel coordinates of the geometry's bounding box
                     ul = raster.index(*geometry.bounds[0:2])
