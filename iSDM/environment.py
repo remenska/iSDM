@@ -4,7 +4,6 @@ from enum import Enum
 import rasterio
 import pprint
 from rasterio.warp import calculate_default_transform, RESAMPLING
-from geopandas import GeoSeries
 from iSDM.species import IUCNSpecies
 from affine import Affine
 import rasterio.features
