@@ -126,9 +126,7 @@ class ClimateLayer(EnvironmentalLayer):
         rasterio provides option to "burn" vector shapes into rasters (rasterize the geometry). Then we create
         a raster mask layer
         """
-        if not (isinstance(range_map, GeoSeries)
-                or isinstance(range_map, EnvironmentalLayer)
-                or isinstance(range_map, IUCNSpecies)):
+        if not (isinstance(range_map, EnvironmentalLayer) or isinstance(range_map, IUCNSpecies)):
             raise AttributeError("Please provide a correct rangemap input.")
 
         # TODO: what about if the overlay is just a shape file?
