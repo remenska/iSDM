@@ -17,6 +17,7 @@ logger.setLevel(logging.DEBUG)
 class Source(Enum):
     WORLDCLIM = 1
     GLOBE = 2
+    UNKNOWN = 3
 
 
 class EnvironmentalLayer(object):
@@ -28,6 +29,8 @@ class EnvironmentalLayer(object):
             if not isinstance(source, Source):
                 raise AttributeError("The source can only be one of the following: %s " % list(Source.__members__))
             self.source = source
+        else:
+            self.source = Source.UNKNOWN
         if file_path:
             self.file_path = file_path
 
@@ -46,7 +49,7 @@ class EnvironmentalLayer(object):
         pass
 
 
-class ClimateLayer(EnvironmentalLayer):
+class RasterEnvironmentalLayer(EnvironmentalLayer):
     def __init__(self, source=None, file_path=None, **kwargs):
         EnvironmentalLayer.__init__(self, source, file_path, **kwargs)
 
@@ -58,29 +61,35 @@ class ClimateLayer(EnvironmentalLayer):
             raise AttributeError("Please provide a file_path argument to load the data from.")
 
         logger.info("Loading data from %s " % self.file_path)
-        climate_data = rasterio.open(self.file_path, 'r')
-        self.metadata = climate_data.meta
-        self.resolution = climate_data.res
-        self.bounds = climate_data.bounds
+        raster_data = rasterio.open(self.file_path, 'r')
+        self.metadata = raster_data.meta
+        self.resolution = raster_data.res
+        self.bounds = raster_data.bounds
         pp = pprint.PrettyPrinter(depth=5)
 
         logger.info("Metadata: %s " % pp.pformat(self.metadata))
         logger.info("Resolution: %s " % (self.resolution,))
         logger.info("Bounds: %s " % (self.bounds,))
-        self.climate_data = climate_data
+        self.raster_data = raster_data
         logger.info("Dataset loaded. Use .read() or .read_masks() to access the layers.")
-        return self.climate_data
+        return self.raster_data
 
     def close_dataset(self):
-        if not self.climate_data.closed:
-            self.climate_data.close()
+        if not self.raster_data.closed:
+            self.raster_data.close()
             logger.info("Dataset %s closed. " % self.file_path)
 
     def get_data(self):
-        if not self.climate_data or self.climate_data.closed:
+        if not self.raster_data or self.raster_data.closed:
             logger.info("The dataset is closed. Please load it first using .load_data()")
             return
-        return self.climate_data
+        return self.raster_data
+
+    def read(self, band_number=None):
+        if not self.raster_data or self.raster_data.closed:
+            logger.info("The dataset is closed. Please load it first using .load_data()")
+            return
+        return self.raster_data.read(band_number)
 
     def reproject(self, source_file=None, destination_file=None, resampling=RESAMPLING.nearest, **kwargs):
         if not source_file:
@@ -92,12 +101,12 @@ class ClimateLayer(EnvironmentalLayer):
         with rasterio.open(source_file) as src:
             affine, width, height = calculate_default_transform(src_crs=src.crs,
                                                                 dst_crs=kwargs.get('dst_crs', src.crs),
-                                                                width=src.width,
-                                                                height=src.height,
-                                                                left=src.bounds.left,
-                                                                bottom=src.bounds.bottom,
-                                                                right=src.bounds.right,
-                                                                top=src.bounds.top,
+                                                                width=kwargs.get('width', src.width),
+                                                                height=kwargs.get('height', src.height),
+                                                                left=kwargs.get('left', src.bounds.left),
+                                                                bottom=kwargs.get('bottom', src.bounds.bottom),
+                                                                right=kwargs.get('right', src.bounds.right),
+                                                                top=kwargs.get('top', src.bounds.top),
                                                                 resolution=kwargs.get('resolution', src.res)
                                                                 )
             logger.info("Calculated default transformation:")
@@ -138,9 +147,9 @@ class ClimateLayer(EnvironmentalLayer):
 
         if isinstance(range_map, EnvironmentalLayer) or isinstance(range_map, IUCNSpecies):
             for geometry in range_map.get_data()['geometry']:
-                if self.climate_data.closed:
+                if self.raster_data.closed:
                     self.load_data(self.file_path)
-                with self.climate_data as raster:
+                with self.raster_data as raster:
                     # get pixel coordinates of the geometry's bounding box
                     ul = raster.index(*geometry.bounds[0:2])
                     lr = raster.index(*geometry.bounds[2:4])
@@ -168,13 +177,13 @@ class ClimateLayer(EnvironmentalLayer):
         logger.info("Use the .masked_data attribute to access it.")
 
 
+class ClimateLayer(RasterEnvironmentalLayer):
+    pass
+
+
 class LandCoverlayer(EnvironmentalLayer):   # this would e a shapefile, not a raster?
     pass
 
 
-class LandUseLayer(EnvironmentalLayer):
-    pass
-
-
-class DEMLayer(EnvironmentalLayer):
+class DEMLayer(RasterEnvironmentalLayer):
     pass
