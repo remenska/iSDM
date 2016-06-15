@@ -1,4 +1,12 @@
 
+"""
+Another interesting module
+
+:synopsis: Another useful module indeed.
+
+.. moduleauthor:: Daniela Remenska <remenska@gmail.com>
+
+"""
 import logging
 from enum import Enum
 import rasterio
@@ -8,6 +16,7 @@ from iSDM.species import IUCNSpecies
 from affine import Affine
 import rasterio.features
 import numpy as np
+from geopandas import GeoSeries, GeoDataFrame
 
 
 logger = logging.getLogger('iSDM.environment')
@@ -18,9 +27,13 @@ class Source(Enum):
     WORLDCLIM = 1
     GLOBE = 2
     UNKNOWN = 3
+    TNC = 4
 
 
 class EnvironmentalLayer(object):
+    """
+    Some class-level documentaiton on environmental layer class
+    """
     def __init__(self, source=None, file_path=None, **kwargs):
         # you want to be able to agregate at a different resolution
         # and back/forth, right?
@@ -48,12 +61,21 @@ class EnvironmentalLayer(object):
     def save_data(self, full_name=None, dir_name=None, file_name=None):
         pass
 
+    def get_data(self):
+        pass
+
 
 class RasterEnvironmentalLayer(EnvironmentalLayer):
+    """
+    Some class-level documentation on raster environmental layer
+    """
     def __init__(self, source=None, file_path=None, **kwargs):
         EnvironmentalLayer.__init__(self, source, file_path, **kwargs)
 
     def load_data(self, file_path=None):
+        """
+        Documentation pending on how to load environment raster data
+        """
         if file_path:
             self.file_path = file_path
 
@@ -75,23 +97,35 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
         return self.raster_data
 
     def close_dataset(self):
+        """
+        Documentation pending on what it means to close a dataset
+        """
         if not self.raster_data.closed:
             self.raster_data.close()
             logger.info("Dataset %s closed. " % self.file_path)
 
     def get_data(self):
+        """
+        Documentation on what it means to get the data
+        """
         if not self.raster_data or self.raster_data.closed:
             logger.info("The dataset is closed. Please load it first using .load_data()")
             return
         return self.raster_data
 
     def read(self, band_number=None):
+        """
+        Documentation pending on reading raster bands
+        """
         if not self.raster_data or self.raster_data.closed:
             logger.info("The dataset is closed. Please load it first using .load_data()")
             return
         return self.raster_data.read(band_number)
 
     def reproject(self, source_file=None, destination_file=None, resampling=RESAMPLING.nearest, **kwargs):
+        """
+        Documentation pending on how to reproject/resample data
+        """
         if not source_file:
             if not self.file_path:
                 raise AttributeError("Please provide a source_file to load the data from.")
@@ -181,9 +215,58 @@ class ClimateLayer(RasterEnvironmentalLayer):
     pass
 
 
-class LandCoverlayer(EnvironmentalLayer):   # this would e a shapefile, not a raster?
+class DEMLayer(RasterEnvironmentalLayer):
     pass
 
 
-class DEMLayer(RasterEnvironmentalLayer):
+class VectorEnvironmentalLayer(EnvironmentalLayer):
+    """
+    Some class-level documentation on vector environmental layers here
+    """
+    def load_data(self, file_path=None):
+        """
+        Documentation on how to load shapefile environmental layer
+        """
+        if file_path:
+                self.file_path = file_path
+
+        if not self.file_path:
+            raise AttributeError("Please provide a file_path argument to load the data from.")
+
+        logger.info("Loading data from %s " % self.file_path)
+        self.data_full = GeoDataFrame.from_file(file_path)
+        self.data_full.columns = [x.lower() for x in self.data_full.columns]
+        logger.info("The shapefile contains data on %d environmental regions." % self.data_full.shape[0])
+        self.shape_file = file_path
+
+    def save_data(self, full_name=None, driver='ESRI Shapefile', overwrite=False):
+        """
+        Saves the current (geopandas) data as a shapefile.
+        The geopandas data needs to have geometry as a column, besides the metadata.
+        """
+
+        if not (isinstance(self.data_full, GeoSeries) or isinstance(self.data_full, GeoDataFrame)):
+            raise AttributeError("The data is not of a Geometry type (GeoSeries or GeoDataFrame).",
+                                 "Please geometrize first!")
+
+        if overwrite:
+            full_name = self.shape_file
+        elif not overwrite and full_name is None:
+            raise AttributeError("Please provide a shape_file location, or set overwrite=True")
+
+        try:
+            self.data_full.to_file(full_name, driver="ESRI Shapefile")
+            logger.debug("Saved data: %s " % full_name)
+        except AttributeError as e:
+            logger.error("Could not save data! %s " % str(e))
+
+    def get_data(self):
+        return self.data_full
+
+
+class BioGeographicLayer(VectorEnvironmentalLayer):
+    pass
+
+
+class LandCoverlayer(VectorEnvironmentalLayer):
     pass

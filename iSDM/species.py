@@ -98,7 +98,7 @@ class Species(object):
 
     def load_data(self, file_path=None):
         """ Loads the serialized species pickle file into a pandas DataFrame.
-    """
+        """
         if file_path is None:
             filename = str(self.name_species) + str(self.ID) + ".pkl"
             file_path = os.path.join(os.getcwd(), filename)
@@ -137,10 +137,14 @@ class Species(object):
         return self.data_full
 
     def set_data(self, data_frame):
-        # !!! Careful, overwrites the existing raw data!
+        """ Careful, overwrites the existing raw data!. More documentation
+        """
         self.data_full = data_frame
 
     def plot_species_occurrence(self, figsize=(16, 12), projection='merc', facecolor='crimson'):
+        """
+        Documentation pending on plotting
+        """
         if not isinstance(self.data_full, GeoDataFrame):
             if not isinstance(self.data_full, pd.DataFrame):
                 raise AttributeError("No data to save. Please load it first.")
@@ -199,6 +203,9 @@ class Species(object):
 
 
 class GBIFSpecies(Species):
+    """
+    Some class-level documentation on GBIF species. One two three.
+    """
 
     def __init__(self, **kwargs):
 
@@ -258,6 +265,9 @@ class GBIFSpecies(Species):
         return self.data_full
 
     def load_csv(self, file_path):
+        """
+        Documentation pending on loading from csv file
+        """
 
         logger.info("Loading data from: %s" % file_path)
         f = open(file_path, 'r')
@@ -396,6 +406,9 @@ class IUCNSpecies(Species):
         self.shape_file = file_path
 
     def find_species_occurrences(self, name_species=None, **kwargs):
+        """
+        Documentation pending on filtering species data from a shapefile
+        """
 
         if not hasattr(self, 'data_full'):
             raise AttributeError("You have not loaded the data.")
@@ -485,7 +498,9 @@ class IUCNSpecies(Species):
                   default_value=1,
                   crs={'init': "EPSG:4326"},
                   *args, **kwargs):
-        # do it with rasterio instead
+        """
+        Documentation pending on how to rasterize geometrical shapes
+        """
         if not (pixel_size or raster_file):
             raise AttributeError("Please provide pixel_size and a target raster_file.")
 
@@ -526,6 +541,9 @@ class IUCNSpecies(Species):
         return result
 
     def load_raster_data(self, raster_file=None):
+        """
+        Documentation pending on how to load raster data
+        """
         if raster_file:
             self.raster_file = raster_file
         if not self.raster_file:
