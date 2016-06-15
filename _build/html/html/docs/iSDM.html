@@ -1,0 +1,460 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>iSDM package &mdash; iSDM 0.0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="iSDM 0.0.1 documentation" href="../index.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="isdm-package">
+<h1>iSDM package<a class="headerlink" href="#isdm-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-iSDM.environment">
+<span id="isdm-environment-module"></span><h2>iSDM.environment module<a class="headerlink" href="#module-iSDM.environment" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="iSDM.environment.ClimateLayer">
+<em class="property">class </em><code class="descclassname">iSDM.environment.</code><code class="descname">ClimateLayer</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/iSDM/environment.html#ClimateLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iSDM.environment.ClimateLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#iSDM.environment.EnvironmentalLayer" title="iSDM.environment.EnvironmentalLayer"><code class="xref py py-class docutils literal"><span class="pre">iSDM.environment.EnvironmentalLayer</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="iSDM.environment.EnvironmentalLayer">
+<em class="property">class </em><code class="descclassname">iSDM.environment.</code><code class="descname">EnvironmentalLayer</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/iSDM/environment.html#EnvironmentalLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iSDM.environment.EnvironmentalLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<dl class="method">
+<dt id="iSDM.environment.EnvironmentalLayer.load_data">
+<code class="descname">load_data</code><span class="sig-paren">(</span><em>file_path=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/iSDM/environment.html#EnvironmentalLayer.load_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iSDM.environment.EnvironmentalLayer.load_data" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="iSDM.environment.EnvironmentalLayer.scale_resolution">
+<code class="descname">scale_resolution</code><span class="sig-paren">(</span><em>degrees</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/iSDM/environment.html#EnvironmentalLayer.scale_resolution"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iSDM.environment.EnvironmentalLayer.scale_resolution" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="iSDM.environment.LandCoverlayer">
+<em class="property">class </em><code class="descclassname">iSDM.environment.</code><code class="descname">LandCoverlayer</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/iSDM/environment.html#LandCoverlayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iSDM.environment.LandCoverlayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#iSDM.environment.EnvironmentalLayer" title="iSDM.environment.EnvironmentalLayer"><code class="xref py py-class docutils literal"><span class="pre">iSDM.environment.EnvironmentalLayer</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="iSDM.environment.LandUseLayer">
+<em class="property">class </em><code class="descclassname">iSDM.environment.</code><code class="descname">LandUseLayer</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/iSDM/environment.html#LandUseLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iSDM.environment.LandUseLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#iSDM.environment.EnvironmentalLayer" title="iSDM.environment.EnvironmentalLayer"><code class="xref py py-class docutils literal"><span class="pre">iSDM.environment.EnvironmentalLayer</span></code></a></p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-iSDM.model">
+<span id="isdm-model-module"></span><h2>iSDM.model module<a class="headerlink" href="#module-iSDM.model" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="iSDM.model.Algorithm">
+<em class="property">class </em><code class="descclassname">iSDM.model.</code><code class="descname">Algorithm</code><a class="reference internal" href="../_modules/iSDM/model.html#Algorithm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iSDM.model.Algorithm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">enum.Enum</span></code></p>
+<p>An enumeration.</p>
+<dl class="attribute">
+<dt id="iSDM.model.Algorithm.GAM">
+<code class="descname">GAM</code><em class="property"> = &lt;Algorithm.GAM: 1&gt;</em><a class="headerlink" href="#iSDM.model.Algorithm.GAM" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="iSDM.model.Algorithm.GLM">
+<code class="descname">GLM</code><em class="property"> = &lt;Algorithm.GLM: 2&gt;</em><a class="headerlink" href="#iSDM.model.Algorithm.GLM" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="iSDM.model.Algorithm.MAXENT">
+<code class="descname">MAXENT</code><em class="property"> = &lt;Algorithm.MAXENT: 3&gt;</em><a class="headerlink" href="#iSDM.model.Algorithm.MAXENT" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="iSDM.model.Evaluation">
+<em class="property">class </em><code class="descclassname">iSDM.model.</code><code class="descname">Evaluation</code><a class="reference internal" href="../_modules/iSDM/model.html#Evaluation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iSDM.model.Evaluation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">enum.Enum</span></code></p>
+<p>An enumeration.</p>
+<dl class="attribute">
+<dt id="iSDM.model.Evaluation.KAPPA">
+<code class="descname">KAPPA</code><em class="property"> = &lt;Evaluation.KAPPA: 2&gt;</em><a class="headerlink" href="#iSDM.model.Evaluation.KAPPA" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="iSDM.model.Evaluation.ROC">
+<code class="descname">ROC</code><em class="property"> = &lt;Evaluation.ROC: 1&gt;</em><a class="headerlink" href="#iSDM.model.Evaluation.ROC" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="iSDM.model.Evaluation.TSS">
+<code class="descname">TSS</code><em class="property"> = &lt;Evaluation.TSS: 3&gt;</em><a class="headerlink" href="#iSDM.model.Evaluation.TSS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="iSDM.model.Model">
+<em class="property">class </em><code class="descclassname">iSDM.model.</code><code class="descname">Model</code><span class="sig-paren">(</span><em>algorithm=&lt;Algorithm.GAM: 1&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/iSDM/model.html#Model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iSDM.model.Model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<dl class="attribute">
+<dt id="iSDM.model.Model.algorithm">
+<code class="descname">algorithm</code><em class="property"> = None</em><a class="headerlink" href="#iSDM.model.Model.algorithm" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="iSDM.model.Model.cross_validate">
+<code class="descname">cross_validate</code><span class="sig-paren">(</span><em>percentage</em>, <em>random_seed</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/iSDM/model.html#Model.cross_validate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iSDM.model.Model.cross_validate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="iSDM.model.Model.evaluate_performance">
+<code class="descname">evaluate_performance</code><span class="sig-paren">(</span><em>method=&lt;Evaluation.ROC: 1&gt;</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/iSDM/model.html#Model.evaluate_performance"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iSDM.model.Model.evaluate_performance" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="iSDM.model.Model.fit">
+<code class="descname">fit</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/iSDM/model.html#Model.fit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iSDM.model.Model.fit" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="iSDM.model.Model.method">
+<code class="descname">method</code><em class="property"> = None</em><a class="headerlink" href="#iSDM.model.Model.method" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="iSDM.model.Model.species">
+<code class="descname">species</code><em class="property"> = None</em><a class="headerlink" href="#iSDM.model.Model.species" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-iSDM.species">
+<span id="isdm-species-module"></span><h2>iSDM.species module<a class="headerlink" href="#module-iSDM.species" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-species"></span><dl class="class">
+<dt id="iSDM.species.GBIFSpecies">
+<em class="property">class </em><code class="descclassname">iSDM.species.</code><code class="descname">GBIFSpecies</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/iSDM/species.html#GBIFSpecies"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iSDM.species.GBIFSpecies" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#iSDM.species.Species" title="iSDM.species.Species"><code class="xref py py-class docutils literal"><span class="pre">iSDM.species.Species</span></code></a></p>
+<dl class="method">
+<dt id="iSDM.species.GBIFSpecies.find_species_occurrences">
+<code class="descname">find_species_occurrences</code><span class="sig-paren">(</span><em>name_species=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/iSDM/species.html#GBIFSpecies.find_species_occurrences"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iSDM.species.GBIFSpecies.find_species_occurrences" title="Permalink to this definition">¶</a></dt>
+<dd><p>Finds and loads species occurrence data into pandas DataFrame.
+Data comes from the GBIF database, based on name or gbif ID
+the occurrences.search(...) returns a list of json structures
+which we load into Pandas DataFrame for easier manipulation.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="iSDM.species.GBIFSpecies.load_csv">
+<code class="descname">load_csv</code><span class="sig-paren">(</span><em>file_path</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/iSDM/species.html#GBIFSpecies.load_csv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iSDM.species.GBIFSpecies.load_csv" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="iSDM.species.IUCNSpecies">
+<em class="property">class </em><code class="descclassname">iSDM.species.</code><code class="descname">IUCNSpecies</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/iSDM/species.html#IUCNSpecies"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iSDM.species.IUCNSpecies" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#iSDM.species.Species" title="iSDM.species.Species"><code class="xref py py-class docutils literal"><span class="pre">iSDM.species.Species</span></code></a></p>
+<p>Data are held in shapefiles, the ESRI native format and contain the known expert range of each species. Ranges are
+depicted as polygons. One large shapefile contains all the distribution maps of that group, i.e., all geometries. We
+will need to rasterize IUCN range polygons to grids with a predefined resolution. &#8220;Gridify&#8221; the data, and that per
+species rather than all in one region.</p>
+<dl class="method">
+<dt id="iSDM.species.IUCNSpecies.find_species_occurrences">
+<code class="descname">find_species_occurrences</code><span class="sig-paren">(</span><em>name_species=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/iSDM/species.html#IUCNSpecies.find_species_occurrences"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iSDM.species.IUCNSpecies.find_species_occurrences" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="iSDM.species.IUCNSpecies.load_raster_data">
+<code class="descname">load_raster_data</code><span class="sig-paren">(</span><em>raster_file=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/iSDM/species.html#IUCNSpecies.load_raster_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iSDM.species.IUCNSpecies.load_raster_data" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="iSDM.species.IUCNSpecies.load_shapefile">
+<code class="descname">load_shapefile</code><span class="sig-paren">(</span><em>file_path</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/iSDM/species.html#IUCNSpecies.load_shapefile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iSDM.species.IUCNSpecies.load_shapefile" title="Permalink to this definition">¶</a></dt>
+<dd><p>A GeoDataFrame is a tablular data structure that contains a column called geometry which contains a GeoSeries.
+So data_full will be a geopandas dataframe, you can obtain it by .get_data()</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="iSDM.species.IUCNSpecies.rasterize_data">
+<code class="descname">rasterize_data</code><span class="sig-paren">(</span><em>raster_file=None</em>, <em>pixel_size=None</em>, <em>x_res=None</em>, <em>y_res=None</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/iSDM/species.html#IUCNSpecies.rasterize_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iSDM.species.IUCNSpecies.rasterize_data" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="iSDM.species.IUCNSpecies.save_shapefile">
+<code class="descname">save_shapefile</code><span class="sig-paren">(</span><em>full_name=None</em>, <em>driver='ESRI Shapefile'</em>, <em>overwrite=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/iSDM/species.html#IUCNSpecies.save_shapefile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iSDM.species.IUCNSpecies.save_shapefile" title="Permalink to this definition">¶</a></dt>
+<dd><p>Saves the current data as a shapefile.
+The geopandas data needs to have geometry as a column, besides the metadata.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="iSDM.species.MOLSpecies">
+<em class="property">class </em><code class="descclassname">iSDM.species.</code><code class="descname">MOLSpecies</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/iSDM/species.html#MOLSpecies"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iSDM.species.MOLSpecies" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#iSDM.species.Species" title="iSDM.species.Species"><code class="xref py py-class docutils literal"><span class="pre">iSDM.species.Species</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="iSDM.species.ObservationsType">
+<em class="property">class </em><code class="descclassname">iSDM.species.</code><code class="descname">ObservationsType</code><a class="reference internal" href="../_modules/iSDM/species.html#ObservationsType"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iSDM.species.ObservationsType" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">enum.Enum</span></code></p>
+<p>An enumeration.</p>
+<dl class="attribute">
+<dt id="iSDM.species.ObservationsType.ABUNDANCE">
+<code class="descname">ABUNDANCE</code><em class="property"> = &lt;ObservationsType.ABUNDANCE: 4&gt;</em><a class="headerlink" href="#iSDM.species.ObservationsType.ABUNDANCE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="iSDM.species.ObservationsType.PRESENCE_ABSENCE">
+<code class="descname">PRESENCE_ABSENCE</code><em class="property"> = &lt;ObservationsType.PRESENCE_ABSENCE: 2&gt;</em><a class="headerlink" href="#iSDM.species.ObservationsType.PRESENCE_ABSENCE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="iSDM.species.ObservationsType.PRESENCE_ONLY">
+<code class="descname">PRESENCE_ONLY</code><em class="property"> = &lt;ObservationsType.PRESENCE_ONLY: 1&gt;</em><a class="headerlink" href="#iSDM.species.ObservationsType.PRESENCE_ONLY" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="iSDM.species.ObservationsType.RICHNESS">
+<code class="descname">RICHNESS</code><em class="property"> = &lt;ObservationsType.RICHNESS: 3&gt;</em><a class="headerlink" href="#iSDM.species.ObservationsType.RICHNESS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="iSDM.species.Source">
+<em class="property">class </em><code class="descclassname">iSDM.species.</code><code class="descname">Source</code><a class="reference internal" href="../_modules/iSDM/species.html#Source"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iSDM.species.Source" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">enum.Enum</span></code></p>
+<p>An enumeration.</p>
+<dl class="attribute">
+<dt id="iSDM.species.Source.GBIF">
+<code class="descname">GBIF</code><em class="property"> = &lt;Source.GBIF: 1&gt;</em><a class="headerlink" href="#iSDM.species.Source.GBIF" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="iSDM.species.Source.IUCN">
+<code class="descname">IUCN</code><em class="property"> = &lt;Source.IUCN: 2&gt;</em><a class="headerlink" href="#iSDM.species.Source.IUCN" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="iSDM.species.Source.MOL">
+<code class="descname">MOL</code><em class="property"> = &lt;Source.MOL: 4&gt;</em><a class="headerlink" href="#iSDM.species.Source.MOL" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="iSDM.species.Source.PREDICTS">
+<code class="descname">PREDICTS</code><em class="property"> = &lt;Source.PREDICTS: 3&gt;</em><a class="headerlink" href="#iSDM.species.Source.PREDICTS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="iSDM.species.Species">
+<em class="property">class </em><code class="descclassname">iSDM.species.</code><code class="descname">Species</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/iSDM/species.html#Species"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iSDM.species.Species" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<p>A generic Species class used for subclassing different global-scale species data sources.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Variables:</th><td class="field-body"><ul class="first last simple">
+<li><a class="reference internal" href="#iSDM.species.Species.ID" title="iSDM.species.Species.ID"><strong>ID</strong></a> &#8211; a unique ID for a particular species. For example, for GBIF sources, it is the gbifid metadata field.</li>
+<li><a class="reference internal" href="#iSDM.species.Species.name_species" title="iSDM.species.Species.name_species"><strong>name_species</strong></a> &#8211; initial value: &#8216;Unknown&#8217;</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="attribute">
+<dt id="iSDM.species.Species.ID">
+<code class="descname">ID</code><em class="property"> = 0</em><a class="headerlink" href="#iSDM.species.Species.ID" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="iSDM.species.Species.find_species_occurrences">
+<code class="descname">find_species_occurrences</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/iSDM/species.html#Species.find_species_occurrences"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iSDM.species.Species.find_species_occurrences" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="iSDM.species.Species.get_data">
+<code class="descname">get_data</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/iSDM/species.html#Species.get_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iSDM.species.Species.get_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function does something.</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd>name (str):  The name to use.</dd>
+<dt>Kwargs:</dt>
+<dd>state (bool): Current state to be in.</dd>
+<dt>Returns:</dt>
+<dd><p class="first">int.  The return code:</p>
+<div class="last highlight-default"><div class="highlight"><pre><span></span>0 -- Success!
+1 -- No good.
+2 -- Try again.
+</pre></div>
+</div>
+</dd>
+<dt>Raises:</dt>
+<dd>AttributeError, KeyError</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="iSDM.species.Species.load_data">
+<code class="descname">load_data</code><span class="sig-paren">(</span><em>file_path=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/iSDM/species.html#Species.load_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iSDM.species.Species.load_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loads the serialized GBIF species occurrence filtered dataset into a pandas
+DataFrame. #TODO either move this method in subclass or generalize.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="iSDM.species.Species.name_species">
+<code class="descname">name_species</code><em class="property"> = 'Unknown'</em><a class="headerlink" href="#iSDM.species.Species.name_species" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="iSDM.species.Species.plot_species_occurrence">
+<code class="descname">plot_species_occurrence</code><span class="sig-paren">(</span><em>figsize=(16</em>, <em>12)</em>, <em>projection='merc'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/iSDM/species.html#Species.plot_species_occurrence"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iSDM.species.Species.plot_species_occurrence" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="iSDM.species.Species.save_data">
+<code class="descname">save_data</code><span class="sig-paren">(</span><em>full_name=None</em>, <em>dir_name=None</em>, <em>file_name=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/iSDM/species.html#Species.save_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iSDM.species.Species.save_data" title="Permalink to this definition">¶</a></dt>
+<dd><blockquote>
+<div>Serializes the loaded species occurrence filtered dataset (pandas.DataFrame) into a binary pickle file.</div></blockquote>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>full_name</strong> (<em>str</em>) &#8211; The full path of the file (including the directory and name in one string),
+where the data will be saved.</li>
+<li><strong>dir_name</strong> (<em>str</em>) &#8211; The directory where the file will be stored. If <code class="xref py py-attr docutils literal"><span class="pre">file_name</span></code> is not specified, the default one name_species+ID.pkl is given.</li>
+<li><strong>file_name</strong> (<em>str</em>) &#8211; The name of the file where the data will be saved. If <code class="xref py py-attr docutils literal"><span class="pre">dir_name</span></code> is not specified, the current working directory is taken by default.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><strong>AttributeError</strong> &#8211; if the data has not been loaded in the object before. See <code class="xref py py-func docutils literal"><span class="pre">load_data()</span></code> and <code class="xref py py-func docutils literal"><span class="pre">find_species_occurrences()</span></code></p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="iSDM.species.Species.set_data">
+<code class="descname">set_data</code><span class="sig-paren">(</span><em>data_frame</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/iSDM/species.html#Species.set_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iSDM.species.Species.set_data" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-iSDM.speciesgroup">
+<span id="isdm-speciesgroup-module"></span><h2>iSDM.speciesgroup module<a class="headerlink" href="#module-iSDM.speciesgroup" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="iSDM.speciesgroup.SpeciesGroup">
+<em class="property">class </em><code class="descclassname">iSDM.speciesgroup.</code><code class="descname">SpeciesGroup</code><a class="reference internal" href="../_modules/iSDM/speciesgroup.html#SpeciesGroup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#iSDM.speciesgroup.SpeciesGroup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+</dd></dl>
+
+</div>
+<div class="section" id="module-iSDM">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-iSDM" title="Permalink to this headline">¶</a></h2>
+<p>interacting Species Distribution Models fraamework</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="../index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">iSDM package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-iSDM.environment">iSDM.environment module</a></li>
+<li><a class="reference internal" href="#module-iSDM.model">iSDM.model module</a></li>
+<li><a class="reference internal" href="#module-iSDM.species">iSDM.species module</a></li>
+<li><a class="reference internal" href="#module-iSDM.speciesgroup">iSDM.speciesgroup module</a></li>
+<li><a class="reference internal" href="#module-iSDM">Module contents</a></li>
+</ul>
+</li>
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/docs/iSDM.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2016, Daniela Remenska.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.7</a>
+      
+      |
+      <a href="../_sources/docs/iSDM.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

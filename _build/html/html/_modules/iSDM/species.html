@@ -1,0 +1,447 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>iSDM.species &mdash; iSDM 0.0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="iSDM 0.0.1 documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for iSDM.species</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">.. module:: species</span>
+<span class="sd">   :platform: Unix, Windows</span>
+<span class="sd">   :synopsis: A useful module indeed.</span>
+
+<span class="sd">.. moduleauthor:: Daniela Remenska &lt;andrew@invalid.com&gt;</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">pygbif</span> <span class="kn">import</span> <span class="n">species</span>   <span class="c1"># http://pygbif.readthedocs.org/en/latest/</span>
+<span class="kn">from</span> <span class="nn">pygbif</span> <span class="kn">import</span> <span class="n">occurrences</span>
+<span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">csv</span>
+<span class="kn">from</span> <span class="nn">enum</span> <span class="kn">import</span> <span class="n">Enum</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="kn">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">mpl_toolkits.basemap</span> <span class="kn">import</span> <span class="n">Basemap</span>
+<span class="kn">from</span> <span class="nn">geopandas</span> <span class="kn">import</span> <span class="n">GeoSeries</span><span class="p">,</span> <span class="n">GeoDataFrame</span>
+<span class="kn">from</span> <span class="nn">osgeo</span> <span class="kn">import</span> <span class="n">gdal</span><span class="p">,</span> <span class="n">ogr</span>
+
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">cPickle</span> <span class="kn">as</span> <span class="nn">pickle</span>
+<span class="k">except</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">pickle</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s1">&#39;iSDM.species&#39;</span><span class="p">)</span>
+<span class="n">logger</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="Source"><a class="viewcode-back" href="../../docs/iSDM.html#iSDM.species.Source">[docs]</a><span class="k">class</span> <span class="nc">Source</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+    <span class="n">GBIF</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">IUCN</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">PREDICTS</span> <span class="o">=</span> <span class="mi">3</span>
+    <span class="n">MOL</span> <span class="o">=</span> <span class="mi">4</span></div>
+
+
+<div class="viewcode-block" id="ObservationsType"><a class="viewcode-back" href="../../docs/iSDM.html#iSDM.species.ObservationsType">[docs]</a><span class="k">class</span> <span class="nc">ObservationsType</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
+    <span class="n">PRESENCE_ONLY</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">PRESENCE_ABSENCE</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">RICHNESS</span> <span class="o">=</span> <span class="mi">3</span>
+    <span class="n">ABUNDANCE</span> <span class="o">=</span> <span class="mi">4</span></div>
+
+
+<div class="viewcode-block" id="Species"><a class="viewcode-back" href="../../docs/iSDM.html#iSDM.species.Species">[docs]</a><span class="k">class</span> <span class="nc">Species</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot; A generic Species class used for subclassing different global-scale species data sources.</span>
+
+<span class="sd">    :ivar ID: a unique ID for a particular species. For example, for GBIF sources, it is the gbifid metadata field.</span>
+<span class="sd">    :ivar name_species: initial value: &#39;Unknown&#39;</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">ID</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">name_species</span> <span class="o">=</span> <span class="s1">&#39;Unknown&#39;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="s1">&#39;ID&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span> <span class="ow">and</span> <span class="s1">&#39;name_species&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;Cannot initialize species without a &#39;name_species&#39; or an &#39;ID&#39; argument supplied&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="s1">&#39;name_species&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">name_species</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;name_species&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="s1">&#39;ID&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ID</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;ID&#39;</span><span class="p">]</span>
+
+<div class="viewcode-block" id="Species.save_data"><a class="viewcode-back" href="../../docs/iSDM.html#iSDM.species.Species.save_data">[docs]</a>    <span class="k">def</span> <span class="nf">save_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">full_name</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">dir_name</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">file_name</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Serializes the loaded species occurrence filtered dataset (pandas.DataFrame) into a binary pickle file.</span>
+
+<span class="sd">       :param str full_name: The full path of the file (including the directory and name in one string),</span>
+<span class="sd">        where the data will be saved.</span>
+<span class="sd">       :param str dir_name: The directory where the file will be stored. If :attr:`file_name` is not specified, the default one name_species+ID.pkl is given.</span>
+<span class="sd">       :param str file_name: The name of the file where the data will be saved. If :attr:`dir_name` is not specified, the current working directory is taken by default.</span>
+<span class="sd">       :raises AttributeError: if the data has not been loaded in the object before. See :func:`load_data` and :func:`find_species_occurrences`</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">full_name</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">file_name</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="n">file_name</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name_species</span><span class="p">)</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;.pkl&quot;</span>
+            <span class="k">if</span> <span class="n">dir_name</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="n">dir_name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">()</span>
+
+            <span class="n">full_name</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">dir_name</span><span class="p">,</span> <span class="n">file_name</span><span class="p">)</span>
+
+        <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">full_name</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">pickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_full</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Saved data: </span><span class="si">%s</span><span class="s2"> &quot;</span> <span class="o">%</span> <span class="n">full_name</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Occurrences data is not loaded! </span><span class="si">%s</span><span class="s2"> &quot;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Species.load_data"><a class="viewcode-back" href="../../docs/iSDM.html#iSDM.species.Species.load_data">[docs]</a>    <span class="k">def</span> <span class="nf">load_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_path</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot; Loads the serialized GBIF species occurrence filtered dataset into a pandas</span>
+<span class="sd">    DataFrame. #TODO either move this method in subclass or generalize.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">file_path</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="n">filename</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name_species</span><span class="p">)</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;.pkl&quot;</span>
+            <span class="n">file_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getcwd</span><span class="p">(),</span> <span class="n">filename</span><span class="p">)</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Loading data from: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">file_path</span><span class="p">)</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data_full</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Succesfully loaded previously saved data.&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_full</span>   <span class="c1"># TODO maybe don&#39;t return the full frame?</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Species.find_species_occurrences"><a class="viewcode-back" href="../../docs/iSDM.html#iSDM.species.Species.find_species_occurrences">[docs]</a>    <span class="k">def</span> <span class="nf">find_species_occurrences</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;You need to implement this method!&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Species.get_data"><a class="viewcode-back" href="../../docs/iSDM.html#iSDM.species.Species.get_data">[docs]</a>    <span class="k">def</span> <span class="nf">get_data</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;This function does something.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">       name (str):  The name to use.</span>
+
+<span class="sd">    Kwargs:</span>
+<span class="sd">       state (bool): Current state to be in.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">       int.  The return code::</span>
+
+<span class="sd">          0 -- Success!</span>
+<span class="sd">          1 -- No good.</span>
+<span class="sd">          2 -- Try again.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">       AttributeError, KeyError</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_full</span></div>
+
+<div class="viewcode-block" id="Species.set_data"><a class="viewcode-back" href="../../docs/iSDM.html#iSDM.species.Species.set_data">[docs]</a>    <span class="k">def</span> <span class="nf">set_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_frame</span><span class="p">):</span>
+        <span class="c1"># !!! Careful, overwrites the existing raw data!</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_full</span> <span class="o">=</span> <span class="n">data_frame</span></div>
+
+<div class="viewcode-block" id="Species.plot_species_occurrence"><a class="viewcode-back" href="../../docs/iSDM.html#iSDM.species.Species.plot_species_occurrence">[docs]</a>    <span class="k">def</span> <span class="nf">plot_species_occurrence</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">12</span><span class="p">),</span> <span class="n">projection</span><span class="o">=</span><span class="s1">&#39;merc&#39;</span><span class="p">):</span>
+
+        <span class="n">data_clean</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_full</span><span class="o">.</span><span class="n">dropna</span><span class="p">(</span><span class="n">how</span><span class="o">=</span><span class="s1">&#39;any&#39;</span><span class="p">,</span> <span class="n">subset</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;decimalLatitude&#39;</span><span class="p">,</span> <span class="s1">&#39;decimalLongitude&#39;</span><span class="p">])</span>
+
+        <span class="c1"># latitude/longitude lists</span>
+        <span class="n">data_full_latitude</span> <span class="o">=</span> <span class="n">data_clean</span><span class="o">.</span><span class="n">decimalLatitude</span>
+        <span class="n">data_full_longitude</span> <span class="o">=</span> <span class="n">data_clean</span><span class="o">.</span><span class="n">decimalLongitude</span>
+
+        <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="n">figsize</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> occurrence records from </span><span class="si">%s</span><span class="s2"> &quot;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name_species</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">source</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
+
+        <span class="n">my_map</span> <span class="o">=</span> <span class="n">Basemap</span><span class="p">(</span><span class="n">projection</span><span class="o">=</span><span class="n">projection</span><span class="p">,</span> <span class="n">lat_0</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span> <span class="n">lon_0</span><span class="o">=-</span><span class="mi">100</span><span class="p">,</span>
+                         <span class="n">resolution</span><span class="o">=</span><span class="s1">&#39;l&#39;</span><span class="p">,</span> <span class="n">area_thresh</span><span class="o">=</span><span class="mf">1000.0</span><span class="p">,</span>
+                         <span class="n">llcrnrlon</span><span class="o">=</span><span class="n">data_full_longitude</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span>  <span class="c1"># lower left corner longitude point</span>
+                         <span class="n">llcrnrlat</span><span class="o">=</span><span class="n">data_full_latitude</span><span class="o">.</span><span class="n">min</span><span class="p">(),</span>   <span class="c1"># lower left corner latitude point</span>
+                         <span class="n">urcrnrlon</span><span class="o">=</span><span class="n">data_full_longitude</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span>  <span class="c1"># upper right longitude point</span>
+                         <span class="n">urcrnrlat</span><span class="o">=</span><span class="n">data_full_latitude</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>    <span class="c1"># upper right latitude point</span>
+                         <span class="p">)</span>
+        <span class="c1"># prepare longitude/latitude list for basemap</span>
+        <span class="n">df_x</span><span class="p">,</span> <span class="n">df_y</span> <span class="o">=</span> <span class="n">my_map</span><span class="p">(</span><span class="n">data_full_longitude</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span> <span class="n">data_full_latitude</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+        <span class="n">my_map</span><span class="o">.</span><span class="n">drawcoastlines</span><span class="p">()</span>
+        <span class="n">my_map</span><span class="o">.</span><span class="n">drawcountries</span><span class="p">()</span>
+        <span class="n">my_map</span><span class="o">.</span><span class="n">drawrivers</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="s1">&#39;lightskyblue&#39;</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">1.5</span><span class="p">)</span>
+        <span class="n">my_map</span><span class="o">.</span><span class="n">drawmapboundary</span><span class="p">(</span><span class="n">fill_color</span><span class="o">=</span><span class="s1">&#39;lightskyblue&#39;</span><span class="p">)</span>
+        <span class="n">my_map</span><span class="o">.</span><span class="n">fillcontinents</span><span class="p">(</span><span class="n">color</span><span class="o">=</span><span class="s1">&#39;cornsilk&#39;</span><span class="p">)</span>
+        <span class="c1"># draw latitude and longitude</span>
+        <span class="n">my_map</span><span class="o">.</span><span class="n">drawmeridians</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">360</span><span class="p">,</span> <span class="mi">30</span><span class="p">))</span>
+        <span class="n">my_map</span><span class="o">.</span><span class="n">drawparallels</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="o">-</span><span class="mi">90</span><span class="p">,</span> <span class="mi">90</span><span class="p">,</span> <span class="mi">30</span><span class="p">))</span>
+        <span class="n">my_map</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">df_x</span><span class="p">,</span> <span class="n">df_y</span><span class="p">,</span> <span class="s1">&#39;bo&#39;</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;#b01a1a&quot;</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="GBIFSpecies"><a class="viewcode-back" href="../../docs/iSDM.html#iSDM.species.GBIFSpecies">[docs]</a><span class="k">class</span> <span class="nc">GBIFSpecies</span><span class="p">(</span><span class="n">Species</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+
+        <span class="n">Species</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">source</span> <span class="o">=</span> <span class="n">Source</span><span class="o">.</span><span class="n">GBIF</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">observations_type</span> <span class="o">=</span> <span class="n">ObservationsType</span><span class="o">.</span><span class="n">PRESENCE_ONLY</span>
+
+<div class="viewcode-block" id="GBIFSpecies.find_species_occurrences"><a class="viewcode-back" href="../../docs/iSDM.html#iSDM.species.GBIFSpecies.find_species_occurrences">[docs]</a>    <span class="k">def</span> <span class="nf">find_species_occurrences</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>  <span class="n">name_species</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Finds and loads species occurrence data into pandas DataFrame.</span>
+<span class="sd">        Data comes from the GBIF database, based on name or gbif ID</span>
+<span class="sd">        the occurrences.search(...) returns a list of json structures</span>
+<span class="sd">        which we load into Pandas DataFrame for easier manipulation.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">name_species</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">name_species</span> <span class="o">=</span> <span class="n">name_species</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">name_species</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;You have not provided a name for the species.&quot;</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">species_result</span> <span class="o">=</span> <span class="n">species</span><span class="o">.</span><span class="n">name_backbone</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">name_species</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">species_result</span><span class="p">[</span><span class="s1">&#39;matchType&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;NONE&#39;</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;No match for the species </span><span class="si">%s</span><span class="s2"> &quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">name_species</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ID</span> <span class="o">=</span> <span class="n">species_result</span><span class="p">[</span><span class="s1">&#39;usageKey&#39;</span><span class="p">]</span>
+            <span class="n">first_res</span> <span class="o">=</span> <span class="n">occurrences</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">taxonKey</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="mi">100000</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>   <span class="c1"># name not provided, assume at least ID is provided</span>
+            <span class="n">first_res</span> <span class="o">=</span> <span class="n">occurrences</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">taxonKey</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="mi">100000</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="c1"># TODO: more efficient way than copying...appending to the same dataframe?</span>
+
+        <span class="n">full_results</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">first_res</span><span class="p">)</span>
+
+        <span class="c1"># results are paginated so we need a loop to fetch them all</span>
+        <span class="n">counter</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">while</span> <span class="n">first_res</span><span class="p">[</span><span class="s1">&#39;endOfRecords&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="bp">False</span><span class="p">:</span>
+            <span class="n">first_res</span> <span class="o">=</span> <span class="n">occurrences</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">taxonKey</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">,</span> <span class="n">offset</span><span class="o">=</span><span class="mi">300</span><span class="o">*</span><span class="n">counter</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="mi">10000</span><span class="p">)</span>
+            <span class="n">full_results</span><span class="p">[</span><span class="s1">&#39;results&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">full_results</span><span class="p">[</span><span class="s1">&#39;results&#39;</span><span class="p">])</span> <span class="o">+</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">first_res</span><span class="p">[</span><span class="s1">&#39;results&#39;</span><span class="p">])</span>
+            <span class="n">counter</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Loading species ... &quot;</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Number of occurrences: </span><span class="si">%s</span><span class="s2"> &quot;</span> <span class="o">%</span> <span class="n">full_results</span><span class="p">[</span><span class="s1">&#39;count&#39;</span><span class="p">])</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">full_results</span><span class="p">[</span><span class="s1">&#39;count&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">full_results</span><span class="p">[</span><span class="s1">&#39;results&#39;</span><span class="p">]))</span>   <span class="c1"># match?</span>
+
+        <span class="c1"># TODO: do we want a special way of loading? say, suggesting data types in some columns?</span>
+
+        <span class="c1"># TODO: should we reformat the dtypes of the columns? at least day/month/year we care?</span>
+        <span class="c1"># data_cleaned[[&#39;day&#39;, &#39;month&#39;, &#39;year&#39;]] = data_cleaned[[&#39;day&#39;, &#39;month&#39;, &#39;year&#39;]].fillna(0.0).astype(int)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_full</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">full_results</span><span class="p">[</span><span class="s1">&#39;results&#39;</span><span class="p">])</span>  <span class="c1"># load results in pandas DF</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_full</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Could not retrieve any occurrences!&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Loaded species: </span><span class="si">%s</span><span class="s2"> &quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_full</span><span class="p">[</span><span class="s1">&#39;species&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">())</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_full</span></div>
+
+<div class="viewcode-block" id="GBIFSpecies.load_csv"><a class="viewcode-back" href="../../docs/iSDM.html#iSDM.species.GBIFSpecies.load_csv">[docs]</a>    <span class="k">def</span> <span class="nf">load_csv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_path</span><span class="p">):</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Loading data from: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">file_path</span><span class="p">)</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">dialect</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">Sniffer</span><span class="p">()</span><span class="o">.</span><span class="n">sniff</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="mi">10240</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data_full</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">file_path</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="n">dialect</span><span class="o">.</span><span class="n">delimiter</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Succesfully loaded previously CSV data.&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s1">&#39;specieskey&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_full</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_full</span><span class="p">[</span><span class="s1">&#39;specieskey&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">()</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">ID</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_full</span><span class="p">[</span><span class="s1">&#39;specieskey&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Updated species ID: </span><span class="si">%s</span><span class="s2"> &quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">ID</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_full</span>
+        <span class="k">finally</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div></div>
+
+
+<div class="viewcode-block" id="IUCNSpecies"><a class="viewcode-back" href="../../docs/iSDM.html#iSDM.species.IUCNSpecies">[docs]</a><span class="k">class</span> <span class="nc">IUCNSpecies</span><span class="p">(</span><span class="n">Species</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Data are held in shapefiles, the ESRI native format and contain the known expert range of each species. Ranges are</span>
+<span class="sd">    depicted as polygons. One large shapefile contains all the distribution maps of that group, i.e., all geometries. We</span>
+<span class="sd">    will need to rasterize IUCN range polygons to grids with a predefined resolution. &quot;Gridify&quot; the data, and that per</span>
+<span class="sd">    species rather than all in one region.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">Species</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">source</span> <span class="o">=</span> <span class="n">Source</span><span class="o">.</span><span class="n">IUCN</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">observations_type</span> <span class="o">=</span> <span class="n">ObservationsType</span><span class="o">.</span><span class="n">PRESENCE_ONLY</span>
+
+<div class="viewcode-block" id="IUCNSpecies.load_shapefile"><a class="viewcode-back" href="../../docs/iSDM.html#iSDM.species.IUCNSpecies.load_shapefile">[docs]</a>    <span class="k">def</span> <span class="nf">load_shapefile</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_path</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        A GeoDataFrame is a tablular data structure that contains a column called geometry which contains a GeoSeries.</span>
+<span class="sd">        So data_full will be a geopandas dataframe, you can obtain it by .get_data()</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Loading data from: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">file_path</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_full</span> <span class="o">=</span> <span class="n">GeoDataFrame</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>   <span class="c1"># shapely.geometry type of objects are used</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;The shapefile contains data on </span><span class="si">%d</span><span class="s2"> species.&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_full</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">shape_file</span> <span class="o">=</span> <span class="n">file_path</span></div>
+
+<div class="viewcode-block" id="IUCNSpecies.find_species_occurrences"><a class="viewcode-back" href="../../docs/iSDM.html#iSDM.species.IUCNSpecies.find_species_occurrences">[docs]</a>    <span class="k">def</span> <span class="nf">find_species_occurrences</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name_species</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape_file</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;You have not provided a shapefile to load data from.&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">name_species</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">name_species</span> <span class="o">=</span> <span class="n">name_species</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">name_species</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;You have not provided a name for the species.&quot;</span><span class="p">)</span>
+
+        <span class="n">all_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_full</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">data_full</span><span class="p">[</span><span class="s1">&#39;binomial&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">name_species</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">all_data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;There is no species with the name &#39;</span><span class="si">%s</span><span class="s2">&#39; in the shapefile&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">name_species</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data_full</span> <span class="o">=</span> <span class="n">all_data</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Loaded species: </span><span class="si">%s</span><span class="s2"> &quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_full</span><span class="p">[</span><span class="s1">&#39;binomial&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">unique</span><span class="p">())</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_full</span><span class="p">[</span><span class="s1">&#39;id_no&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ID</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_full</span><span class="p">[</span><span class="s1">&#39;id_no&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="IUCNSpecies.save_shapefile"><a class="viewcode-back" href="../../docs/iSDM.html#iSDM.species.IUCNSpecies.save_shapefile">[docs]</a>    <span class="k">def</span> <span class="nf">save_shapefile</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">full_name</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">driver</span><span class="o">=</span><span class="s1">&#39;ESRI Shapefile&#39;</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Saves the current data as a shapefile.</span>
+<span class="sd">        The geopandas data needs to have geometry as a column, besides the metadata.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_full</span><span class="p">,</span> <span class="n">GeoSeries</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_full</span><span class="p">,</span> <span class="n">GeoDataFrame</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;The data is not of a Geometry type (GeoSeries or GeoDataFrame&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">overwrite</span><span class="p">:</span>
+            <span class="n">full_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">shape_file</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="n">overwrite</span> <span class="ow">and</span> <span class="n">full_name</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;Please provide a shape_file location, or set overwrite=True&quot;</span><span class="p">)</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data_full</span><span class="o">.</span><span class="n">to_file</span><span class="p">(</span><span class="n">full_name</span><span class="p">,</span> <span class="n">driver</span><span class="o">=</span><span class="s2">&quot;ESRI Shapefile&quot;</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Saved data: </span><span class="si">%s</span><span class="s2"> &quot;</span> <span class="o">%</span> <span class="n">full_name</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Could not save data! </span><span class="si">%s</span><span class="s2"> &quot;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="IUCNSpecies.rasterize_data"><a class="viewcode-back" href="../../docs/iSDM.html#iSDM.species.IUCNSpecies.rasterize_data">[docs]</a>    <span class="k">def</span> <span class="nf">rasterize_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">raster_file</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">pixel_size</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">x_res</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">y_res</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="c1"># TODO or maybe load it with rasterio?</span>
+        <span class="c1"># options = [&quot;ALL_TOUCHED=TRUE&quot;]</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">pixel_size</span> <span class="ow">or</span> <span class="n">raster_file</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;Please provide pixel_size and a target raster_file.&quot;</span><span class="p">)</span>
+
+        <span class="n">NoData_value</span> <span class="o">=</span> <span class="o">-</span><span class="mi">9999</span>
+
+        <span class="c1"># Open the data source and read in the extent</span>
+        <span class="n">source_ds</span> <span class="o">=</span> <span class="n">ogr</span><span class="o">.</span><span class="n">Open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">shape_file</span><span class="p">)</span>
+        <span class="n">source_layer</span> <span class="o">=</span> <span class="n">source_ds</span><span class="o">.</span><span class="n">GetLayer</span><span class="p">()</span>
+        <span class="n">x_min</span><span class="p">,</span> <span class="n">x_max</span><span class="p">,</span> <span class="n">y_min</span><span class="p">,</span> <span class="n">y_max</span> <span class="o">=</span> <span class="n">source_layer</span><span class="o">.</span><span class="n">GetExtent</span><span class="p">()</span>   <span class="c1"># boundaries</span>
+
+        <span class="c1"># Create the destination data source</span>
+        <span class="n">x_res</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="n">x_max</span> <span class="o">-</span> <span class="n">x_min</span><span class="p">)</span> <span class="o">/</span> <span class="n">pixel_size</span><span class="p">)</span>
+        <span class="n">y_res</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="n">y_max</span> <span class="o">-</span> <span class="n">y_min</span><span class="p">)</span> <span class="o">/</span> <span class="n">pixel_size</span><span class="p">)</span>
+        <span class="n">target_ds</span> <span class="o">=</span> <span class="n">gdal</span><span class="o">.</span><span class="n">GetDriverByName</span><span class="p">(</span><span class="s1">&#39;GTiff&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">Create</span><span class="p">(</span><span class="n">raster_file</span><span class="p">,</span> <span class="n">x_res</span><span class="p">,</span> <span class="n">y_res</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">gdal</span><span class="o">.</span><span class="n">GDT_Byte</span><span class="p">)</span>
+        <span class="n">target_ds</span><span class="o">.</span><span class="n">SetGeoTransform</span><span class="p">((</span><span class="n">x_min</span><span class="p">,</span> <span class="n">pixel_size</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">y_max</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="n">pixel_size</span><span class="p">))</span>
+        <span class="n">band</span> <span class="o">=</span> <span class="n">target_ds</span><span class="o">.</span><span class="n">GetRasterBand</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">band</span><span class="o">.</span><span class="n">SetNoDataValue</span><span class="p">(</span><span class="n">NoData_value</span><span class="p">)</span>
+        <span class="c1"># Rasterize</span>
+        <span class="n">gdal</span><span class="o">.</span><span class="n">RasterizeLayer</span><span class="p">(</span><span class="n">target_ds</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">source_layer</span><span class="p">,</span> <span class="n">burn_values</span><span class="o">=</span><span class="p">[</span><span class="mi">255</span><span class="p">],</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="c1"># WOW: https://trac.osgeo.org/gdal/wiki/PythonGotchas &quot;To save and close GDAL raster datasets or OGR vector</span>
+        <span class="c1"># datasources, the object needs to be dereferenced, such as setting it to None, a different value, or deleting</span>
+        <span class="c1"># the object. &quot;</span>
+        <span class="n">band</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="n">target_ds</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Data rasterized into file </span><span class="si">%s</span><span class="s2"> &quot;</span> <span class="o">%</span> <span class="n">raster_file</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Resolution: x_res={0} y_res={1}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">x_res</span><span class="p">,</span> <span class="n">y_res</span><span class="p">))</span>
+
+        <span class="c1"># TODO do we need to save extra information on the resolution? no, all info is in the TIF file, maybe we should</span>
+        <span class="c1"># expose it though. geo.RasterXSize/RasterYSize geo.GetGeoTransform() provide all</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">raster_file</span> <span class="o">=</span> <span class="n">raster_file</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">x_res</span> <span class="o">=</span> <span class="n">x_res</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">y_res</span> <span class="o">=</span> <span class="n">y_res</span></div>
+
+<div class="viewcode-block" id="IUCNSpecies.load_raster_data"><a class="viewcode-back" href="../../docs/iSDM.html#iSDM.species.IUCNSpecies.load_raster_data">[docs]</a>    <span class="k">def</span> <span class="nf">load_raster_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">raster_file</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">raster_file</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">raster_file</span> <span class="o">=</span> <span class="n">raster_file</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">raster_file</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s2">&quot;Please rasterize the data first, or provide a raster_file to read from.&quot;</span><span class="p">)</span>
+
+        <span class="n">geo</span> <span class="o">=</span> <span class="n">gdal</span><span class="o">.</span><span class="n">Open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">raster_file</span><span class="p">)</span>
+        <span class="n">drv</span> <span class="o">=</span> <span class="n">geo</span><span class="o">.</span><span class="n">GetDriver</span><span class="p">()</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Driver name: </span><span class="si">%s</span><span class="s2"> &quot;</span> <span class="o">%</span> <span class="n">drv</span><span class="o">.</span><span class="n">GetMetadataItem</span><span class="p">(</span><span class="s1">&#39;DMD_LONGNAME&#39;</span><span class="p">))</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Raster data from </span><span class="si">%s</span><span class="s2"> loaded.&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">raster_file</span><span class="p">)</span>
+
+        <span class="n">img</span> <span class="o">=</span> <span class="n">geo</span><span class="o">.</span><span class="n">ReadAsArray</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">img</span></div></div>
+
+
+<div class="viewcode-block" id="MOLSpecies"><a class="viewcode-back" href="../../docs/iSDM.html#iSDM.species.MOLSpecies">[docs]</a><span class="k">class</span> <span class="nc">MOLSpecies</span><span class="p">(</span><span class="n">Species</span><span class="p">):</span>
+    <span class="k">pass</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2016, Daniela Remenska.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.7</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

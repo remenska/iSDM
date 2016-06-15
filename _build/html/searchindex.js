@@ -1,0 +1,1 @@
+Search.setIndex({envversion:42,terms:{index:1,search:1,page:1},objtypes:{},objnames:{},filenames:["docs/iSDM","index","docs/modules"],titles:["iSDM package","Welcome to iSDM&#8217;s documentation!","iSDM"],objects:{},titleterms:{welcom:1,speciesgroup:0,modul:0,speci:0,submodul:0,indic:1,content:0,packag:0,environ:0,tabl:1,model:0,document:1,isdm:[0,1,2]}})
