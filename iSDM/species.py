@@ -1,7 +1,7 @@
 """
-Some interesting text.
+Some interesting text on species module.
 
-:synopsis: A useful module indeed.
+:synopsis: A useful species module indeed.
 
 .. moduleauthor:: Daniela Remenska <remenska@gmail.com>
 
@@ -48,7 +48,7 @@ class ObservationsType(Enum):
 
 class Species(object):
     """
-    py:class: Species
+    Species
     A generic Species class used for subclassing different global-scale species data sources.
 
     :ivar ID: a unique ID for a particular species. For example, for GBIF sources, it is the gbifid metadata field.
