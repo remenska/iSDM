@@ -1,8 +1,8 @@
 """
-:synopsis: Documentation on the species module. 
+Documentation on the species module. 
 Some more text to document what this module is for.
 
-.. moduleauthor:: Daniela Remenska <remenska@gmail.com>
+      .. moduleauthor:: Daniela Remenska <remenska@gmail.com>
 
 """
 
@@ -55,6 +55,7 @@ class Species(object):
 
     :ivar ID: a unique ID for a particular species. For example, for GBIF sources, it is the gbifid metadata field.
     :ivar name_species: initial value: 'Unknown'
+
     """
 
     ID = int(0)
@@ -76,9 +77,14 @@ class Species(object):
 
        :param str full_name: The full path of the file (including the directory and name in one string),
         where the data will be saved.
+       
        :param str dir_name: The directory where the file will be stored. If :attr:`file_name` is not specified, the default one :attr:`name_species` + :attr:`ID`.pkl is given.
+
        :param str file_name: The name of the file where the data will be saved. If :attr:`dir_name` is not specified, the current working directory is taken by default.
-       :raises AttributeError: if the data has not been loaded in the object before. See :func:`load_data` and :func:`find_species_occurrences`
+       
+       :raises: AttributeError: if the data has not been loaded in the object before. See :func:`load_data` and :func:`find_species_occurrences`
+       
+       :returns: None
 
         """
         if full_name is None:
@@ -99,7 +105,12 @@ class Species(object):
             logger.error("No data to save. Please load it first. %s " % str(e))
 
     def load_data(self, file_path=None):
-        """ Loads the serialized species pickle file into a pandas DataFrame.
+        """
+        Loads the serialized species pickle file data into a pandas DataFrame.
+
+        :param str file_path: The full path to the file where the data is serialized to.
+        :returns: Data loaded into geopandas dataframe.
+        :rtype: geopandas.GeoDataFrame
         """
         if file_path is None:
             filename = str(self.name_species) + str(self.ID) + ".pkl"
@@ -118,28 +129,16 @@ class Species(object):
         raise NotImplementedError("You need to implement this method!")
 
     def get_data(self):
-        """This function does something.
+        """
+        Returns the (pre)loaded species data.
 
-    Args:
-       name (str):  The name to use.
-
-    Kwargs:
-       state (bool): Current state to be in.RrR
-
-    Returns:
-       int.  The return code::
-
-          0 -- Success!
-          1 -- No good.
-          2 -- Try again.
-
-    Raises:
-       AttributeError, KeyError
+        :rtype: geopandas.GeoDataFrame
         """
         return self.data_full
 
     def set_data(self, data_frame):
-        """ Careful, overwrites the existing raw data!. More documentation
+        """
+        Careful, overwrites the existing raw data!. More documentation
         """
         self.data_full = data_frame
 
