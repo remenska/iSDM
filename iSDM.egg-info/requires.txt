@@ -1,5 +1,0 @@
-numpy
-six
-numba
-scikit-learn
-basemap
