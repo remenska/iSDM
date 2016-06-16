@@ -6,8 +6,7 @@ from rpy2.robjects.packages import importr
 import rpy2.robjects as ro
 import pandas.rpy.common as com
 
-ro.r('''                       
-newDef <- function(a,b){
+ro.r('''newDef <- function(a,b){
    x = runif(10,a,b)
    mean(x)
 }   

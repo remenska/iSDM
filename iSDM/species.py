@@ -171,7 +171,7 @@ class Species(object):
                      )
 
         # prepare longitude/latitude list for basemap
-        fig, ax1 = plt.subplots(figsize=figsize)
+        ax1 = plt.subplots(figsize=figsize)[1]
 
         plt.title("%s occurrence records from %s " % (self.name_species, self.source.name))
 
