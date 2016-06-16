@@ -1,12 +1,5 @@
 
-"""
-Another interesting module
-
-:synopsis: Another useful module indeed, environment.
-
-.. moduleauthor:: Daniela Remenska <remenska@gmail.com>
-
-"""
+"""Documentation on environment module."""
 import logging
 from enum import Enum
 import rasterio
