@@ -497,7 +497,7 @@ class IUCNSpecies(Species):
     def rasterize(self, raster_file=None, pixel_size=None, all_touched=False,
                   no_data_value=0,
                   default_value=1,
-                  crs={'init': "EPSG:4326"},
+                  crs=None,
                   *args, **kwargs):
         """
         Documentation pending on how to rasterize geometrical shapes
@@ -507,6 +507,9 @@ class IUCNSpecies(Species):
 
         if not hasattr(self, 'data_full'):
             raise AttributeError("You have not loaded the data.")
+
+        if crs is None:
+            crs = {'init': "EPSG:4326"}
 
         # Open the data source and read in the extent
 
