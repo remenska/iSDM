@@ -1,7 +1,6 @@
 """
-Some interesting text on species.
-
-:synopsis: A useful species module indeed.
+:synopsis: Documentation on the species module. 
+Some more text to document what this module is for.
 
 .. moduleauthor:: Daniela Remenska <remenska@gmail.com>
 
@@ -33,6 +32,9 @@ logger.setLevel(logging.DEBUG)
 
 
 class Source(Enum):
+    """
+    Possible sources of global species data.
+    """
     GBIF = 1
     IUCN = 2
     PREDICTS = 3
