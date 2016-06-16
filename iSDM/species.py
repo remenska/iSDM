@@ -1,4 +1,10 @@
-"""Some interesting text on species module. Why doesnt this change"""
+"""
+Documentation on the species module.
+Some more text to document what this module is for.
+
+      .. moduleauthor:: Daniela Remenska <remenska@gmail.com>
+
+"""
 
 from pygbif import species   # http://pygbif.readthedocs.org/en/latest/
 from pygbif import occurrences
@@ -26,6 +32,9 @@ logger.setLevel(logging.DEBUG)
 
 
 class Source(Enum):
+    """
+    Possible sources of global species data.
+    """
     GBIF = 1
     IUCN = 2
     PREDICTS = 3
@@ -46,6 +55,7 @@ class Species(object):
 
     :ivar ID: a unique ID for a particular species. For example, for GBIF sources, it is the gbifid metadata field.
     :ivar name_species: initial value: 'Unknown'
+
     """
 
     ID = int(0)
@@ -67,9 +77,14 @@ class Species(object):
 
        :param str full_name: The full path of the file (including the directory and name in one string),
         where the data will be saved.
+
        :param str dir_name: The directory where the file will be stored. If :attr:`file_name` is not specified, the default one :attr:`name_species` + :attr:`ID`.pkl is given.
+
        :param str file_name: The name of the file where the data will be saved. If :attr:`dir_name` is not specified, the current working directory is taken by default.
-       :raises AttributeError: if the data has not been loaded in the object before. See :func:`load_data` and :func:`find_species_occurrences`
+
+       :raises: AttributeError: if the data has not been loaded in the object before. See :func:`load_data` and :func:`find_species_occurrences`
+
+       :returns: None
 
         """
         if full_name is None:
@@ -90,8 +105,13 @@ class Species(object):
             logger.error("No data to save. Please load it first. %s " % str(e))
 
     def load_data(self, file_path=None):
-        """ Loads the serialized species pickle file into a pandas DataFrame.
-    """
+        """
+        Loads the serialized species pickle file data into a pandas DataFrame.
+
+        :param str file_path: The full path to the file where the data is serialized to.
+        :returns: Data loaded into geopandas dataframe.
+        :rtype: geopandas.GeoDataFrame
+        """
         if file_path is None:
             filename = str(self.name_species) + str(self.ID) + ".pkl"
             file_path = os.path.join(os.getcwd(), filename)
@@ -109,31 +129,23 @@ class Species(object):
         raise NotImplementedError("You need to implement this method!")
 
     def get_data(self):
-        """This function does something.
+        """
+        Returns the (pre)loaded species data.
 
-    Args:
-       name (str):  The name to use.
-
-    Kwargs:
-       state (bool): Current state to be in.RrR
-
-    Returns:
-       int.  The return code::
-
-          0 -- Success!
-          1 -- No good.
-          2 -- Try again.
-
-    Raises:
-       AttributeError, KeyError
+        :rtype: geopandas.GeoDataFrame
         """
         return self.data_full
 
     def set_data(self, data_frame):
-        # !!! Careful, overwrites the existing raw data!
+        """
+        Careful, overwrites the existing raw data!. More documentation
+        """
         self.data_full = data_frame
 
     def plot_species_occurrence(self, figsize=(16, 12), projection='merc', facecolor='crimson'):
+        """
+        Documentation pending on plotting
+        """
         if not isinstance(self.data_full, GeoDataFrame):
             if not isinstance(self.data_full, pd.DataFrame):
                 raise AttributeError("No data to save. Please load it first.")
@@ -192,6 +204,9 @@ class Species(object):
 
 
 class GBIFSpecies(Species):
+    """
+    Some class-level documentation on GBIF species. One two three.
+    """
 
     def __init__(self, **kwargs):
 
@@ -251,6 +266,9 @@ class GBIFSpecies(Species):
         return self.data_full
 
     def load_csv(self, file_path):
+        """
+        Documentation pending on loading from csv file
+        """
 
         logger.info("Loading data from: %s" % file_path)
         f = open(file_path, 'r')
@@ -389,6 +407,9 @@ class IUCNSpecies(Species):
         self.shape_file = file_path
 
     def find_species_occurrences(self, name_species=None, **kwargs):
+        """
+        Documentation pending on filtering species data from a shapefile
+        """
 
         if not hasattr(self, 'data_full'):
             raise AttributeError("You have not loaded the data.")
@@ -478,7 +499,9 @@ class IUCNSpecies(Species):
                   default_value=1,
                   crs={'init': "EPSG:4326"},
                   *args, **kwargs):
-        # do it with rasterio instead
+        """
+        Documentation pending on how to rasterize geometrical shapes
+        """
         if not (pixel_size or raster_file):
             raise AttributeError("Please provide pixel_size and a target raster_file.")
 
@@ -519,6 +542,9 @@ class IUCNSpecies(Species):
         return result
 
     def load_raster_data(self, raster_file=None):
+        """
+        Documentation pending on how to load raster data
+        """
         if raster_file:
             self.raster_file = raster_file
         if not self.raster_file:
