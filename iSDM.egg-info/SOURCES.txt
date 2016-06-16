@@ -1,0 +1,11 @@
+setup.cfg
+setup.py
+iSDM/__init__.py
+iSDM/environment.py
+iSDM/model.py
+iSDM/species.py
+iSDM.egg-info/PKG-INFO
+iSDM.egg-info/SOURCES.txt
+iSDM.egg-info/dependency_links.txt
+iSDM.egg-info/requires.txt
+iSDM.egg-info/top_level.txt
