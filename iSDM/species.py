@@ -1,11 +1,4 @@
-"""
-Some interesting text on species module. Why doesnt this change
-
-:synopsis: A useful species module indeed.
-
-.. moduleauthor:: Daniela Remenska <remenska@gmail.com>
-
-"""
+"""Some interesting text on species module. Why doesnt this change"""
 
 from pygbif import species   # http://pygbif.readthedocs.org/en/latest/
 from pygbif import occurrences
