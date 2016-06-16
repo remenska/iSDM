@@ -1,5 +1,5 @@
 """
-Documentation on the species module. 
+Documentation on the species module.
 Some more text to document what this module is for.
 
       .. moduleauthor:: Daniela Remenska <remenska@gmail.com>
@@ -77,13 +77,13 @@ class Species(object):
 
        :param str full_name: The full path of the file (including the directory and name in one string),
         where the data will be saved.
-       
+
        :param str dir_name: The directory where the file will be stored. If :attr:`file_name` is not specified, the default one :attr:`name_species` + :attr:`ID`.pkl is given.
 
        :param str file_name: The name of the file where the data will be saved. If :attr:`dir_name` is not specified, the current working directory is taken by default.
-       
+
        :raises: AttributeError: if the data has not been loaded in the object before. See :func:`load_data` and :func:`find_species_occurrences`
-       
+
        :returns: None
 
         """
