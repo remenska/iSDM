@@ -2,7 +2,7 @@
 """
 Another interesting module
 
-:synopsis: Another useful module indeed.
+:synopsis: Another useful module indeed, environment.
 
 .. moduleauthor:: Daniela Remenska <remenska@gmail.com>
 

@@ -1,3 +1,12 @@
+
+"""
+Another interesting module
+
+:synopsis: Another useful module indeed, model.
+
+.. moduleauthor:: Daniela Remenska <remenska@gmail.com>
+
+"""
 from enum import Enum
 
 import logging
