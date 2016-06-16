@@ -1,4 +1,5 @@
 
+"""Documentation on environment module."""
 import logging
 from enum import Enum
 import rasterio
@@ -21,6 +22,7 @@ class Source(Enum):
 
 
 class EnvironmentalLayer(object):
+    """Documentation on EnvironmentalLayer class"""
     def __init__(self, source=None, file_path=None, **kwargs):
         # you want to be able to agregate at a different resolution
         # and back/forth, right?
