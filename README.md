@@ -7,4 +7,4 @@ Documentation
 Please use the installation and basic usage instructions from [this book](https://www.gitbook.com/book/remenska/isdm/details).
 For usage examples, consult the notebooks.
 
-The full API funcationality is continuously documented [here](http://remenska.github.io/iSDM).
+The full API functionality is continuously documented [here](http://remenska.github.io/iSDM).
