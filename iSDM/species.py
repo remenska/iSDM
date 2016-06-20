@@ -345,10 +345,12 @@ class GBIFSpecies(Species):
             ).simplify(simplify_tolerance, preserve_topology)
             logger.debug("Data polygonized without envelope.")
 
+        # TODO: use GeoSeries.cascaded_union directly? does this always return multipolygon? sometimes just one?
         cascaded_union_multipolygon = shapely.ops.cascaded_union(data_polygonized.geometry)
         logger.debug("Cascaded union of polygons created.")
 
         # no .tolist for MultiPolygon unfortunatelly
+        # TODO: this can sometimes create a single polygon (non iterable)
         df_polygonized = GeoDataFrame(geometry=[pol for pol in cascaded_union_multipolygon])
         return df_polygonized
 
@@ -562,6 +564,51 @@ class IUCNSpecies(Species):
             logger.info("Affine transformation: %s " % (src.affine.to_gdal(),))
             logger.info("Number of layers: %s " % src.count)
             return src.read()
+
+    def random_pseudo_absence_points(self,
+                                     buffer_distance=5,
+                                     buffer_resolution=16,
+                                     simplify_tolerance=0.1,
+                                     preserve_topology=True,
+                                     count=100):
+        """
+        Draw random pseudo-absence points from within a buffer around the geometry. First makes a convex-hull
+        with a buffer around the original geometry. Then calculates the difference between this one, and the original
+        geometry, to determine a geometry from which to sample random points. Finally, generates random points one by
+        one and tests if they fall in that difference-geometry, until a <count> number of points are generated.
+
+        A more efficient approach would be to just generate a <count> number of points from the first step, i.e.,
+        from the convex-hull with a buffer. Some points will fall within the original shape, and they can be discarded,
+        so the number of pseudo-absence points will not actually be equal to <count>.
+        If precision is not an issue, we could provide a <count> number that is larger but calculated according
+        to the original_area/buffered_convex_hull ratio.
+        """
+        # First make a convex-hull with a buffer around the geometry
+        convex_hull_buffer = self.data_full.geometry.convex_hull.buffer(buffer_distance, buffer_resolution)
+
+        # Get the difference between the original geometry and the one above, to determine a geometry
+        # from which to draw random points. Must simplify original geometry because it could be invalid
+        # (e.g., self-intersections)
+
+        buffer_difference = convex_hull_buffer.geometry.difference(self.data_full.geometry.simplify(simplify_tolerance,
+                                                                                                    preserve_topology))
+        xmin, ymin, xmax, ymax = buffer_difference.total_bounds
+        random_count = 0
+        pts = []
+
+        # draw pounts until you reach a <count> number of points
+        # nb.: not very efficient
+        while random_count < count:
+            random_point = Point(xmin + (xmax - xmin) * np.random.random(), ymin + (ymax - ymin) * np.random.random())
+            if buffer_difference.contains(random_point).iat[0]:
+                pts.append(random_point)
+                random_count += 1
+            else:
+                pass
+
+        geo_pts = GeoSeries(pts)
+        self.pseudo_absence_points = geo_pts
+        return self.pseudo_absence_points
 
 
 class MOLSpecies(Species):
