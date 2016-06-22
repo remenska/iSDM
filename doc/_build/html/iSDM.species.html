@@ -137,7 +137,7 @@
             
   <div class="section" id="module-iSDM.species">
 <span id="isdm-species-module"></span><h1>iSDM.species module<a class="headerlink" href="#module-iSDM.species" title="Permalink to this headline">¶</a></h1>
-<p>Documentation on the species module. 
+<p>Documentation on the species module.
 Some more text to document what this module is for.</p>
 <dl class="class">
 <dt id="iSDM.species.GBIFSpecies">
@@ -213,8 +213,22 @@ Supported input formats: Shapefiles, GeoJSON.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="iSDM.species.IUCNSpecies.random_pseudo_absence_points">
+<code class="descname">random_pseudo_absence_points</code><span class="sig-paren">(</span><em>buffer_distance=5</em>, <em>buffer_resolution=16</em>, <em>simplify_tolerance=0.1</em>, <em>preserve_topology=True</em>, <em>count=100</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.species.IUCNSpecies.random_pseudo_absence_points" title="Permalink to this definition">¶</a></dt>
+<dd><p>Draw random pseudo-absence points from within a buffer around the geometry. First makes a convex-hull
+with a buffer around the original geometry. Then calculates the difference between this one, and the original
+geometry, to determine a geometry from which to sample random points. Finally, generates random points one by
+one and tests if they fall in that difference-geometry, until a &lt;count&gt; number of points are generated.</p>
+<p>A more efficient approach would be to just generate a &lt;count&gt; number of points from the first step, i.e.,
+from the convex-hull with a buffer. Some points will fall within the original shape, and they can be discarded,
+so the number of pseudo-absence points will not actually be equal to &lt;count&gt;.
+If precision is not an issue, we could provide a &lt;count&gt; number that is larger but calculated according
+to the original_area/buffered_convex_hull ratio.</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="iSDM.species.IUCNSpecies.rasterize">
-<code class="descname">rasterize</code><span class="sig-paren">(</span><em>raster_file=None</em>, <em>pixel_size=None</em>, <em>all_touched=False</em>, <em>no_data_value=0</em>, <em>default_value=1</em>, <em>crs={'init': 'EPSG:4326'}</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.species.IUCNSpecies.rasterize" title="Permalink to this definition">¶</a></dt>
+<code class="descname">rasterize</code><span class="sig-paren">(</span><em>raster_file=None</em>, <em>pixel_size=None</em>, <em>all_touched=False</em>, <em>no_data_value=0</em>, <em>default_value=1</em>, <em>crs=None</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.species.IUCNSpecies.rasterize" title="Permalink to this definition">¶</a></dt>
 <dd><p>Documentation pending on how to rasterize geometrical shapes</p>
 </dd></dl>
 
