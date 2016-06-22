@@ -26,6 +26,7 @@ from descartes import PolygonPatch
 from rasterio.transform import Affine
 import rasterio
 import rasterio.features
+from shapely.prepared import prep
 
 logger = logging.getLogger('iSDM.species')
 logger.setLevel(logging.DEBUG)
@@ -346,6 +347,7 @@ class GBIFSpecies(Species):
             logger.debug("Data polygonized without envelope.")
 
         # TODO: use GeoSeries.cascaded_union directly? does this always return multipolygon? sometimes just one?
+        # TODO if not self._usable_area.is_valid only then cascaded_union?
         cascaded_union_multipolygon = shapely.ops.cascaded_union(data_polygonized.geometry)
         logger.debug("Cascaded union of polygons created.")
 
@@ -513,19 +515,14 @@ class IUCNSpecies(Species):
         if crs is None:
             crs = {'init': "EPSG:4326"}
 
-        # Open the data source and read in the extent
-
-        # TODO: check shape_file exists
-        # source_ds = GeoDataFrame.from_file(self.shape_file)
-        union_geometry = self.data_full.geometry.unary_union
-        x_min, y_min, x_max, y_max = union_geometry.bounds
+        x_min, y_min, x_max, y_max = self.data_full.geometry.iat[0].bounds
 
         x_res = int((x_max - x_min) / pixel_size)
         y_res = int((y_max - y_min) / pixel_size)
 
         # translate
         transform = Affine.translation(x_min, y_max) * Affine.scale(pixel_size, -pixel_size)
-        result = rasterio.features.rasterize([(union_geometry)],
+        result = rasterio.features.rasterize([(self.data_full.geometry.iat[0].buffer(0))],
                                              transform=transform,
                                              out_shape=(y_res, x_res),
                                              all_touched=all_touched,
@@ -566,41 +563,58 @@ class IUCNSpecies(Species):
             return src.read()
 
     def random_pseudo_absence_points(self,
-                                     buffer_distance=5,
+                                     buffer_distance=2,
                                      buffer_resolution=16,
-                                     simplify_tolerance=0.1,
+                                     simplify_tolerance=1,
                                      preserve_topology=True,
+                                     fast=False,
                                      count=100):
         """
-        Draw random pseudo-absence points from within a buffer around the geometry. First makes a convex-hull
+        Draw random pseudo-absence points from within a buffer around the geometry. First it simplifies the geometry
         with a buffer around the original geometry. Then calculates the difference between this one, and the original
         geometry, to determine a geometry from which to sample random points. Finally, generates random points one by
         one and tests if they fall in that difference-geometry, until a <count> number of points are generated.
+        If the "buffered" geometry is invalid (which could happen), it gradually tries to simplify it by applying a
+        bigger value for the simplify_tolerance parameter, until the geometry becomes valid. The reason is that an
+        operation like difference/intersection is problematic to apply on an invalid geometry.
+        The value is increased by maximum of 100.
 
         A more efficient approach would be to just generate a <count> number of points from the first step, i.e.,
-        from the convex-hull with a buffer. Some points will fall within the original shape, and they can be discarded,
+        from the buffer. Some points will fall within the original shape, and they can be discarded,
         so the number of pseudo-absence points will not actually be equal to <count>.
         If precision is not an issue, we could provide a <count> number that is larger but calculated according
         to the original_area/buffered_convex_hull ratio.
+        update: Maybe not even necessary, given that shapely's prep(..) speeds up a factor of 100 to 1000
         """
-        # First make a convex-hull with a buffer around the geometry
-        convex_hull_buffer = self.data_full.geometry.convex_hull.buffer(buffer_distance, buffer_resolution)
+        # First simplify (necessary) and apply a buffer around the geometry
+        simplified_buffer = (self.data_full.geometry.buffer(0)
+                             .simplify(simplify_tolerance, preserve_topology)
+                             .buffer(buffer_distance, buffer_resolution))
+
+        # try to "fix" an invalid geometry by gradually simplifying
+        simplify_tolerance_inc = simplify_tolerance
+
+        # assume that there is one geometry record in the dataframe (single species)
+        while not simplified_buffer.iat[0].is_valid and simplify_tolerance_inc < 100:
+            logger.info("Buffered geometry is invalid, trying to simplify it using tolerance = %s" % simplify_tolerance_inc)
+            simplified_buffer = simplified_buffer.simplify(simplify_tolerance_inc, preserve_topology)
+            simplify_tolerance_inc += 1
 
         # Get the difference between the original geometry and the one above, to determine a geometry
-        # from which to draw random points. Must simplify original geometry because it could be invalid
-        # (e.g., self-intersections)
-
-        buffer_difference = convex_hull_buffer.geometry.difference(self.data_full.geometry.simplify(simplify_tolerance,
-                                                                                                    preserve_topology))
+        # from which to draw random points.
+        logger.info("Buffered geometry valid. Now creating a buffer difference from which to draw random points")
+        buffer_difference = simplified_buffer.geometry.difference(self.data_full.geometry.buffer(0))
         xmin, ymin, xmax, ymax = buffer_difference.total_bounds
         random_count = 0
         pts = []
 
         # draw pounts until you reach a <count> number of points
-        # nb.: not very efficient
+        logger.info("Creating random points ... ")
+        prepped_buffer_difference = prep(buffer_difference.iat[0])  # immense speedup with prepared geometries!
+
         while random_count < count:
             random_point = Point(xmin + (xmax - xmin) * np.random.random(), ymin + (ymax - ymin) * np.random.random())
-            if buffer_difference.contains(random_point).iat[0]:
+            if prepped_buffer_difference.contains(random_point):
                 pts.append(random_point)
                 random_count += 1
             else:
