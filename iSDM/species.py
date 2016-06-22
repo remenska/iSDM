@@ -515,19 +515,14 @@ class IUCNSpecies(Species):
         if crs is None:
             crs = {'init': "EPSG:4326"}
 
-        # Open the data source and read in the extent
-
-        # TODO: check shape_file exists
-        # source_ds = GeoDataFrame.from_file(self.shape_file)
-        union_geometry = self.data_full.geometry.unary_union
-        x_min, y_min, x_max, y_max = union_geometry.bounds
+        x_min, y_min, x_max, y_max = self.data_full.geometry.iat[0].bounds
 
         x_res = int((x_max - x_min) / pixel_size)
         y_res = int((y_max - y_min) / pixel_size)
 
         # translate
         transform = Affine.translation(x_min, y_max) * Affine.scale(pixel_size, -pixel_size)
-        result = rasterio.features.rasterize([(union_geometry)],
+        result = rasterio.features.rasterize([(self.data_full.geometry.iat[0].buffer(0))],
                                              transform=transform,
                                              out_shape=(y_res, x_res),
                                              all_touched=all_touched,
