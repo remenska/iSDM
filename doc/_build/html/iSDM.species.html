@@ -1,0 +1,397 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>iSDM.species module &mdash; iSDM 0.0.2 documentation</title>
+  
+
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+    <link rel="top" title="iSDM 0.0.2 documentation" href="index.html"/>
+        <link rel="up" title="iSDM" href="modules.html"/>
+        <link rel="next" title="iSDM.environment module" href="iSDM.environment.html"/>
+        <link rel="prev" title="iSDM" href="modules.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> iSDM
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.0.2
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+                <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">iSDM</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">iSDM.species module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="iSDM.environment.html">iSDM.environment module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="iSDM.model.html">iSDM.model module</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="index.html">iSDM</a>
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+ 
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="index.html">Docs</a> &raquo;</li>
+      
+          <li><a href="modules.html">iSDM</a> &raquo;</li>
+      
+    <li>iSDM.species module</li>
+      <li class="wy-breadcrumbs-aside">
+        
+          
+            <a href="_sources/iSDM.species.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-iSDM.species">
+<span id="isdm-species-module"></span><h1>iSDM.species module<a class="headerlink" href="#module-iSDM.species" title="Permalink to this headline">¶</a></h1>
+<p>Documentation on the species module. 
+Some more text to document what this module is for.</p>
+<dl class="class">
+<dt id="iSDM.species.GBIFSpecies">
+<em class="property">class </em><code class="descclassname">iSDM.species.</code><code class="descname">GBIFSpecies</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.species.GBIFSpecies" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#iSDM.species.Species" title="iSDM.species.Species"><code class="xref py py-class docutils literal"><span class="pre">iSDM.species.Species</span></code></a></p>
+<p>Some class-level documentation on GBIF species. One two three.</p>
+<dl class="method">
+<dt id="iSDM.species.GBIFSpecies.find_species_occurrences">
+<code class="descname">find_species_occurrences</code><span class="sig-paren">(</span><em>name_species=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.species.GBIFSpecies.find_species_occurrences" title="Permalink to this definition">¶</a></dt>
+<dd><p>Finds and loads species occurrence data into pandas DataFrame.
+Data comes from the GBIF database, based on name or gbif ID
+the occurrences.search(...) returns a list of json structures
+which we load into Pandas DataFrame for easier manipulation.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="iSDM.species.GBIFSpecies.geometrize">
+<code class="descname">geometrize</code><span class="sig-paren">(</span><em>dropna=True</em>, <em>longitude_col_name='decimallongitude'</em>, <em>latitude_col_name='decimallatitude'</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.species.GBIFSpecies.geometrize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts data to geopandas. The latitude/longitude is converted into shapely Point geometry.
+Geopandas/GeoSeries data structures have a geometry column.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="iSDM.species.GBIFSpecies.load_csv">
+<code class="descname">load_csv</code><span class="sig-paren">(</span><em>file_path</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.species.GBIFSpecies.load_csv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Documentation pending on loading from csv file</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="iSDM.species.GBIFSpecies.overlay">
+<code class="descname">overlay</code><span class="sig-paren">(</span><em>species_range_map</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.species.GBIFSpecies.overlay" title="Permalink to this definition">¶</a></dt>
+<dd><p>Overlays the point records with a species range map. The map can be an instance of IUCNSpecies, or directly
+a GeoSeries datastructure containing geometry data.
+This overlaying effectively crops the point records to the area within the range map.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="iSDM.species.GBIFSpecies.polygonize">
+<code class="descname">polygonize</code><span class="sig-paren">(</span><em>buffer_distance=1</em>, <em>buffer_resolution=16</em>, <em>simplify_tolerance=0.1</em>, <em>preserve_topology=False</em>, <em>with_envelope=False</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.species.GBIFSpecies.polygonize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Expand each sample point into its polygon of influence (buffer).
+Merge the polygons that overlap into a cascaded union (multipolygon)
+Return a GeoDataFrame</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="iSDM.species.IUCNSpecies">
+<em class="property">class </em><code class="descclassname">iSDM.species.</code><code class="descname">IUCNSpecies</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.species.IUCNSpecies" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#iSDM.species.Species" title="iSDM.species.Species"><code class="xref py py-class docutils literal"><span class="pre">iSDM.species.Species</span></code></a></p>
+<p>The input data is in shapefiles(ESRI native format) and contains the known expert range of each species. Ranges are
+depicted as polygons. One large shapefile contains all the distribution maps of that group, i.e., all geometries. We
+will need to rasterize IUCN range polygons to grids with a predefined resolution. &#8220;Gridify&#8221; the data, and that per
+species rather than all in one region.</p>
+<dl class="method">
+<dt id="iSDM.species.IUCNSpecies.find_species_occurrences">
+<code class="descname">find_species_occurrences</code><span class="sig-paren">(</span><em>name_species=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.species.IUCNSpecies.find_species_occurrences" title="Permalink to this definition">¶</a></dt>
+<dd><p>Documentation pending on filtering species data from a shapefile</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="iSDM.species.IUCNSpecies.load_raster_data">
+<code class="descname">load_raster_data</code><span class="sig-paren">(</span><em>raster_file=None</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.species.IUCNSpecies.load_raster_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Documentation pending on how to load raster data</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="iSDM.species.IUCNSpecies.load_shapefile">
+<code class="descname">load_shapefile</code><span class="sig-paren">(</span><em>file_path</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.species.IUCNSpecies.load_shapefile" title="Permalink to this definition">¶</a></dt>
+<dd><p>A GeoDataFrame is a tablular data structure that contains a column called geometry which contains a GeoSeries.
+So data_full will be a geopandas dataframe, you can obtain it by .get_data()
+Supported input formats: Shapefiles, GeoJSON.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="iSDM.species.IUCNSpecies.rasterize">
+<code class="descname">rasterize</code><span class="sig-paren">(</span><em>raster_file=None</em>, <em>pixel_size=None</em>, <em>all_touched=False</em>, <em>no_data_value=0</em>, <em>default_value=1</em>, <em>crs={'init': 'EPSG:4326'}</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.species.IUCNSpecies.rasterize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Documentation pending on how to rasterize geometrical shapes</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="iSDM.species.IUCNSpecies.save_shapefile">
+<code class="descname">save_shapefile</code><span class="sig-paren">(</span><em>full_name=None</em>, <em>driver='ESRI Shapefile'</em>, <em>overwrite=False</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.species.IUCNSpecies.save_shapefile" title="Permalink to this definition">¶</a></dt>
+<dd><p>Saves the current (geopandas) data as a shapefile.
+The geopandas data needs to have geometry as a column, besides the metadata.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="iSDM.species.Source">
+<em class="property">class </em><code class="descclassname">iSDM.species.</code><code class="descname">Source</code><a class="headerlink" href="#iSDM.species.Source" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">enum.Enum</span></code></p>
+<p>Possible sources of global species data.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="iSDM.species.Species">
+<em class="property">class </em><code class="descclassname">iSDM.species.</code><code class="descname">Species</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.species.Species" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<p>A generic Species class used for subclassing different global-scale species data sources.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Variables:</th><td class="field-body"><ul class="first last simple">
+<li><strong>ID</strong> &#8211; a unique ID for a particular species. For example, for GBIF sources, it is the gbifid metadata field.</li>
+<li><strong>name_species</strong> &#8211; initial value: &#8216;Unknown&#8217;</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="iSDM.species.Species.get_data">
+<code class="descname">get_data</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.species.Species.get_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the (pre)loaded species data.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">geopandas.GeoDataFrame</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="iSDM.species.Species.load_data">
+<code class="descname">load_data</code><span class="sig-paren">(</span><em>file_path=None</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.species.Species.load_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loads the serialized species pickle file data into a pandas DataFrame.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>file_path</strong> (<em>str</em>) &#8211; The full path to the file where the data is serialized to.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Data loaded into geopandas dataframe.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">geopandas.GeoDataFrame</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="iSDM.species.Species.plot_species_occurrence">
+<code class="descname">plot_species_occurrence</code><span class="sig-paren">(</span><em>figsize=(16</em>, <em>12)</em>, <em>projection='merc'</em>, <em>facecolor='crimson'</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.species.Species.plot_species_occurrence" title="Permalink to this definition">¶</a></dt>
+<dd><p>Documentation pending on plotting</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="iSDM.species.Species.save_data">
+<code class="descname">save_data</code><span class="sig-paren">(</span><em>full_name=None</em>, <em>dir_name=None</em>, <em>file_name=None</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.species.Species.save_data" title="Permalink to this definition">¶</a></dt>
+<dd><blockquote>
+<div>Serializes the loaded species occurrence filtered dataset (<a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/dsintro.html">pandas</a> or <a class="reference external" href="http://geopandas.org/user.html">geopandas</a> DataFrame) into a binary <a class="reference external" href="https://en.wikipedia.org/wiki/Pickle_%28Python%29">pickle</a>  file.</div></blockquote>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>full_name</strong> (<em>str</em>) &#8211; The full path of the file (including the directory and name in one string),
+where the data will be saved.</li>
+<li><strong>dir_name</strong> (<em>str</em>) &#8211; The directory where the file will be stored. If <code class="xref py py-attr docutils literal"><span class="pre">file_name</span></code> is not specified, the default one <code class="xref py py-attr docutils literal"><span class="pre">name_species</span></code> + <code class="xref py py-attr docutils literal"><span class="pre">ID</span></code>.pkl is given.</li>
+<li><strong>file_name</strong> (<em>str</em>) &#8211; The name of the file where the data will be saved. If <code class="xref py py-attr docutils literal"><span class="pre">dir_name</span></code> is not specified, the current working directory is taken by default.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><p class="first">AttributeError: if the data has not been loaded in the object before. See <a class="reference internal" href="#iSDM.species.Species.load_data" title="iSDM.species.Species.load_data"><code class="xref py py-func docutils literal"><span class="pre">load_data()</span></code></a> and <code class="xref py py-func docutils literal"><span class="pre">find_species_occurrences()</span></code></p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">None</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="iSDM.species.Species.set_data">
+<code class="descname">set_data</code><span class="sig-paren">(</span><em>data_frame</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.species.Species.set_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Careful, overwrites the existing raw data!. More documentation</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="iSDM.environment.html" class="btn btn-neutral float-right" title="iSDM.environment module" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="modules.html" class="btn btn-neutral" title="iSDM" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2016, Daniela Remenska.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'0.0.2',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>
