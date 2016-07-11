@@ -407,7 +407,7 @@ class IUCNSpecies(Species):
         # self.data_full.columns = map(str.lower, self.data_full.columns)   # convert all column headers to lowercase
         self.data_full.columns = [x.lower() for x in self.data_full.columns]   # python 2
 
-        logger.info("The shapefile contains data on %d species." % self.data_full.shape[0])
+        logger.info("The shapefile contains data on %d species areas." % self.data_full.shape[0])
         self.shape_file = file_path
 
     def find_species_occurrences(self, name_species=None, **kwargs):
@@ -623,6 +623,59 @@ class IUCNSpecies(Species):
         geo_pts = GeoSeries(pts)
         self.pseudo_absence_points = geo_pts
         return self.pseudo_absence_points
+
+    def drop_extinct_species(self, presence_column_name='presence', discard_bad=False):
+        """
+        According to the current IUCN Coded Domain Values for Presence:
+        Code    Presence
+        1       Extant
+        2       Probably Extant (discontinued)
+        3       Possibly Extant
+        4       Possibly Extinct
+        5       Extinct (post 1500)
+        6       Presence Uncertain
+
+        Species can have both areas(polygons) in which they are extinct(5) AND areas in which they are not.
+        We keep such species, and only filter-out species for which all areas are extinct.
+
+        :param str presence_column_name: The column name which contains the presence code values. Default is 'presence'.
+
+        :param bool discard_bad: Whether to keep or discard species with "unknown only" areas (code==0). By default they
+        are kept (discard_bad=False).
+        There are currently (july 2016) four such problematic species:
+        Acipenser baerii, Ambassis urotaenia, Microphysogobio tungtingensis, Rhodeus sericeus
+
+        :returns: None
+
+        """
+        logger.info("There are currently %s unique species. \n" % self.data_full.binomial.unique().size)
+
+        # the following creates a pandas series in the form:
+        # Aaptosyax grypus                                     [2.0]
+        # Abbottina binhi                                      [2.0]
+        # Aborichthys elongatus                 [1.0, 1.0, 1.0, 1.0]
+        # Aborichthys garoensis                      [1.0, 1.0, 1.0]
+        # Aborichthys kempi           [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+        # Aborichthys tikaderi                                 [1.0]
+        # Abramis brama                                   [1.0, 1.0]
+        # Acantharchus pomotis                       [5.0, 1.0, 1.0]
+        # Acanthobrama centisquama                        [1.0, 1.0]
+        # Acanthobrama lissneri                           [1.0, 1.0]
+        # ...
+        # which means species are grouped by binomial, and the presence columns are aggregated in a list
+        grouped = self.data_full.groupby('binomial')[presence_column_name].apply(lambda x: x.tolist())
+
+        extinct = []
+        for row in grouped.iteritems():
+            if row[1] == [5.0]:  # all areas are extinct
+                extinct.append(row[0])
+            if discard_bad:
+                if row[0] == [0.0]:  # all areas are with invalid value of 0
+                    extinct.append(row[0])
+
+        logger.info("Filtering out the following extinct species: %s \n" % extinct)
+        self.data_full = self.data_full[~self.data_full.binomial.isin(extinct)]
+        logger.info("There are now %s unique species after dropping out extinct ones." % self.data_full.binomial.unique().size)
 
 
 class MOLSpecies(Species):
