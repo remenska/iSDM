@@ -7,7 +7,7 @@ import pickle
 logger = logging.getLogger('iSDM.species')
 logger.setLevel(logging.DEBUG)
 
-fh = logging.FileHandler('./find_all_gbif_species2.log')
+fh = logging.FileHandler('./find_all_gbif_species3.log')
 fh.setLevel(logging.DEBUG)
 ch = logging.StreamHandler()
 ch.setLevel(logging.DEBUG)
@@ -22,9 +22,9 @@ logger.addHandler(ch)
 logger.info("Loading binomials list from pickled file...")
 non_extinct_binomials = pickle.load(open("./data/fish/selection/non_extinct_binomials.pkl", "rb"))
 logger.info("Done with loading binomials list.")
-logger.info("size = %s  species." % len(non_extinct_binomials))
+logger.info("size = %s species." % len(non_extinct_binomials))
 
-for name in non_extinct_binomials[80:1000]:
+for name in non_extinct_binomials[275:1000]:
     next_species = GBIFSpecies(name_species=name)
     logger.info("Attempting to query for species: %s " % name)
     if "\'" in name:
