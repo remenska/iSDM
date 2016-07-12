@@ -231,7 +231,10 @@ class GBIFSpecies(Species):
         try:
             species_result = species.name_backbone(name=self.name_species, verbose=False)
             if species_result['matchType'] == 'NONE':
-                raise ValueError("No match for the species %s " % self.name_species)
+                logger.error("No match for the species %s in GBIF backbone!" % self.name_species)
+                return pd.DataFrame()
+                # raise ValueError("No match for the species %s " % self.name_species)
+                # TODO: maybe just return, no error raising...
             self.ID = species_result['usageKey']
             first_res = occurrences.search(taxonKey=self.ID, limit=100000, **kwargs)
 
@@ -240,10 +243,20 @@ class GBIFSpecies(Species):
 
         full_results = copy.copy(first_res)
 
+        # http://lists.gbif.org/pipermail/api-users/2015-February/000135.html
+        # maximum offset+limit allowed by the API
+        if full_results['count'] > 200000:
+            logger.warning("There are more than 200000 observations for %s" % self.name_species)
+            logger.warning("The GBIF API has a limitation of 200000.")
+            logger.warning("You may want to manually request a download from the website.")
+            logger.warning("Will continue fetching 200000 results.")
+            return
+
         # results are paginated so we need a loop to fetch them all
         counter = 1
-        while first_res['endOfRecords'] is False:
-            first_res = occurrences.search(taxonKey=self.ID, offset=300 * counter, limit=10000)
+        limit = 1000
+        while first_res['endOfRecords'] is False and (300 * counter) + limit < 200000:
+            first_res = occurrences.search(taxonKey=self.ID, offset=300 * counter, limit=limit)
             full_results['results'].extend(first_res['results'])
             counter += 1
 
