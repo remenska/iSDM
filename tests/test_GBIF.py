@@ -13,8 +13,11 @@ class TestGBIF(unittest.TestCase):
         self.assertIsInstance(test_species.data_full, pd.DataFrame)
 
         test_species1 = GBIFSpecies(name_species="Some_nonsense")
-        with self.assertRaises(ValueError):
-            test_species1.find_species_occurrences()
+        #with self.assertRaises(ValueError):
+        #    test_species1.find_species_occurrences()
+        test_species1.find_species_occurrences()
+        self.assertIsInstance(test_species1.data_full, pd.DataFrame)
+        self.assertEqual(test_species1.data_full.empty, True)
 
     def test_GBIF_data_CSV(self):
         test_species = GBIFSpecies(name_species="Etheostoma_blennioides")
