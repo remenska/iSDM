@@ -71,6 +71,13 @@ class Species(object):
             self.name_species = kwargs['name_species']
         if 'ID' in kwargs:
             self.ID = kwargs['ID']
+        try:
+            # Enable C-based speedups available from 1.2.10+
+            from shapely import speedups
+            speedups.enable()
+            logger.debug("Enabled Shapely speedups for performance.")
+        except:
+            logger.info("Upgrade Shapely for Performance enhancements")
 
     def save_data(self, full_name=None, dir_name=None, file_name=None):
         """
