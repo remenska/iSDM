@@ -7,7 +7,7 @@ import pickle
 logger = logging.getLogger('iSDM.species')
 logger.setLevel(logging.DEBUG)
 
-fh = logging.FileHandler('./find_all_gbif_species3.log')
+fh = logging.FileHandler('./test.log')
 fh.setLevel(logging.DEBUG)
 ch = logging.StreamHandler()
 ch.setLevel(logging.DEBUG)
@@ -24,12 +24,16 @@ non_extinct_binomials = pickle.load(open("./data/fish/selection/non_extinct_bino
 logger.info("Done with loading binomials list.")
 logger.info("size = %s species." % len(non_extinct_binomials))
 
-for name in non_extinct_binomials[275:1000]:
+for idx, name in enumerate(non_extinct_binomials):
     next_species = GBIFSpecies(name_species=name)
     logger.info("Attempting to query for species: %s " % name)
+    logger.info("Species #: %s " % idx)
     if "\'" in name:
         logger.info("Skipping problematic name: %s " % name)
         continue
-    next_species.find_species_occurrences()
-    logger.info("Done with GBIF API query, now saving.")
-    next_species.save_data(dir_name="./data/fish/selection/gbif/")
+
+    if next_species.find_species_occurrences().empty:
+        logger.info("No data to save on %s " % name)
+    else:
+        logger.info("Done with GBIF API query, now saving.")
+        next_species.save_data(dir_name="./data/fish/selection/gbif/")
