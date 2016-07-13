@@ -3,6 +3,7 @@
 from iSDM.species import GBIFSpecies
 import logging
 import timeit
+import pickle
 
 method = "msgpack"
 size = "large"
