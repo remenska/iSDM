@@ -257,7 +257,7 @@ class GBIFSpecies(Species):
             first_res = occurrences.search(taxonKey=self.ID, limit=100000, **kwargs)
 
         full_results = copy.copy(first_res)
-
+        logger.info("Number of occurrences in GBIF backbone: %s " % full_results['count'])
         # http://lists.gbif.org/pipermail/api-users/2015-February/000135.html
         # maximum offset+limit allowed by the API
         if full_results['count'] > 200000:
@@ -268,17 +268,23 @@ class GBIFSpecies(Species):
             return
 
         # results are paginated so we need a loop to fetch them all
+        # http://www.gbif.org/developer/occurrence
+        # "This API provides services for searching occurrence records that have been indexed by GBIF. In order to retrieve all
+        # results for a given search filter you need to issue individual requests for each page, which is limited to a maximum
+        # size of 300 records per page. Note that for technical reasons we also have a hard limit for any query of 200,000
+        # records. You will get an error if the offset + limit exceeds 200,000. To retrieve all records beyond 200,000 you should
+        # use our asynchronous download service instead."
         counter = 1
-        limit = 1000
+        limit = 10000
         while first_res['endOfRecords'] is False and (300 * counter) + limit < 200000:
             first_res = occurrences.search(taxonKey=self.ID, offset=300 * counter, limit=limit)
+            logger.debug("Page offset: %s, counter %s. Got %s more records ... " % ((300 * counter), counter, len(first_res['results'])))
             full_results['results'].extend(first_res['results'])
             counter += 1
 
         logger.info("Loading species ... ")
-        logger.info("Number of occurrences: %s " % full_results['count'])
         logger.debug(full_results['count'] == len(full_results['results']))   # match?
-
+        logger.debug("Full results: %s , got: %s " % (full_results['count'], len(full_results['results'])))
         # TODO: do we want a special way of loading? say, suggesting data types in some columns?
 
         # TODO: should we reformat the dtypes of the columns? at least day/month/year we care?
