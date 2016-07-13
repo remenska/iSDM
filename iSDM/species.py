@@ -79,7 +79,7 @@ class Species(object):
         except:
             logger.info("Upgrade Shapely for Performance enhancements")
 
-    def save_data(self, full_name=None, dir_name=None, file_name=None, method="msgpack"):
+    def save_data(self, full_name=None, dir_name=None, file_name=None, method="pickle"):
         """
         Serializes the loaded species occurrence filtered dataset (`pandas <http://pandas.pydata.org/pandas-docs/stable/dsintro.html>`_ or `geopandas <http://geopandas.org/user.html>`_ DataFrame) into a binary `pickle <https://en.wikipedia.org/wiki/Pickle_%28Python%29>`_  file.
 
@@ -90,7 +90,7 @@ class Species(object):
 
        :param str file_name: The name of the file where the data will be saved. If :attr:`dir_name` is not specified, the current working directory is taken by default.
 
-       :param str method: The type of serialization to use for the data frame. Default is "msgpack", as it has shown as more efficient for the type of data. Another possibility is "pickle".
+       :param str method: The type of serialization to use for the data frame. Default is "pickle". Another possibility is "msgpack", as it has shown as 10$ more efficient for the type of data
 
        :raises: AttributeError: if the data has not been loaded in the object before. See :func:`load_data` and :func:`find_species_occurrences`
 
