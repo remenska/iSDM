@@ -79,7 +79,7 @@ class Species(object):
         except:
             logger.info("Upgrade Shapely for Performance enhancements")
 
-    def save_data(self, full_name=None, dir_name=None, file_name=None):
+    def save_data(self, full_name=None, dir_name=None, file_name=None, method="msgpack"):
         """
         Serializes the loaded species occurrence filtered dataset (`pandas <http://pandas.pydata.org/pandas-docs/stable/dsintro.html>`_ or `geopandas <http://geopandas.org/user.html>`_ DataFrame) into a binary `pickle <https://en.wikipedia.org/wiki/Pickle_%28Python%29>`_  file.
 
@@ -90,6 +90,8 @@ class Species(object):
 
        :param str file_name: The name of the file where the data will be saved. If :attr:`dir_name` is not specified, the current working directory is taken by default.
 
+       :param str method: The type of serialization to use for the data frame. Default is "msgpack", as it has shown as more efficient for the type of data. Another possibility is "pickle".
+
        :raises: AttributeError: if the data has not been loaded in the object before. See :func:`load_data` and :func:`find_species_occurrences`
 
        :returns: None
@@ -97,14 +99,20 @@ class Species(object):
         """
         if full_name is None:
             if file_name is None:
-                file_name = str(self.name_species) + str(self.ID) + ".pkl"
+                file_name = str(self.name_species) + str(self.ID) + (".pkl" if method == "pickle" else ".msg")
             if dir_name is None:
                 dir_name = os.getcwd()
 
             full_name = os.path.join(dir_name, file_name)
 
         try:
-            self.data_full.to_pickle(full_name)
+            if method == "msgpack":
+                self.data_full.to_msgpack(full_name)
+            elif method == "pickle":
+                self.data_full.to_pickle(full_name)
+            else:
+                logger.error("Incorrect method of serializing: %s " % method)
+
             logger.debug("Saved data: %s " % full_name)
             logger.debug("Type of data: %s " % type(self.data_full))
         except IOError as e:
