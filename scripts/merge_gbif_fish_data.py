@@ -45,7 +45,7 @@ for idx, my_file in enumerate(os.listdir(test_dir)):
         # common_columns = df.columns.intersection(common_columns)
         # this way memory usage doesn't grow constantly in memory, only individual frames are dumped
         common_columns = list(important_columns.intersection(set(df.columns.tolist())))
-        #common_columns_all = common_columns_all.intersection(set(df.columns.tolist()))
+        # common_columns_all = common_columns_all.intersection(set(df.columns.tolist()))
         df[common_columns].to_msgpack(os.path.join(path, "merged_msgpack.msg"), append=True)
         # df_main = df_main[common_columns]   # reduce data frame by dropping all but common columns
         logger.info("Columns: %s" % len(common_columns))
@@ -64,14 +64,14 @@ logger.info("Total reading time %s seconds for %s. " % (total_time, method))
 #     logger.info("Stored merged data in %s " % os.path.join(path, "merged.pkl"))
 
 # reduce to common columns, if possible?
-#df2 = pd.concat([df[common_columns] for df in pd.read_msgpack(os.path.join(path, 'merged_new.msg'))], ignore_index=True)
-#df2.to_msgpack(os.path.join(path, "merged_again.msg"))
-#df_reduced = pd.DataFrame()
-#for df in pd.read_msgpack(os.path.join(path, "merged_new1.msg"), iterator=True):
+# df2 = pd.concat([df[common_columns] for df in pd.read_msgpack(os.path.join(path, 'merged_new.msg'))], ignore_index=True)
+# df2.to_msgpack(os.path.join(path, "merged_again.msg"))
+# df_reduced = pd.DataFrame()
+# for df in pd.read_msgpack(os.path.join(path, "merged_new1.msg"), iterator=True):
 #    df[common_columns].to_msgpack(os.path.join(path, "merged_reduced.msg"), append=True)
 
 pickle.dump(no_occurrences, open(os.path.join(path, "no_occurrences.pkl"), "wb"))
-#pickle.dump(common_columns_all, open(os.path.join(path, "common_columns_all.pkl"), "wb"))
+# pickle.dump(common_columns_all, open(os.path.join(path, "common_columns_all.pkl"), "wb"))
 
 logger.info("Stored a list of species with zero occurrences in %s " % os.path.join(path, "no_occurrences.pkl"))
 
@@ -79,4 +79,4 @@ logger.info("Stored a list of species with zero occurrences in %s " % os.path.jo
 # FIND ALL WITHOUT DECIMAL LATITUDE
 # for df in pd.read_msgpack("/home/daniela/git/iSDM/data/fish/selection/test/again/largest/merged_new2.msg", iterator=True):
 #     if "decimallatitude" not in df.columns.tolist():
-#         print(df['species'].unique()) 
+#         print(df['species'].unique())
