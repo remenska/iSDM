@@ -71,8 +71,15 @@ class Species(object):
             self.name_species = kwargs['name_species']
         if 'ID' in kwargs:
             self.ID = kwargs['ID']
+        try:
+            # Enable C-based speedups available from 1.2.10+
+            from shapely import speedups
+            speedups.enable()
+            logger.debug("Enabled Shapely speedups for performance.")
+        except:
+            logger.info("Upgrade Shapely for Performance enhancements")
 
-    def save_data(self, full_name=None, dir_name=None, file_name=None):
+    def save_data(self, full_name=None, dir_name=None, file_name=None, method="pickle"):
         """
         Serializes the loaded species occurrence filtered dataset (`pandas <http://pandas.pydata.org/pandas-docs/stable/dsintro.html>`_ or `geopandas <http://geopandas.org/user.html>`_ DataFrame) into a binary `pickle <https://en.wikipedia.org/wiki/Pickle_%28Python%29>`_  file.
 
@@ -83,6 +90,8 @@ class Species(object):
 
        :param str file_name: The name of the file where the data will be saved. If :attr:`dir_name` is not specified, the current working directory is taken by default.
 
+       :param str method: The type of serialization to use for the data frame. Default is "pickle". Another possibility is "msgpack", as it has shown as 10$ more efficient for the type of data
+
        :raises: AttributeError: if the data has not been loaded in the object before. See :func:`load_data` and :func:`find_species_occurrences`
 
        :returns: None
@@ -90,14 +99,20 @@ class Species(object):
         """
         if full_name is None:
             if file_name is None:
-                file_name = str(self.name_species) + str(self.ID) + ".pkl"
+                file_name = str(self.name_species) + str(self.ID) + (".pkl" if method == "pickle" else ".msg")
             if dir_name is None:
                 dir_name = os.getcwd()
 
             full_name = os.path.join(dir_name, file_name)
 
         try:
-            self.data_full.to_pickle(full_name)
+            if method == "msgpack":
+                self.data_full.to_msgpack(full_name)
+            elif method == "pickle":
+                self.data_full.to_pickle(full_name)
+            else:
+                logger.error("Incorrect method of serializing: %s " % method)
+
             logger.debug("Saved data: %s " % full_name)
             logger.debug("Type of data: %s " % type(self.data_full))
         except IOError as e:
@@ -231,7 +246,10 @@ class GBIFSpecies(Species):
         try:
             species_result = species.name_backbone(name=self.name_species, verbose=False)
             if species_result['matchType'] == 'NONE':
-                raise ValueError("No match for the species %s " % self.name_species)
+                logger.error("No match for the species %s in GBIF backbone!" % self.name_species)
+                return pd.DataFrame()
+                # raise ValueError("No match for the species %s " % self.name_species)
+                # TODO: maybe just return, no error raising...
             self.ID = species_result['usageKey']
             first_res = occurrences.search(taxonKey=self.ID, limit=100000, **kwargs)
 
@@ -239,18 +257,34 @@ class GBIFSpecies(Species):
             first_res = occurrences.search(taxonKey=self.ID, limit=100000, **kwargs)
 
         full_results = copy.copy(first_res)
+        logger.info("Number of occurrences in GBIF backbone: %s " % full_results['count'])
+        # http://lists.gbif.org/pipermail/api-users/2015-February/000135.html
+        # maximum offset+limit allowed by the API
+        if full_results['count'] > 200000:
+            logger.warning("There are more than 200000 observations for %s" % self.name_species)
+            logger.warning("The GBIF API has a limitation of 200000.")
+            logger.warning("You may want to manually request a download from the website.")
+            logger.warning("Will continue fetching 200000 results.")
+            return
 
         # results are paginated so we need a loop to fetch them all
+        # http://www.gbif.org/developer/occurrence
+        # "This API provides services for searching occurrence records that have been indexed by GBIF. In order to retrieve all
+        # results for a given search filter you need to issue individual requests for each page, which is limited to a maximum
+        # size of 300 records per page. Note that for technical reasons we also have a hard limit for any query of 200,000
+        # records. You will get an error if the offset + limit exceeds 200,000. To retrieve all records beyond 200,000 you should
+        # use our asynchronous download service instead."
         counter = 1
-        while first_res['endOfRecords'] is False:
-            first_res = occurrences.search(taxonKey=self.ID, offset=300 * counter, limit=10000)
+        limit = 10000
+        while first_res['endOfRecords'] is False and (300 * counter) + limit < 200000:
+            first_res = occurrences.search(taxonKey=self.ID, offset=300 * counter, limit=limit)
+            logger.debug("Page offset: %s, counter %s. Got %s more records ... " % ((300 * counter), counter, len(first_res['results'])))
             full_results['results'].extend(first_res['results'])
             counter += 1
 
         logger.info("Loading species ... ")
-        logger.info("Number of occurrences: %s " % full_results['count'])
         logger.debug(full_results['count'] == len(full_results['results']))   # match?
-
+        logger.debug("Full results: %s , got: %s " % (full_results['count'], len(full_results['results'])))
         # TODO: do we want a special way of loading? say, suggesting data types in some columns?
 
         # TODO: should we reformat the dtypes of the columns? at least day/month/year we care?
@@ -407,7 +441,7 @@ class IUCNSpecies(Species):
         # self.data_full.columns = map(str.lower, self.data_full.columns)   # convert all column headers to lowercase
         self.data_full.columns = [x.lower() for x in self.data_full.columns]   # python 2
 
-        logger.info("The shapefile contains data on %d species." % self.data_full.shape[0])
+        logger.info("The shapefile contains data on %d species areas." % self.data_full.shape[0])
         self.shape_file = file_path
 
     def find_species_occurrences(self, name_species=None, **kwargs):
@@ -623,6 +657,59 @@ class IUCNSpecies(Species):
         geo_pts = GeoSeries(pts)
         self.pseudo_absence_points = geo_pts
         return self.pseudo_absence_points
+
+    def drop_extinct_species(self, presence_column_name='presence', discard_bad=False):
+        """
+        According to the current IUCN Coded Domain Values for Presence:
+        Code    Presence
+        1       Extant
+        2       Probably Extant (discontinued)
+        3       Possibly Extant
+        4       Possibly Extinct
+        5       Extinct (post 1500)
+        6       Presence Uncertain
+
+        Species can have both areas(polygons) in which they are extinct(5) AND areas in which they are not.
+        We keep such species, and only filter-out species for which all areas are extinct.
+
+        :param str presence_column_name: The column name which contains the presence code values. Default is 'presence'.
+
+        :param bool discard_bad: Whether to keep or discard species with "unknown only" areas (code==0). By default they
+        are kept (discard_bad=False).
+        There are currently (july 2016) four such problematic species:
+        Acipenser baerii, Ambassis urotaenia, Microphysogobio tungtingensis, Rhodeus sericeus
+
+        :returns: None
+
+        """
+        logger.info("There are currently %s unique species. \n" % self.data_full.binomial.unique().size)
+
+        # the following creates a pandas series in the form:
+        # Aaptosyax grypus                                     [2.0]
+        # Abbottina binhi                                      [2.0]
+        # Aborichthys elongatus                 [1.0, 1.0, 1.0, 1.0]
+        # Aborichthys garoensis                      [1.0, 1.0, 1.0]
+        # Aborichthys kempi           [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+        # Aborichthys tikaderi                                 [1.0]
+        # Abramis brama                                   [1.0, 1.0]
+        # Acantharchus pomotis                       [5.0, 1.0, 1.0]
+        # Acanthobrama centisquama                        [1.0, 1.0]
+        # Acanthobrama lissneri                           [1.0, 1.0]
+        # ...
+        # which means species are grouped by binomial, and the presence columns are aggregated in a list
+        grouped = self.data_full.groupby('binomial')[presence_column_name].apply(lambda x: x.tolist())
+
+        extinct = []
+        for row in grouped.iteritems():
+            if row[1] == [5.0]:  # all areas are extinct
+                extinct.append(row[0])
+            if discard_bad:
+                if row[0] == [0.0]:  # all areas are with invalid value of 0
+                    extinct.append(row[0])
+
+        logger.info("Filtering out the following extinct species: %s \n" % extinct)
+        self.data_full = self.data_full[~self.data_full.binomial.isin(extinct)]
+        logger.info("There are now %s unique species after dropping out extinct ones." % self.data_full.binomial.unique().size)
 
 
 class MOLSpecies(Species):
