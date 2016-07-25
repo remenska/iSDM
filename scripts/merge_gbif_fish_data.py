@@ -5,7 +5,7 @@ import pandas as pd
 import timeit
 
 method = "pickle"
-size = "large"
+size = "largest"
 logger = logging.getLogger()
 handler = logging.StreamHandler()
 formatter = logging.Formatter('%(asctime)s %(message)s')
@@ -13,7 +13,7 @@ handler.setFormatter(formatter)
 logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
 
-fh = logging.FileHandler('./data/fish/selection/test/again/' + size + '/read_' + method + '.log')
+fh = logging.FileHandler('./data/fish/selection/test/again/' + size + '/read_' + method + 'final.log')
 fh.setLevel(logging.DEBUG)
 fh.setFormatter(formatter)
 logger.addHandler(fh)
@@ -46,7 +46,7 @@ for idx, my_file in enumerate(os.listdir(test_dir)):
         # this way memory usage doesn't grow constantly in memory, only individual frames are dumped
         common_columns = list(important_columns.intersection(set(df.columns.tolist())))
         # common_columns_all = common_columns_all.intersection(set(df.columns.tolist()))
-        df[common_columns].to_msgpack(os.path.join(path, "merged_msgpack.msg"), append=True)
+        df[common_columns].to_msgpack(os.path.join(path, "merged.msg"), append=True)
         # df_main = df_main[common_columns]   # reduce data frame by dropping all but common columns
         logger.info("Columns: %s" % len(common_columns))
         logger.info(df.info(memory_usage='deep'))

@@ -86,7 +86,7 @@ class Species(object):
        :param str full_name: The full path of the file (including the directory and name in one string),
         where the data will be saved.
 
-       :param str dir_name: The directory where the file will be stored. If :attr:`file_name` is not specified, the default one :attr:`name_species` + :attr:`ID`.pkl is given.
+       :param str dir_name: The directory where the file will be stored. If :attr:`file_name` is not specified, the default one :attr:`name_species` + .pkl is given.
 
        :param str file_name: The name of the file where the data will be saved. If :attr:`dir_name` is not specified, the current working directory is taken by default.
 
@@ -99,7 +99,7 @@ class Species(object):
         """
         if full_name is None:
             if file_name is None:
-                file_name = str(self.name_species) + str(self.ID) + (".pkl" if method == "pickle" else ".msg")
+                file_name = str(self.name_species) + (".pkl" if method == "pickle" else ".msg")
             if dir_name is None:
                 dir_name = os.getcwd()
 
@@ -125,11 +125,13 @@ class Species(object):
         Loads the serialized species pickle file data into a pandas DataFrame.
 
         :param str file_path: The full path to the file where the data is serialized to.
+
         :returns: Data loaded into geopandas dataframe.
+
         :rtype: geopandas.GeoDataFrame
         """
         if file_path is None:
-            filename = str(self.name_species) + str(self.ID) + ".pkl"
+            filename = str(self.name_species) + ".pkl"
             file_path = os.path.join(os.getcwd(), filename)
 
         logger.info("Loading data from: %s" % file_path)
@@ -341,7 +343,7 @@ class GBIFSpecies(Species):
                     crs=crs,
                     geometry=geometry)
                 logger.info("Data geometrized: converted into GeoPandas dataframe.")
-                logger.info("Points with NaN coordinnates ignored. ")
+                logger.info("Points with NaN coordinates ignored. ")
             else:
                 geometry = [Point(xy) for xy in zip(
                     self.data_full[longitude_col_name],
@@ -407,10 +409,12 @@ class GBIFSpecies(Species):
 
         try:
             if isinstance(species_range_map, GeoSeries):
-                range_map_union = species_range_map.unary_union
+                prepped_range_map_union = prep(species_range_map.unary_union)
             elif isinstance(species_range_map, IUCNSpecies):
-                range_map_union = species_range_map.data_full.geometry.unary_union
-            self.data_full = self.data_full[self.data_full.geometry.intersects(range_map_union)]
+                prepped_range_map_union = prep(species_range_map.data_full.geometry.unary_union)
+            # self.data_full = self.data_full[self.data_full.geometry.intersects(range_map_union)]
+            self.data_full = self.data_full[self.data_full.geometry.apply(lambda x: prepped_range_map_union.contains(x))]
+
             logger.info("Overlayed species occurrence data with the given range map.")
         except ValueError as e:
             logger.error("The rangemap geometries seem to be invalid (possible self-intersections). %s " % str(e))

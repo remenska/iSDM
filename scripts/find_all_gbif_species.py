@@ -30,7 +30,7 @@ non_extinct_binomials = pickle.load(open("./data/fish/selection/non_extinct_bino
 
 # small
 total_time = 0
-non_extinct_binomials = []
+#non_extinct_binomials = []
 # if size == "small":
 #     non_extinct_binomials = ["Cottus princeps", "Mastacembelus erythrotaenia", "Petrocephalus pellegrini", "Polypterus delhezi", "Polypterus retropinnis"]
 # elif size == "medium":
