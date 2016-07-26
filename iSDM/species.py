@@ -553,14 +553,16 @@ class IUCNSpecies(Species):
         if crs is None:
             crs = {'init': "EPSG:4326"}
 
-        x_min, y_min, x_max, y_max = self.data_full.geometry.iat[0].bounds
+        cascaded_union_geometry = shapely.ops.cascaded_union(self.data_full.geometry)
+
+        x_min, y_min, x_max, y_max = cascaded_union_geometry.bounds
 
         x_res = int((x_max - x_min) / pixel_size)
         y_res = int((y_max - y_min) / pixel_size)
 
         # translate
         transform = Affine.translation(x_min, y_max) * Affine.scale(pixel_size, -pixel_size)
-        result = rasterio.features.rasterize([(self.data_full.geometry.iat[0].buffer(0))],
+        result = rasterio.features.rasterize([(cascaded_union_geometry.buffer(0))],
                                              transform=transform,
                                              out_shape=(y_res, x_res),
                                              all_touched=all_touched,
