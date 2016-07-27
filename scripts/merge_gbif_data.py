@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 """
-script: merge_gbif_data.py 
+script: merge_gbif_data.py
 Description: Merge all individual files containing occurrence records per species (obtained with the script find_all_gbif_species.py)
              into one large file. Species occurrences can contain various metadata (columns), but the merged file will only
              contain the relevant columns, i.e., those deemed important for further analysis. The rest of the metadata is ignored.
-             For example, the latitude and longitude (if available) for each occurrence record are relevant. 
-Input: 
+             For example, the latitude and longitude (if available) for each occurrence record are relevant.
+Input:
  - method of deserialization (msgpack or pickle, same as the one used for serializing the individual files)
  - folder where the separate files are stored
  - a list of important columns (loaded from a file)
@@ -15,6 +15,7 @@ This script does the following:
     the data in a temporary dataframe.
  2. Appends the deserialized data in one large file, selecting only the important columns (if available).
 """
+
 import logging
 import pickle
 import os
@@ -22,7 +23,7 @@ import pandas as pd
 import timeit
 
 # input
-method = "pickle" # this method should be the same as the one used to serialize the GBIF occurrence data in files.
+method = "pickle"  # this method should be the same as the one used to serialize the GBIF occurrence data in files.
 saved_data_path = './data/fish/selection/'
 important_columns_file_path = "./data/fish/selection/important_columns.pkl"
 

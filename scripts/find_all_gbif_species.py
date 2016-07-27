@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-script: find_all_gbif_species.py 
+script: find_all_gbif_species.py
 Description: Scrap all GBIF backend occurrence records, for a (filtered) list of species from the IUCN dataset,
              and store the data locally in separate files, per species.
 Input:
@@ -22,9 +22,10 @@ from iSDM.species import GBIFSpecies
 import logging
 import timeit
 import pickle
+import os
 
 # input
-method = "msgpack" # could also be set to "pickle", which was default but msgpack is slightly better in speed/memory.
+method = "msgpack"  # could also be set to "pickle", which was default but msgpack is slightly better in speed/memory.
 non_extinct_binomials_file_path = "./data/fish/selection/non_extinct_binomials.pkl"
 save_data_path = "./data/fish/selection"
 
