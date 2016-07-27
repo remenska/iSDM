@@ -112,6 +112,7 @@ class Species(object):
                 self.data_full.to_pickle(full_name)
             else:
                 logger.error("Incorrect method of serializing: %s " % method)
+                return
 
             logger.debug("Saved data: %s " % full_name)
             logger.debug("Type of data: %s " % type(self.data_full))
@@ -174,6 +175,7 @@ class Species(object):
         if self.data_full.shape[0] == 0:
             logger.error("No data to plot.")
             return
+            return
         # dataset with one point (one dimensional) is also problematic for plotting, if no buffer around
         if self.data_full.shape[0] == 1 and isinstance(self.data_full.geometry.iat[0], shapely.geometry.Point):
             logger.error("Only one point in dataset.")
@@ -213,7 +215,7 @@ class Species(object):
                     mpoly = shapely.ops.transform(mm, subpoly)
                     patches.append(PolygonPatch(mpoly))
             elif poly.geom_type == "Point":
-                patches.append(PolygonPatch(Point(mm(poly.x, poly.y)).buffer(9999)))
+                patches.append(PolygonPatch(Point(mm(poly.x, poly.y)).buffer(9999)))  # TODO: this buffer thing is tricky around the edges of a map
             else:
                 logger.warning("Geometry type %s not supported. Skipping ... " % poly.geom_type)
                 continue
@@ -540,6 +542,7 @@ class IUCNSpecies(Species):
                   no_data_value=0,
                   default_value=1,
                   crs=None,
+                  cropped=False,
                   *args, **kwargs):
         """
         Documentation pending on how to rasterize geometrical shapes
@@ -553,16 +556,19 @@ class IUCNSpecies(Species):
         if crs is None:
             crs = {'init': "EPSG:4326"}
 
-        cascaded_union_geometry = shapely.ops.cascaded_union(self.data_full.geometry)
-
-        x_min, y_min, x_max, y_max = cascaded_union_geometry.bounds
+        # crop to the boundaries of the shape?
+        if cropped:
+            cascaded_union_geometry = shapely.ops.cascaded_union(self.data_full.geometry)
+            x_min, y_min, x_max, y_max = cascaded_union_geometry.bounds
+        # else global map
+        else:
+            x_min, y_min, x_max, y_max = -180, -90, 180, 90
 
         x_res = int((x_max - x_min) / pixel_size)
         y_res = int((y_max - y_min) / pixel_size)
-
         # translate
         transform = Affine.translation(x_min, y_max) * Affine.scale(pixel_size, -pixel_size)
-        result = rasterio.features.rasterize([(cascaded_union_geometry.buffer(0))],
+        result = rasterio.features.rasterize(self.data_full.geometry,
                                              transform=transform,
                                              out_shape=(y_res, x_res),
                                              all_touched=all_touched,
@@ -581,6 +587,7 @@ class IUCNSpecies(Species):
         logger.info("RASTERIO: Data rasterized into file %s " % raster_file)
         logger.info("RASTERIO: Resolution: x_res={0} y_res={1}".format(x_res, y_res))
         self.raster_file = raster_file
+        self.raster_affine = transform
         return result
 
     def load_raster_data(self, raster_file=None):
@@ -600,7 +607,47 @@ class IUCNSpecies(Species):
             logger.info("Coordinate reference system: %s " % src.crs)
             logger.info("Affine transformation: %s " % (src.affine.to_gdal(),))
             logger.info("Number of layers: %s " % src.count)
+            self.raster_affine = src.affine
             return src.read()
+
+    def pixel_to_world_coordinates(self, raster_data=None, no_data_value=0, filter_no_data_value=True):
+        """
+        Map the pixel coordinates to world coordinates. The affine transformation matrix
+        is used for this purpose. The convention is to reference the pixel corner. To
+        reference the pixel center instead, we translate each pixel by 50%.
+        The "no value" pixels (cells) can be filtered out.
+
+        A dataset's pixel coordinate system has its origin at the "upper left" (imagine it displayed on your screen).
+        Column index increases to the right, and row index increases downward. The mapping of these coordinates to
+        "world" coordinates in the dataset's reference system is done with an affine transformation matrix.
+
+        :returns: a tuple of arrays. The first array contains the latitude values for each
+        non-zero cell, the second array contains the longitude values for each non-zero cell.
+        """
+        if raster_data is None:
+            logger.info("No raster data provided, attempting to load default...")
+            try:
+                raster_data = self.load_raster_data()[0]  # we work on one layer, the first
+                logger.info("Succesfully loaded existing raster data from %s." % self.raster_file)
+            except AttributeError as e:
+                logger.error("Could not open raster file. %s " % str(e))
+
+        # first get the original Affine transformation matrix
+        T0 = self.raster_affine
+        # convert it to gdal format (it is otherwise flipped)
+        T0 = Affine(*reversed(T0.to_gdal()))
+        logger.debug("Affine transformation T0:\n %s " % (T0,))
+        # shift by 50% to get the pixel center
+        T1 = T0 * Affine.translation(0.5, 0.5)
+        # apply the shift, filtering out no_data_value values
+        logger.debug("Raster data shape: %s " % (raster_data.shape,))
+        logger.debug("Affine transformation T1:\n %s " % (T1,))
+        if filter_no_data_value:
+            logger.info("Filtering out no_data pixels.")
+            return (T1 * np.where(raster_data > no_data_value))
+        else:
+            logger.info("Not filtering any no_data pixels.")
+            return (T1 * np.where(np.ones_like(raster_data)))
 
     def random_pseudo_absence_points(self,
                                      buffer_distance=2,
