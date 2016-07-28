@@ -560,10 +560,10 @@ class IUCNSpecies(Species):
         if cropped:
             # cascaded_union_geometry = shapely.ops.cascaded_union(self.data_full.geometry)
             # x_min, y_min, x_max, y_max = cascaded_union_geometry.bounds
-            x_min = self.data_full.geometry.minx.min()
-            y_min = self.data_full.geometry.minx.min()
-            x_max = self.data_full.geometry.maxx.max()
-            y_max = self.data_full.geometry.maxy.max()
+            x_min = self.data_full.geometry.bounds.minx.min()
+            y_min = self.data_full.geometry.bounds.minx.min()
+            x_max = self.data_full.geometry.bounds.maxx.max()
+            y_max = self.data_full.geometry.bounds.maxy.max()
         # else global map
         else:
             x_min, y_min, x_max, y_max = -180, -90, 180, 90
