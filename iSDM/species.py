@@ -558,8 +558,8 @@ class IUCNSpecies(Species):
 
         # crop to the boundaries of the shape?
         if cropped:
-            #cascaded_union_geometry = shapely.ops.cascaded_union(self.data_full.geometry)
-            #x_min, y_min, x_max, y_max = cascaded_union_geometry.bounds
+            # cascaded_union_geometry = shapely.ops.cascaded_union(self.data_full.geometry)
+            # x_min, y_min, x_max, y_max = cascaded_union_geometry.bounds
             x_min = self.data_full.geometry.minx.min()
             y_min = self.data_full.geometry.minx.min()
             x_max = self.data_full.geometry.maxx.max()
