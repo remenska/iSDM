@@ -561,7 +561,7 @@ class IUCNSpecies(Species):
             # cascaded_union_geometry = shapely.ops.cascaded_union(self.data_full.geometry)
             # x_min, y_min, x_max, y_max = cascaded_union_geometry.bounds
             x_min = self.data_full.geometry.bounds.minx.min()
-            y_min = self.data_full.geometry.bounds.minx.min()
+            y_min = self.data_full.geometry.bounds.miny.min()
             x_max = self.data_full.geometry.bounds.maxx.max()
             y_max = self.data_full.geometry.bounds.maxy.max()
         # else global map
