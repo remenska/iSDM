@@ -6,11 +6,17 @@ import rasterio
 import pprint
 from rasterio.warp import calculate_default_transform, RESAMPLING
 from iSDM.species import IUCNSpecies
-from affine import Affine
 import rasterio.features
 import numpy as np
 from geopandas import GeoSeries, GeoDataFrame
-
+from rasterio.transform import Affine
+import matplotlib.pyplot as plt
+from mpl_toolkits.basemap import Basemap
+import pandas as pd
+from shapely.geometry import Point
+from matplotlib.collections import PatchCollection
+from descartes import PolygonPatch
+import shapely
 
 logger = logging.getLogger('iSDM.environment')
 logger.setLevel(logging.DEBUG)
@@ -27,7 +33,7 @@ class EnvironmentalLayer(object):
     """
     Some class-level documentaiton on environmental layer class
     """
-    def __init__(self, source=None, file_path=None, **kwargs):
+    def __init__(self, source=None, file_path=None, name_layer=None, **kwargs):
         # you want to be able to agregate at a different resolution
         # and back/forth, right?
         # self.resolution = kwargs['resolution']
@@ -39,6 +45,7 @@ class EnvironmentalLayer(object):
             self.source = Source.UNKNOWN
         if file_path:
             self.file_path = file_path
+        self.name_layer = name_layer
 
     def load_data(self, file_path=None):
         pass
@@ -62,58 +69,227 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
     """
     Some class-level documentation on raster environmental layer
     """
-    def __init__(self, source=None, file_path=None, **kwargs):
-        EnvironmentalLayer.__init__(self, source, file_path, **kwargs)
+    def __init__(self, source=None, file_path=None, name_layer=None, **kwargs):
+        EnvironmentalLayer.__init__(self, source, file_path, name_layer, **kwargs)
+
+    # def load_data(self, file_path=None):
+    #     """
+    #     Documentation pending on how to load environment raster data
+    #     """
+    #     if file_path:
+    #         self.file_path = file_path
+
+    #     if not self.file_path:
+    #         raise AttributeError("Please provide a file_path argument to load the data from.")
+
+    #     logger.info("Loading data from %s " % self.file_path)
+    #     raster_reader = rasterio.open(self.file_path, 'r')
+    #     self.metadata = raster_reader.meta
+    #     self.resolution = raster_reader.res
+    #     self.bounds = raster_reader.bounds
+    #     pp = pprint.PrettyPrinter(depth=5)
+
+    #     logger.info("Metadata: %s " % pp.pformat(self.metadata))
+    #     logger.info("Resolution: %s " % (self.resolution,))
+    #     logger.info("Bounds: %s " % (self.bounds,))
+    #     self.raster_reader = raster_reader
+    #     logger.info("Dataset loaded. Use .read() or .read_masks() to access the layers.")
+    #     return self.raster_reader
 
     def load_data(self, file_path=None):
         """
-        Documentation pending on how to load environment raster data
+        Documentation pending on how to load environment aster data
         """
         if file_path:
             self.file_path = file_path
-
         if not self.file_path:
-            raise AttributeError("Please provide a file_path argument to load the data from.")
+            raise AttributeError("Please provide a file_path to read raster data from.")
 
-        logger.info("Loading data from %s " % self.file_path)
-        raster_data = rasterio.open(self.file_path, 'r')
-        self.metadata = raster_data.meta
-        self.resolution = raster_data.res
-        self.bounds = raster_data.bounds
+        src = rasterio.open(self.file_path)
+        logger.info("Loaded raster data from %s " % self.file_path)
+        logger.info("Driver name: %s " % src.driver)
         pp = pprint.PrettyPrinter(depth=5)
-
+        self.metadata = src.meta
         logger.info("Metadata: %s " % pp.pformat(self.metadata))
-        logger.info("Resolution: %s " % (self.resolution,))
-        logger.info("Bounds: %s " % (self.bounds,))
-        self.raster_data = raster_data
+        logger.info("Resolution: x_res={0} y_res={1}.".format(src.width, src.height))
+        logger.info("Bounds: %s " % (src.bounds,))
+        logger.info("Coordinate reference system: %s " % src.crs)
+        logger.info("Affine transformation: %s " % (src.affine.to_gdal(),))
+        logger.info("Number of layers: %s " % src.count)
         logger.info("Dataset loaded. Use .read() or .read_masks() to access the layers.")
-        return self.raster_data
+        self.raster_affine = src.affine
+        self.raster_reader = src
+        return self.raster_reader
+
+    def pixel_to_world_coordinates(self,
+                                   raster_data=None,
+                                   no_data_value=0,
+                                   filter_no_data_value=True,
+                                   band_number=1,
+                                   plot=False):
+        """
+        Map the pixel coordinates to world coordinates. The affine transformation matrix
+        is used for this purpose. The convention is to reference the pixel corner. To
+        reference the pixel center instead, we translate each pixel by 50%.
+        The "no value" pixels (cells) can be filtered out.
+
+        A dataset's pixel coordinate system has its origin at the "upper left" (imagine it displayed on your screen).
+        Column index increases to the right, and row index increases downward. The mapping of these coordinates to
+        "world" coordinates in the dataset's reference system is done with an affine transformation matrix.
+
+        :returns: a tuple of arrays. The first array contains the latitude values for each
+        non-zero cell, the second array contains the longitude values for each non-zero cell.
+        """
+        if raster_data is None:
+            logger.info("No raster data provided, attempting to load default...")
+            try:
+                raster_data = self.load_data(self.file_path).read(band_number)  # we work on one layer, the first
+                logger.info("Succesfully loaded existing raster data from %s." % self.file_path)
+            except AttributeError as e:
+                logger.error("Could not open raster file. %s " % str(e))
+
+        # first get the original Affine transformation matrix
+        T0 = self.raster_affine
+        # convert it to gdal format (it is otherwise flipped)
+        T0 = Affine(*reversed(T0.to_gdal()))
+        logger.debug("Affine transformation T0:\n %s " % (T0,))
+        # shift by 50% to get the pixel center
+        T1 = T0 * Affine.translation(0.5, 0.5)
+        # apply the shift, filtering out no_data_value values
+        logger.debug("Raster data shape: %s " % (raster_data.shape,))
+        logger.debug("Affine transformation T1:\n %s " % (T1,))
+        raster_data[raster_data==no_data_value] = 0 # reset the nodata values to 0, easier to manipulate
+        if filter_no_data_value:
+            logger.info("Filtering out no_data pixels.")
+            coordinates = (T1 * np.where(raster_data > no_data_value))
+        else:
+            logger.info("Not filtering any no_data pixels.")
+            coordinates = (T1 * np.where(np.ones_like(raster_data)))
+
+        if plot:
+            self.plot_world_coordinates(coordinates)
+
+        return coordinates
+
+    @classmethod
+    def __geometrize__(cls, data, latitude_col_name='decimallatitude', longitude_col_name='decimallongitude', crs=None, dropna=True):
+        try:
+            if crs is None:
+                crs = {'init': "EPSG:4326"}
+            # exclude those points with NaN in plot_world_coordinates
+            if dropna:
+                geometry = [Point(xy) for xy in zip(
+                    data[longitude_col_name].dropna(),
+                    data[latitude_col_name].dropna()
+                )]
+                data_geo = GeoDataFrame(
+                    data.dropna(
+                        subset=[latitude_col_name, longitude_col_name]),
+                    crs=crs,
+                    geometry=geometry)
+                logger.info("Data geometrized: converted into GeoPandas dataframe.")
+                logger.info("Points with NaN coordinates ignored. ")
+            else:
+                geometry = [Point(xy) for xy in zip(
+                    data[longitude_col_name],
+                    data[latitude_col_name]
+                )]
+                data_geo = GeoDataFrame(data, crs=crs, geometry=geometry)
+                logger.info("Data geometrized: converted into GeoPandas dataframe.")
+        except AttributeError:
+            logger.error("No latitude/longitude data to convert into a geometry. Please load the data first.")
+        return data_geo
+
+    @classmethod
+    def plot_world_coordinates(cls,
+                               coordinates=None,
+                               figsize=(16, 12),
+                               projection='merc',
+                               facecolor='crimson'):
+        if coordinates is None or not isinstance(coordinates, tuple):
+            logger.error("Please provide the coordinates to plot, in the correct format.")
+            logger.error("Use pixel_to_world_coordinates() for this.")
+            return
+        # empty dataset
+        if coordinates[0].shape[0] == 0:
+            logger.error("No data to plot.")
+            return
+        data = pd.DataFrame([coordinates[0], coordinates[1]]).T
+        data.columns = ['decimallatitude', 'decimallongitude']
+        data_geometrized = cls.__geometrize__(data)
+        mm = Basemap(projection=projection, lat_0=50, lon_0=-100,
+                     resolution='l', area_thresh=1000.0,
+                     llcrnrlon=data_geometrized.geometry.total_bounds[0],  # lower left corner longitude point
+                     llcrnrlat=data_geometrized.geometry.total_bounds[1],  # lower left corner latitude point
+                     urcrnrlon=data_geometrized.geometry.total_bounds[2],  # upper right longitude point
+                     urcrnrlat=data_geometrized.geometry.total_bounds[3]   # upper right latitude point
+                     )
+
+        # prepare longitude/latitude list for basemap
+        ax1 = plt.subplots(figsize=figsize)[1]
+
+        plt.title("World coordinates of raster data.")
+
+        mm.drawcoastlines()
+        mm.drawcountries()
+        mm.drawrivers(color='lightskyblue', linewidth=1.5)
+        mm.drawmapboundary(fill_color='lightskyblue')
+        mm.fillcontinents(color='cornsilk')
+        # draw latitude and longitude
+        mm.drawmeridians(np.arange(-180, 180, 10), labels=[False, False, False, True])
+        mm.drawparallels(np.arange(-180, 180, 10), labels=[True, True, False, False])
+
+        patches = []
+        selection = data_geometrized
+        for poly in selection.geometry:
+            if poly.geom_type == 'Polygon':
+                mpoly = shapely.ops.transform(mm, poly)
+                patches.append(PolygonPatch(mpoly))
+            elif poly.geom_type == 'MultiPolygon':
+                for subpoly in poly:
+                    mpoly = shapely.ops.transform(mm, subpoly)
+                    patches.append(PolygonPatch(mpoly))
+            elif poly.geom_type == "Point":
+                patches.append(PolygonPatch(Point(mm(poly.x, poly.y)).buffer(9999)))  # TODO: this buffer thing is tricky around the edges of a map
+            else:
+                logger.warning("Geometry type %s not supported. Skipping ... " % poly.geom_type)
+                continue
+        ax1.add_collection(PatchCollection(patches, facecolor=facecolor, match_original=True, zorder=100))
+        plt.show()
+
+    def plot(self, figsize=(25, 20), band_number=1):
+        if not self.raster_reader or self.raster_reader.closed:
+            logger.info("The dataset is closed. Please load it first using .load_data()")
+            return
+        plt.figure(figsize=figsize)
+        plt.title(self.name_layer)
+        plt.imshow(self.raster_reader.read(band_number), cmap="flag", interpolation="none")
 
     def close_dataset(self):
         """
         Documentation pending on what it means to close a dataset
         """
-        if not self.raster_data.closed:
-            self.raster_data.close()
+        if not self.raster_reader.closed:
+            self.raster_reader.close()
             logger.info("Dataset %s closed. " % self.file_path)
 
     def get_data(self):
         """
         Documentation on what it means to get the data
         """
-        if not self.raster_data or self.raster_data.closed:
+        if not self.raster_reader or self.raster_reader.closed:
             logger.info("The dataset is closed. Please load it first using .load_data()")
             return
-        return self.raster_data
+        return self.raster_reader
 
     def read(self, band_number=None):
         """
         Documentation pending on reading raster bands
         """
-        if not self.raster_data or self.raster_data.closed:
+        if not self.raster_reader or self.raster_reader.closed:
             logger.info("The dataset is closed. Please load it first using .load_data()")
             return
-        return self.raster_data.read(band_number)
+        return self.raster_reader.read(band_number)
 
     def reproject(self, source_file=None, destination_file=None, resampling=RESAMPLING.nearest, **kwargs):
         """
@@ -174,9 +350,9 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
 
         if isinstance(range_map, EnvironmentalLayer) or isinstance(range_map, IUCNSpecies):
             for geometry in range_map.get_data()['geometry']:
-                if self.raster_data.closed:
+                if self.raster_reader.closed:
                     self.load_data(self.file_path)
-                with self.raster_data as raster:
+                with self.raster_reader as raster:
                     # get pixel coordinates of the geometry's bounding box
                     ul = raster.index(*geometry.bounds[0:2])
                     lr = raster.index(*geometry.bounds[2:4])
@@ -216,6 +392,9 @@ class VectorEnvironmentalLayer(EnvironmentalLayer):
     """
     Some class-level documentation on vector environmental layers here
     """
+    def __init__(self, source=None, file_path=None, name_layer=None, **kwargs):
+        EnvironmentalLayer.__init__(self, source, file_path, name_layer, **kwargs)
+
     def load_data(self, file_path=None):
         """
         Documentation on how to load shapefile environmental layer

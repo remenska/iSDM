@@ -27,6 +27,7 @@ from rasterio.transform import Affine
 import rasterio
 import rasterio.features
 from shapely.prepared import prep
+import pprint
 
 logger = logging.getLogger('iSDM.species')
 logger.setLevel(logging.DEBUG)
@@ -174,7 +175,6 @@ class Species(object):
         # empty dataset
         if self.data_full.shape[0] == 0:
             logger.error("No data to plot.")
-            return
             return
         # dataset with one point (one dimensional) is also problematic for plotting, if no buffer around
         if self.data_full.shape[0] == 1 and isinstance(self.data_full.geometry.iat[0], shapely.geometry.Point):
@@ -326,13 +326,14 @@ class GBIFSpecies(Species):
             f.close()
 
     # vectorize? better name
-    def geometrize(self, dropna=True, longitude_col_name='decimallongitude', latitude_col_name='decimallatitude'):
+    def geometrize(self, dropna=True, longitude_col_name='decimallongitude', latitude_col_name='decimallatitude', crs=None):
         """
         Converts data to geopandas. The latitude/longitude is converted into shapely Point geometry.
         Geopandas/GeoSeries data structures have a geometry column.
         """
         try:
-            crs = None
+            if crs is None:
+                crs = {'init': "EPSG:4326"}
             # exclude those points with NaN in coordinates
             if dropna:
                 geometry = [Point(xy) for xy in zip(
@@ -559,11 +560,7 @@ class IUCNSpecies(Species):
         # crop to the boundaries of the shape?
         if cropped:
             # cascaded_union_geometry = shapely.ops.cascaded_union(self.data_full.geometry)
-            # x_min, y_min, x_max, y_max = cascaded_union_geometry.bounds
-            x_min = self.data_full.geometry.bounds.minx.min()
-            y_min = self.data_full.geometry.bounds.miny.min()
-            x_max = self.data_full.geometry.bounds.maxx.max()
-            y_max = self.data_full.geometry.bounds.maxy.max()
+            x_min, y_min, x_max, y_max = self.data_full.geometry.total_bounds
         # else global map
         else:
             x_min, y_min, x_max, y_max = -180, -90, 180, 90
@@ -594,6 +591,26 @@ class IUCNSpecies(Species):
         self.raster_affine = transform
         return result
 
+    # def load_raster_data(self, raster_file=None):
+    #     """
+    #     Documentation pending on how to load raster data
+    #     """
+    #     if raster_file:
+    #         self.raster_file = raster_file
+    #     if not self.raster_file:
+    #         raise AttributeError("Please rasterize the data first, ",
+    #                              "or provide a raster_file to read from.")
+
+    #     with rasterio.open(self.raster_file) as src:
+    #         logger.info("Loaded raster data from %s " % self.raster_file)
+    #         logger.info("Driver name: %s " % src.driver)
+    #         logger.info("Resolution: x_res={0} y_res={1}.".format(src.width, src.height))
+    #         logger.info("Coordinate reference system: %s " % src.crs)
+    #         logger.info("Affine transformation: %s " % (src.affine.to_gdal(),))
+    #         logger.info("Number of layers: %s " % src.count)
+    #         self.raster_affine = src.affine
+    #         return src.read()
+
     def load_raster_data(self, raster_file=None):
         """
         Documentation pending on how to load raster data
@@ -601,20 +618,25 @@ class IUCNSpecies(Species):
         if raster_file:
             self.raster_file = raster_file
         if not self.raster_file:
-            raise AttributeError("Please rasterize the data first, ",
-                                 "or provide a raster_file to read from.")
+            raise AttributeError("Please provide a raster_file to read raster data from.")
 
-        with rasterio.open(self.raster_file) as src:
-            logger.info("Loaded raster data from %s " % self.raster_file)
-            logger.info("Driver name: %s " % src.driver)
-            logger.info("Resolution: x_res={0} y_res={1}.".format(src.width, src.height))
-            logger.info("Coordinate reference system: %s " % src.crs)
-            logger.info("Affine transformation: %s " % (src.affine.to_gdal(),))
-            logger.info("Number of layers: %s " % src.count)
-            self.raster_affine = src.affine
-            return src.read()
+        src = rasterio.open(self.raster_file)
+        logger.info("Loaded raster data from %s " % self.raster_file)
+        logger.info("Driver name: %s " % src.driver)
+        pp = pprint.PrettyPrinter(depth=5)
+        self.metadata = src.meta
+        logger.info("Metadata: %s " % pp.pformat(self.metadata))
+        logger.info("Resolution: x_res={0} y_res={1}.".format(src.width, src.height))
+        logger.info("Bounds: %s " % (src.bounds,))
+        logger.info("Coordinate reference system: %s " % src.crs)
+        logger.info("Affine transformation: %s " % (src.affine.to_gdal(),))
+        logger.info("Number of layers: %s " % src.count)
+        logger.info("Dataset loaded. Use .read() or .read_masks() to access the layers.")
+        self.raster_affine = src.affine
+        self.raster_reader = src
+        return self.raster_reader
 
-    def pixel_to_world_coordinates(self, raster_data=None, no_data_value=0, filter_no_data_value=True):
+    def pixel_to_world_coordinates(self, raster_data=None, no_data_value=0, filter_no_data_value=True, band_number=1):
         """
         Map the pixel coordinates to world coordinates. The affine transformation matrix
         is used for this purpose. The convention is to reference the pixel corner. To
@@ -631,7 +653,7 @@ class IUCNSpecies(Species):
         if raster_data is None:
             logger.info("No raster data provided, attempting to load default...")
             try:
-                raster_data = self.load_raster_data()[0]  # we work on one layer, the first
+                raster_data = self.load_raster_data(self.raster_file).read(band_number)
                 logger.info("Succesfully loaded existing raster data from %s." % self.raster_file)
             except AttributeError as e:
                 logger.error("Could not open raster file. %s " % str(e))
