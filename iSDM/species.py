@@ -636,7 +636,11 @@ class IUCNSpecies(Species):
         self.raster_reader = src
         return self.raster_reader
 
-    def pixel_to_world_coordinates(self, raster_data=None, no_data_value=0, filter_no_data_value=True, band_number=1):
+    def pixel_to_world_coordinates(self,
+                                   raster_data=None,
+                                   no_data_value=0,
+                                   filter_no_data_value=True,
+                                   band_number=1):
         """
         Map the pixel coordinates to world coordinates. The affine transformation matrix
         is used for this purpose. The convention is to reference the pixel corner. To
@@ -668,12 +672,15 @@ class IUCNSpecies(Species):
         # apply the shift, filtering out no_data_value values
         logger.debug("Raster data shape: %s " % (raster_data.shape,))
         logger.debug("Affine transformation T1:\n %s " % (T1,))
+        raster_data[raster_data == no_data_value] = 0  # reset the nodata values to 0, easier to manipulate
         if filter_no_data_value:
             logger.info("Filtering out no_data pixels.")
-            return (T1 * np.where(raster_data > no_data_value))
+            coordinates = (T1 * np.where(raster_data > no_data_value))
         else:
             logger.info("Not filtering any no_data pixels.")
-            return (T1 * np.where(np.ones_like(raster_data)))
+            coordinates = (T1 * np.where(np.ones_like(raster_data)))
+
+        return coordinates
 
     def random_pseudo_absence_points(self,
                                      buffer_distance=2,
