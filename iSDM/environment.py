@@ -103,7 +103,7 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
         if file_path:
             self.file_path = file_path
         if not self.file_path:
-            raise AttributeError("Please provide a file_path to read raster data from.")
+            raise AttributeError("Please provide a file_path to read raster environment data from.")
 
         src = rasterio.open(self.file_path)
         logger.info("Loaded raster data from %s " % self.file_path)
@@ -158,7 +158,7 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
         # apply the shift, filtering out no_data_value values
         logger.debug("Raster data shape: %s " % (raster_data.shape,))
         logger.debug("Affine transformation T1:\n %s " % (T1,))
-        raster_data[raster_data==no_data_value] = 0 # reset the nodata values to 0, easier to manipulate
+        raster_data[raster_data == no_data_value] = 0  # reset the nodata values to 0, easier to manipulate
         if filter_no_data_value:
             logger.info("Filtering out no_data pixels.")
             coordinates = (T1 * np.where(raster_data > no_data_value))
@@ -378,6 +378,71 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
         self.masked_data = masked_data
         logger.info("Overlayed raster climate data with the given range map.")
         logger.info("Use the .masked_data attribute to access it.")
+
+    def sample_pseudo_absences(self,
+                               species_raster_data=None,
+                               band_number=1,
+                               number_of_pseudopoints=1000):
+        if not (isinstance(species_raster_data, np.ndarray)) or not (set(np.unique(species_raster_data)) == set({0, 1})):
+            logger.error("Please provide the species raster data as a numpy array with pixel values 1 and 0 (presence/absence).")
+            return
+        if not self.raster_reader or self.raster_reader.closed:
+            logger.info("The dataset is closed. Please load it first using .load_data()")
+            return
+        try:
+            env_raster_data = self.raster_reader.read(band_number)
+            logger.info("Succesfully loaded existing raster data from %s." % self.file_path)
+        except AttributeError as e:
+            logger.error("Could not open raster file. %s " % str(e))
+
+        if species_raster_data.shape != env_raster_data.shape:
+            logger.error("Please provide (global) species raster data at the same resolution as the environment")
+            logger.error("Environment data has the following shape %s " % (env_raster_data.shape, ))
+            return
+
+        logger.info("Sampling %s pseudo-absence points from environmental layer." % number_of_pseudopoints)
+        # first set to zero all pixels that have "nodata" values
+        env_raster_data[env_raster_data == self.raster_reader.nodata] = 0
+        # next get all the overlapping pixels between the species raster and the environment data
+        presences_pixels = env_raster_data * species_raster_data
+        # what are the unique values left? (these are the distinct "regions" that need to be taken into account)
+        # Do NOT take into account the 0-value pixel, which we assigned to all "nodata" pixels
+        unique_regions = np.unique(presences_pixels[presences_pixels != 0])
+        if len(unique_regions) == 0:
+            logger.info("There are no environmental layers to sample pseudo-absences from. ")
+            return
+        logger.debug("The following unique (pixel) values will be taken into account for sampling pseudo-absences")
+        logger.debug(unique_regions)
+        # add the pixels of all these regions to a layer array
+        regions = []
+        for region in unique_regions:
+            regions.append(np.where(env_raster_data == region))
+        # now "regions" contains a list of tuples, each tuple with separate x/y indexes (arrays thereof) of the pixels
+        # make an empty "base" matrix and fill it with the selected regions pixel values
+        selected_pixels = np.zeros_like(env_raster_data)
+        # pick out only those layers that have been selected and fill in the matrix
+        for layer in regions:
+            selected_pixels[layer] = env_raster_data[layer]
+
+        # sample from those pixels which are in the selected raster regions, minus those of the species presences
+        pixels_to_sample_from = selected_pixels - presences_pixels
+        # These are x/y positions of pixels to sample from. Tuple of arrays.
+        (x, y) = np.where(pixels_to_sample_from > 0)
+        number_pixels_to_sample_from = x.shape[0]  # == y.shape[0] since every pixel has (x,y) position.
+        logger.info("There are %s pixels to sample from..." % (number_pixels_to_sample_from))
+        sampled_pixels = np.zeros_like(selected_pixels)
+
+        # now randomly choose <number_of_pseudopoints> indices to fill in with pseudo absences
+        random_indices = np.random.randint(0, number_pixels_to_sample_from, number_of_pseudopoints)
+        logger.info("Filling %s random pixel positions..." % (len(random_indices)))
+
+        # fill in those indices with the pixel values of the environment layer
+        for position in random_indices:
+            sampled_pixels[x[position]][y[position]] = pixels_to_sample_from[x[position], y[position]]
+
+        logger.info("Sampled %s unique pixels." % sampled_pixels.nonzero()[0].shape[0])
+
+        return (pixels_to_sample_from, sampled_pixels)
 
 
 class ClimateLayer(RasterEnvironmentalLayer):
