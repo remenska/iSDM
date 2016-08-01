@@ -118,6 +118,8 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
         logger.info("Number of layers: %s " % src.count)
         logger.info("Dataset loaded. Use .read() or .read_masks() to access the layers.")
         self.raster_affine = src.affine
+        self.resolution = src.res
+        self.bounds = src.bounds
         self.raster_reader = src
         return self.raster_reader
 
@@ -148,6 +150,7 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
             except AttributeError as e:
                 logger.error("Could not open raster file. %s " % str(e))
 
+        logger.info("Transforming to world coordinates...")
         # first get the original Affine transformation matrix
         T0 = self.raster_affine
         # convert it to gdal format (it is otherwise flipped)
@@ -161,7 +164,7 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
         raster_data[raster_data == no_data_value] = 0  # reset the nodata values to 0, easier to manipulate
         if filter_no_data_value:
             logger.info("Filtering out no_data pixels.")
-            coordinates = (T1 * np.where(raster_data > no_data_value))
+            coordinates = (T1 * np.where(raster_data != no_data_value))
         else:
             logger.info("Not filtering any no_data pixels.")
             coordinates = (T1 * np.where(np.ones_like(raster_data)))
@@ -169,6 +172,7 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
         if plot:
             self.plot_world_coordinates(coordinates)
 
+        logger.info("Transformation to world coordinates completed.")
         return coordinates
 
     @classmethod
@@ -440,7 +444,7 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
         for position in random_indices:
             sampled_pixels[x[position]][y[position]] = pixels_to_sample_from[x[position], y[position]]
 
-        logger.info("Sampled %s unique pixels." % sampled_pixels.nonzero()[0].shape[0])
+        logger.info("Sampled %s unique pixels as pseudo-absences." % sampled_pixels.nonzero()[0].shape[0])
 
         return (pixels_to_sample_from, sampled_pixels)
 
