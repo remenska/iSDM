@@ -17,6 +17,8 @@ from shapely.geometry import Point
 from matplotlib.collections import PatchCollection
 from descartes import PolygonPatch
 import shapely
+from rasterio import features
+from shapely.geometry import Polygon
 
 logger = logging.getLogger('iSDM.environment')
 logger.setLevel(logging.DEBUG)
@@ -204,6 +206,23 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
             logger.error("No latitude/longitude data to convert into a geometry. Please load the data first.")
         return data_geo
 
+    def polygonize(self, band_number=1):
+        raster_data = self.read(band_number)
+        mask = raster_data != self.raster_reader.nodata
+        T0 = self.raster_reader.affine
+        shapes = features.shapes(raster_data, mask=mask, transform=T0)
+        df = GeoDataFrame.from_records(shapes, columns=['geometry', 'value'])
+        # convert the geometry dictionary from {'coordinates': [[(-73.5, 83.5),
+        #   (-73.5, 83.0),
+        #   (-68.0, 83.0),
+        #   (-68.0, 83.5),
+        #   (-73.5, 83.5)]],
+        # 'type': 'Polygon'}
+        # to a proper shapely polygon format
+        df.geometry = df.geometry.apply(lambda row: Polygon(row['coordinates'][0]))
+        df.crs = self.raster_reader.crs
+        return df
+
     @classmethod
     def plot_world_coordinates(cls,
                                coordinates=None,
@@ -267,7 +286,7 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
             return
         plt.figure(figsize=figsize)
         plt.title(self.name_layer)
-        plt.imshow(self.raster_reader.read(band_number), cmap="flag", interpolation="none")
+        plt.imshow(self.read(band_number), cmap="flag", interpolation="none")
 
     def close_dataset(self):
         """
@@ -390,11 +409,8 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
         if not (isinstance(species_raster_data, np.ndarray)) or not (set(np.unique(species_raster_data)) == set({0, 1})):
             logger.error("Please provide the species raster data as a numpy array with pixel values 1 and 0 (presence/absence).")
             return
-        if not self.raster_reader or self.raster_reader.closed:
-            logger.info("The dataset is closed. Please load it first using .load_data()")
-            return
         try:
-            env_raster_data = self.raster_reader.read(band_number)
+            env_raster_data = self.read(band_number)
             logger.info("Succesfully loaded existing raster data from %s." % self.file_path)
         except AttributeError as e:
             logger.error("Could not open raster file. %s " % str(e))
