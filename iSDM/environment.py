@@ -490,7 +490,7 @@ class VectorEnvironmentalLayer(EnvironmentalLayer):
             raise AttributeError("Please provide a file_path argument to load the data from.")
 
         logger.info("Loading data from %s " % self.file_path)
-        self.data_full = GeoDataFrame.from_file(file_path)
+        self.data_full = GeoDataFrame.from_file(self.file_path)
         self.data_full.columns = [x.lower() for x in self.data_full.columns]
         logger.info("The shapefile contains data on %d environmental regions." % self.data_full.shape[0])
         self.shape_file = file_path
