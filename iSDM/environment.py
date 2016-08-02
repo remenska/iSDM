@@ -452,11 +452,16 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
         logger.info("There are %s pixels to sample from..." % (number_pixels_to_sample_from))
         sampled_pixels = np.zeros_like(selected_pixels)
 
-        # now randomly choose <number_of_pseudopoints> indices to fill in with pseudo absences
-        random_indices = np.random.randint(0, number_pixels_to_sample_from, number_of_pseudopoints)
-        logger.info("Filling %s random pixel positions..." % (len(random_indices)))
+        if number_pixels_to_sample_from < number_of_pseudopoints:
+            logger.warning("There are less pixels to sample from, than the desired number of pseudo-absences")
+            logger.warning("Will select all pixels as psedudo-absences.")
+            random_indices = np.arange(0, number_pixels_to_sample_from)
+        else:
+            # now randomly choose <number_of_pseudopoints> indices to fill in with pseudo absences
+            random_indices = np.random.randint(0, number_pixels_to_sample_from, number_of_pseudopoints)
+            logger.info("Filling %s random pixel positions..." % (len(random_indices)))
 
-        # fill in those indices with the pixel values of the environment layer
+            # fill in those indices with the pixel values of the environment layer
         for position in random_indices:
             sampled_pixels[x[position]][y[position]] = pixels_to_sample_from[x[position], y[position]]
 

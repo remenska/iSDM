@@ -574,7 +574,7 @@ class IUCNSpecies(Species):
                                     out_shape=(y_res, x_res),
                                     all_touched=all_touched,
                                     fill=no_data_value,
-                                    efault_value=default_value
+                                    default_value=default_value
                                     )
 
         with rasterio.open(raster_file, 'w', driver='GTiff', width=x_res, height=y_res,
