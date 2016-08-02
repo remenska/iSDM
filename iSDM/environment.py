@@ -28,6 +28,7 @@ class Source(Enum):
     GLOBE = 2
     UNKNOWN = 3
     TNC = 4
+    ARCGIS = 5
 
 
 class EnvironmentalLayer(object):
@@ -220,7 +221,7 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
         # to a proper shapely polygon format
         df.geometry = df.geometry.apply(lambda row: Polygon(row['coordinates'][0]))
         df.crs = self.raster_reader.crs
-        return df   # TODO: maybe return here a VectorEnvironmentLayer?
+        return df   # TODO: maybe return here a VectorEnvironmentalLayer?
 
     @classmethod
     def plot_world_coordinates(cls,
@@ -493,7 +494,7 @@ class VectorEnvironmentalLayer(EnvironmentalLayer):
         self.data_full = GeoDataFrame.from_file(self.file_path)
         self.data_full.columns = [x.lower() for x in self.data_full.columns]
         logger.info("The shapefile contains data on %d environmental regions." % self.data_full.shape[0])
-        self.shape_file = file_path
+        self.shape_file = self.file_path
 
     def save_data(self, full_name=None, driver='ESRI Shapefile', overwrite=False):
         """
@@ -525,9 +526,163 @@ class VectorEnvironmentalLayer(EnvironmentalLayer):
         """
         self.data_full = data_frame
 
+    def rasterize(self, raster_file=None, pixel_size=None, all_touched=True,
+                  no_data_value=0,
+                  default_value=1,
+                  crs=None,
+                  cropped=False,
+                  *args, **kwargs):
+        """
+        Documentation pending on how to rasterize geometrical shapes
+        """
+        if not (pixel_size or raster_file):
+            raise AttributeError("Please provide pixel_size and a target raster_file.")
 
-class BioGeographicLayer(VectorEnvironmentalLayer):
-    pass
+        if not hasattr(self, 'data_full'):
+            raise AttributeError("You have not loaded the data.")
+
+        if crs is None:
+            crs = {'init': "EPSG:4326"}
+
+        # crop to the boundaries of the shape?
+        if cropped:
+            # cascaded_union_geometry = shapely.ops.cascaded_union(self.data_full.geometry)
+            x_min, y_min, x_max, y_max = self.data_full.geometry.total_bounds
+        # else global map
+        else:
+            x_min, y_min, x_max, y_max = -180, -90, 180, 90
+
+        x_res = int((x_max - x_min) / pixel_size)
+        y_res = int((y_max - y_min) / pixel_size)
+        # translate
+        transform = Affine.translation(x_min, y_max) * Affine.scale(pixel_size, -pixel_size)
+        result = features.rasterize(self.data_full.geometry,
+                                    transform=transform,
+                                    out_shape=(y_res, x_res),
+                                    all_touched=all_touched,
+                                    fill=no_data_value,
+                                    default_value=default_value
+                                    )
+
+        with rasterio.open(raster_file, 'w', driver='GTiff', width=x_res, height=y_res,
+                           count=1,
+                           dtype=np.uint8,
+                           nodata=no_data_value,
+                           transform=transform,
+                           crs=crs) as out:
+            out.write(result.astype(np.uint8), indexes=1)
+            out.close()
+        logger.info("RASTERIO: Data rasterized into file %s " % raster_file)
+        logger.info("RASTERIO: Resolution: x_res={0} y_res={1}".format(x_res, y_res))
+        self.raster_file = raster_file
+        self.raster_affine = transform
+        return result
+
+    def load_raster_data(self, raster_file=None):
+        """
+        Documentation pending on how to load raster data
+        """
+        if raster_file:
+            self.raster_file = raster_file
+        if not self.raster_file:
+            raise AttributeError("Please provide a raster_file to read raster data from.")
+
+        src = rasterio.open(self.raster_file)
+        logger.info("Loaded raster data from %s " % self.raster_file)
+        logger.info("Driver name: %s " % src.driver)
+        pp = pprint.PrettyPrinter(depth=5)
+        self.metadata = src.meta
+        logger.info("Metadata: %s " % pp.pformat(self.metadata))
+        logger.info("Resolution: x_res={0} y_res={1}.".format(src.width, src.height))
+        logger.info("Bounds: %s " % (src.bounds,))
+        logger.info("Coordinate reference system: %s " % src.crs)
+        logger.info("Affine transformation: %s " % (src.affine.to_gdal(),))
+        logger.info("Number of layers: %s " % src.count)
+        logger.info("Dataset loaded. Use .read() or .read_masks() to access the layers.")
+        self.raster_affine = src.affine
+        self.raster_reader = src
+        return self.raster_reader
+
+
+class ContinentsLayer(VectorEnvironmentalLayer):
+    """
+    Continents Layer will have a separate treatment. This is mostly because, when
+    rasterizing the continents shapefile, there are multiple shapes which should end up with
+    a different pixel value for each continents. The typical rasterizing operation rather
+    produces a raster with binary values (0s and 1s).
+
+    For overlaying selected pseudo-absence biomes (pixels) with continents, it is best to
+    have one individual (raster band) matrix per continent, each filled with 0s and 1s, and loop through
+    the list of continents (in total 8 layers, should be fast). Then "overlaying" or clipping
+    with biomes would amount to simple arithmetics, like multiplying the matrices (element by element)
+    to filter out anything with 0-valued pixels in any matrix.
+
+    """
+    def __init__(self, source=None, file_path=None, name_layer=None, **kwargs):
+        VectorEnvironmentalLayer.__init__(self, source, file_path, name_layer, **kwargs)
+
+    def rasterize(self, raster_file=None, pixel_size=None, all_touched=False,
+                  no_data_value=0,
+                  default_value=1,
+                  crs=None,
+                  cropped=False,
+                  *args, **kwargs):
+        """
+        Documentation pending on how to rasterize continents
+        """
+        if not (pixel_size or raster_file):
+            raise AttributeError("Please provide pixel_size and a target raster_file.")
+
+        if not hasattr(self, 'data_full'):
+            raise AttributeError("You have not loaded the data.")
+
+        if crs is None:
+            crs = {'init': "EPSG:4326"}
+
+        # crop to the boundaries of the shape?
+        if cropped:
+            # cascaded_union_geometry = shapely.ops.cascaded_union(self.data_full.geometry)
+            x_min, y_min, x_max, y_max = self.data_full.geometry.total_bounds
+        # else global map
+        else:
+            x_min, y_min, x_max, y_max = -180, -90, 180, 90
+
+        x_res = int((x_max - x_min) / pixel_size)
+        y_res = int((y_max - y_min) / pixel_size)
+
+        continents_list = self.data_full.continent.unique()
+        logger.info("Will rasterize continent-by-continent.")
+        # translate
+        stacked_layers = []
+        for continent_name in continents_list:
+            logger.info("Rasterizing continent %s " % continent_name)
+            transform = Affine.translation(x_min, y_max) * Affine.scale(pixel_size, -pixel_size)
+            result = features.rasterize(self.data_full.geometry[self.data_full.continent == continent_name],
+                                        transform=transform,
+                                        out_shape=(y_res, x_res),
+                                        all_touched=all_touched,
+                                        fill=no_data_value,
+                                        default_value=default_value
+                                        )
+            stacked_layers.append(result)
+
+        stacked_layers = np.stack(stacked_layers)
+
+        for i, band in enumerate(stacked_layers, 1):
+            with rasterio.open(raster_file, 'w', driver='GTiff', width=x_res, height=y_res,
+                               count=stacked_layers.shape[0],
+                               dtype=np.uint8,
+                               nodata=no_data_value,
+                               transform=transform,
+                               crs=crs) as out:
+                out.write(result.astype(np.uint8), indexes=i)
+
+        out.close()
+        logger.info("RASTERIO: Data rasterized into file %s " % raster_file)
+        logger.info("RASTERIO: Resolution: x_res={0} y_res={1}".format(x_res, y_res))
+        self.raster_file = raster_file
+        self.raster_affine = transform
+        return stacked_layers
 
 
 class LandCoverlayer(VectorEnvironmentalLayer):

@@ -25,7 +25,7 @@ from matplotlib.collections import PatchCollection
 from descartes import PolygonPatch
 from rasterio.transform import Affine
 import rasterio
-import rasterio.features
+from rasterio import features
 from shapely.prepared import prep
 import pprint
 
@@ -569,13 +569,13 @@ class IUCNSpecies(Species):
         y_res = int((y_max - y_min) / pixel_size)
         # translate
         transform = Affine.translation(x_min, y_max) * Affine.scale(pixel_size, -pixel_size)
-        result = rasterio.features.rasterize(self.data_full.geometry,
-                                             transform=transform,
-                                             out_shape=(y_res, x_res),
-                                             all_touched=all_touched,
-                                             fill=no_data_value,
-                                             default_value=default_value
-                                             )
+        result = features.rasterize(self.data_full.geometry,
+                                    transform=transform,
+                                    out_shape=(y_res, x_res),
+                                    all_touched=all_touched,
+                                    fill=no_data_value,
+                                    efault_value=default_value
+                                    )
 
         with rasterio.open(raster_file, 'w', driver='GTiff', width=x_res, height=y_res,
                            count=1,
