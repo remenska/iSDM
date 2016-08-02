@@ -27,6 +27,7 @@ from rasterio.transform import Affine
 import rasterio
 import rasterio.features
 from shapely.prepared import prep
+import pprint
 
 logger = logging.getLogger('iSDM.species')
 logger.setLevel(logging.DEBUG)
@@ -86,7 +87,7 @@ class Species(object):
        :param str full_name: The full path of the file (including the directory and name in one string),
         where the data will be saved.
 
-       :param str dir_name: The directory where the file will be stored. If :attr:`file_name` is not specified, the default one :attr:`name_species` + :attr:`ID`.pkl is given.
+       :param str dir_name: The directory where the file will be stored. If :attr:`file_name` is not specified, the default one :attr:`name_species` + .pkl is given.
 
        :param str file_name: The name of the file where the data will be saved. If :attr:`dir_name` is not specified, the current working directory is taken by default.
 
@@ -99,7 +100,7 @@ class Species(object):
         """
         if full_name is None:
             if file_name is None:
-                file_name = str(self.name_species) + str(self.ID) + (".pkl" if method == "pickle" else ".msg")
+                file_name = str(self.name_species) + (".pkl" if method == "pickle" else ".msg")
             if dir_name is None:
                 dir_name = os.getcwd()
 
@@ -112,6 +113,7 @@ class Species(object):
                 self.data_full.to_pickle(full_name)
             else:
                 logger.error("Incorrect method of serializing: %s " % method)
+                return
 
             logger.debug("Saved data: %s " % full_name)
             logger.debug("Type of data: %s " % type(self.data_full))
@@ -125,11 +127,13 @@ class Species(object):
         Loads the serialized species pickle file data into a pandas DataFrame.
 
         :param str file_path: The full path to the file where the data is serialized to.
+
         :returns: Data loaded into geopandas dataframe.
+
         :rtype: geopandas.GeoDataFrame
         """
         if file_path is None:
-            filename = str(self.name_species) + str(self.ID) + ".pkl"
+            filename = str(self.name_species) + ".pkl"
             file_path = os.path.join(os.getcwd(), filename)
 
         logger.info("Loading data from: %s" % file_path)
@@ -211,7 +215,7 @@ class Species(object):
                     mpoly = shapely.ops.transform(mm, subpoly)
                     patches.append(PolygonPatch(mpoly))
             elif poly.geom_type == "Point":
-                patches.append(PolygonPatch(Point(mm(poly.x, poly.y)).buffer(9999)))
+                patches.append(PolygonPatch(Point(mm(poly.x, poly.y)).buffer(9999)))  # TODO: this buffer thing is tricky around the edges of a map
             else:
                 logger.warning("Geometry type %s not supported. Skipping ... " % poly.geom_type)
                 continue
@@ -322,13 +326,14 @@ class GBIFSpecies(Species):
             f.close()
 
     # vectorize? better name
-    def geometrize(self, dropna=True, longitude_col_name='decimallongitude', latitude_col_name='decimallatitude'):
+    def geometrize(self, dropna=True, longitude_col_name='decimallongitude', latitude_col_name='decimallatitude', crs=None):
         """
         Converts data to geopandas. The latitude/longitude is converted into shapely Point geometry.
         Geopandas/GeoSeries data structures have a geometry column.
         """
         try:
-            crs = None
+            if crs is None:
+                crs = {'init': "EPSG:4326"}
             # exclude those points with NaN in coordinates
             if dropna:
                 geometry = [Point(xy) for xy in zip(
@@ -341,7 +346,7 @@ class GBIFSpecies(Species):
                     crs=crs,
                     geometry=geometry)
                 logger.info("Data geometrized: converted into GeoPandas dataframe.")
-                logger.info("Points with NaN coordinnates ignored. ")
+                logger.info("Points with NaN coordinates ignored. ")
             else:
                 geometry = [Point(xy) for xy in zip(
                     self.data_full[longitude_col_name],
@@ -407,10 +412,12 @@ class GBIFSpecies(Species):
 
         try:
             if isinstance(species_range_map, GeoSeries):
-                range_map_union = species_range_map.unary_union
+                prepped_range_map_union = prep(species_range_map.unary_union)
             elif isinstance(species_range_map, IUCNSpecies):
-                range_map_union = species_range_map.data_full.geometry.unary_union
-            self.data_full = self.data_full[self.data_full.geometry.intersects(range_map_union)]
+                prepped_range_map_union = prep(species_range_map.data_full.geometry.unary_union)
+            # self.data_full = self.data_full[self.data_full.geometry.intersects(range_map_union)]
+            self.data_full = self.data_full[self.data_full.geometry.apply(lambda x: prepped_range_map_union.contains(x))]
+
             logger.info("Overlayed species occurrence data with the given range map.")
         except ValueError as e:
             logger.error("The rangemap geometries seem to be invalid (possible self-intersections). %s " % str(e))
@@ -536,6 +543,7 @@ class IUCNSpecies(Species):
                   no_data_value=0,
                   default_value=1,
                   crs=None,
+                  cropped=False,
                   *args, **kwargs):
         """
         Documentation pending on how to rasterize geometrical shapes
@@ -549,14 +557,19 @@ class IUCNSpecies(Species):
         if crs is None:
             crs = {'init': "EPSG:4326"}
 
-        x_min, y_min, x_max, y_max = self.data_full.geometry.iat[0].bounds
+        # crop to the boundaries of the shape?
+        if cropped:
+            # cascaded_union_geometry = shapely.ops.cascaded_union(self.data_full.geometry)
+            x_min, y_min, x_max, y_max = self.data_full.geometry.total_bounds
+        # else global map
+        else:
+            x_min, y_min, x_max, y_max = -180, -90, 180, 90
 
         x_res = int((x_max - x_min) / pixel_size)
         y_res = int((y_max - y_min) / pixel_size)
-
         # translate
         transform = Affine.translation(x_min, y_max) * Affine.scale(pixel_size, -pixel_size)
-        result = rasterio.features.rasterize([(self.data_full.geometry.iat[0].buffer(0))],
+        result = rasterio.features.rasterize(self.data_full.geometry,
                                              transform=transform,
                                              out_shape=(y_res, x_res),
                                              all_touched=all_touched,
@@ -575,7 +588,28 @@ class IUCNSpecies(Species):
         logger.info("RASTERIO: Data rasterized into file %s " % raster_file)
         logger.info("RASTERIO: Resolution: x_res={0} y_res={1}".format(x_res, y_res))
         self.raster_file = raster_file
+        self.raster_affine = transform
         return result
+
+    # def load_raster_data(self, raster_file=None):
+    #     """
+    #     Documentation pending on how to load raster data
+    #     """
+    #     if raster_file:
+    #         self.raster_file = raster_file
+    #     if not self.raster_file:
+    #         raise AttributeError("Please rasterize the data first, ",
+    #                              "or provide a raster_file to read from.")
+
+    #     with rasterio.open(self.raster_file) as src:
+    #         logger.info("Loaded raster data from %s " % self.raster_file)
+    #         logger.info("Driver name: %s " % src.driver)
+    #         logger.info("Resolution: x_res={0} y_res={1}.".format(src.width, src.height))
+    #         logger.info("Coordinate reference system: %s " % src.crs)
+    #         logger.info("Affine transformation: %s " % (src.affine.to_gdal(),))
+    #         logger.info("Number of layers: %s " % src.count)
+    #         self.raster_affine = src.affine
+    #         return src.read()
 
     def load_raster_data(self, raster_file=None):
         """
@@ -584,17 +618,69 @@ class IUCNSpecies(Species):
         if raster_file:
             self.raster_file = raster_file
         if not self.raster_file:
-            raise AttributeError("Please rasterize the data first, ",
-                                 "or provide a raster_file to read from.")
+            raise AttributeError("Please provide a raster_file to read raster data from.")
 
-        with rasterio.open(self.raster_file) as src:
-            logger.info("Loaded raster data from %s " % self.raster_file)
-            logger.info("Driver name: %s " % src.driver)
-            logger.info("Resolution: x_res={0} y_res={1}.".format(src.width, src.height))
-            logger.info("Coordinate reference system: %s " % src.crs)
-            logger.info("Affine transformation: %s " % (src.affine.to_gdal(),))
-            logger.info("Number of layers: %s " % src.count)
-            return src.read()
+        src = rasterio.open(self.raster_file)
+        logger.info("Loaded raster data from %s " % self.raster_file)
+        logger.info("Driver name: %s " % src.driver)
+        pp = pprint.PrettyPrinter(depth=5)
+        self.metadata = src.meta
+        logger.info("Metadata: %s " % pp.pformat(self.metadata))
+        logger.info("Resolution: x_res={0} y_res={1}.".format(src.width, src.height))
+        logger.info("Bounds: %s " % (src.bounds,))
+        logger.info("Coordinate reference system: %s " % src.crs)
+        logger.info("Affine transformation: %s " % (src.affine.to_gdal(),))
+        logger.info("Number of layers: %s " % src.count)
+        logger.info("Dataset loaded. Use .read() or .read_masks() to access the layers.")
+        self.raster_affine = src.affine
+        self.raster_reader = src
+        return self.raster_reader
+
+    def pixel_to_world_coordinates(self,
+                                   raster_data=None,
+                                   no_data_value=0,
+                                   filter_no_data_value=True,
+                                   band_number=1):
+        """
+        Map the pixel coordinates to world coordinates. The affine transformation matrix
+        is used for this purpose. The convention is to reference the pixel corner. To
+        reference the pixel center instead, we translate each pixel by 50%.
+        The "no value" pixels (cells) can be filtered out.
+
+        A dataset's pixel coordinate system has its origin at the "upper left" (imagine it displayed on your screen).
+        Column index increases to the right, and row index increases downward. The mapping of these coordinates to
+        "world" coordinates in the dataset's reference system is done with an affine transformation matrix.
+
+        :returns: a tuple of arrays. The first array contains the latitude values for each
+        non-zero cell, the second array contains the longitude values for each non-zero cell.
+        """
+        if raster_data is None:
+            logger.info("No raster data provided, attempting to load default...")
+            try:
+                raster_data = self.load_raster_data(self.raster_file).read(band_number)
+                logger.info("Succesfully loaded existing raster data from %s." % self.raster_file)
+            except AttributeError as e:
+                logger.error("Could not open raster file. %s " % str(e))
+
+        # first get the original Affine transformation matrix
+        T0 = self.raster_affine
+        # convert it to gdal format (it is otherwise flipped)
+        T0 = Affine(*reversed(T0.to_gdal()))
+        logger.debug("Affine transformation T0:\n %s " % (T0,))
+        # shift by 50% to get the pixel center
+        T1 = T0 * Affine.translation(0.5, 0.5)
+        # apply the shift, filtering out no_data_value values
+        logger.debug("Raster data shape: %s " % (raster_data.shape,))
+        logger.debug("Affine transformation T1:\n %s " % (T1,))
+        raster_data[raster_data == no_data_value] = 0  # reset the nodata values to 0, easier to manipulate
+        if filter_no_data_value:
+            logger.info("Filtering out no_data pixels.")
+            coordinates = (T1 * np.where(raster_data > no_data_value))
+        else:
+            logger.info("Not filtering any no_data pixels.")
+            coordinates = (T1 * np.where(np.ones_like(raster_data)))
+
+        return coordinates
 
     def random_pseudo_absence_points(self,
                                      buffer_distance=2,
