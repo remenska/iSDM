@@ -684,6 +684,31 @@ class ContinentsLayer(VectorEnvironmentalLayer):
         self.raster_affine = transform
         return stacked_layers
 
+    def load_raster_data(self, raster_file=None):
+        """
+        Documentation pending on how to load raster data
+        """
+        if raster_file:
+            self.raster_file = raster_file
+        if not self.raster_file:
+            raise AttributeError("Please provide a raster_file to read raster data from.")
+
+        src = rasterio.open(self.raster_file)
+        logger.info("Loaded raster data from %s " % self.raster_file)
+        logger.info("Driver name: %s " % src.driver)
+        pp = pprint.PrettyPrinter(depth=5)
+        self.metadata = src.meta
+        logger.info("Metadata: %s " % pp.pformat(self.metadata))
+        logger.info("Resolution: x_res={0} y_res={1}.".format(src.width, src.height))
+        logger.info("Bounds: %s " % (src.bounds,))
+        logger.info("Coordinate reference system: %s " % src.crs)
+        logger.info("Affine transformation: %s " % (src.affine.to_gdal(),))
+        logger.info("Number of layers: %s " % src.count)
+        logger.info("Dataset loaded. Use .read() or .read_masks() to access the layers.")
+        self.raster_affine = src.affine
+        self.raster_reader = src
+        return self.raster_reader
+
 
 class LandCoverlayer(VectorEnvironmentalLayer):
     pass
