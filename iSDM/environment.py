@@ -220,7 +220,7 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
         # to a proper shapely polygon format
         df.geometry = df.geometry.apply(lambda row: Polygon(row['coordinates'][0]))
         df.crs = self.raster_reader.crs
-        return df # TODO: maybe return here a VectorEnvironmentLayer?
+        return df   # TODO: maybe return here a VectorEnvironmentLayer?
 
     @classmethod
     def plot_world_coordinates(cls,
