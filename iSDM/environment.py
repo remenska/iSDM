@@ -450,6 +450,11 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
         (x, y) = np.where(pixels_to_sample_from > 0)
         number_pixels_to_sample_from = x.shape[0]  # == y.shape[0] since every pixel has (x,y) position.
         logger.info("There are %s pixels to sample from..." % (number_pixels_to_sample_from))
+
+        if number_pixels_to_sample_from == 0:
+            logger.error("There are no pixels left to sample from. Perhaps the species raster data")
+            logger.error("covers the entire range from which it was intended to sample.")
+            return
         sampled_pixels = np.zeros_like(selected_pixels)
 
         if number_pixels_to_sample_from < number_of_pseudopoints:
