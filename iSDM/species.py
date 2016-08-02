@@ -77,7 +77,7 @@ class Species(object):
             from shapely import speedups
             speedups.enable()
             logger.debug("Enabled Shapely speedups for performance.")
-        except:
+        except ImportError:
             logger.info("Upgrade Shapely for Performance enhancements")
 
     def save_data(self, full_name=None, dir_name=None, file_name=None, method="pickle"):

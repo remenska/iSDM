@@ -6,7 +6,6 @@ import rasterio
 import pprint
 from rasterio.warp import calculate_default_transform, RESAMPLING
 from iSDM.species import IUCNSpecies
-import rasterio.features
 import numpy as np
 from geopandas import GeoSeries, GeoDataFrame
 from rasterio.transform import Affine
@@ -221,7 +220,7 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
         # to a proper shapely polygon format
         df.geometry = df.geometry.apply(lambda row: Polygon(row['coordinates'][0]))
         df.crs = self.raster_reader.crs
-        return df
+        return df # TODO: maybe return here a VectorEnvironmentLayer?
 
     @classmethod
     def plot_world_coordinates(cls,
@@ -387,7 +386,7 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
                     t = raster.affine
                     shifted_affine = Affine(t.a, t.b, t.c + ul[1] * t.a, t.d, t.e, t.f + lr[0] * t.e)
                     # rasterize the geometry
-                    mask = rasterio.features.rasterize(
+                    mask = features.rasterize(
                         [(geometry, 0)],
                         out_shape=data.shape,
                         transform=shifted_affine,
@@ -519,6 +518,12 @@ class VectorEnvironmentalLayer(EnvironmentalLayer):
 
     def get_data(self):
         return self.data_full
+
+    def set_data(self, data_frame):
+        """
+        Careful, overwrites the existing raw data!. More documentation
+        """
+        self.data_full = data_frame
 
 
 class BioGeographicLayer(VectorEnvironmentalLayer):
