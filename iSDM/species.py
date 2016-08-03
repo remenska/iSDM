@@ -368,7 +368,7 @@ class GBIFSpecies(Species):
         if file_path is None:
             logger.error("Please supply a file_path parameter with the full path to the CSV file.")
             return
-        if self.data_full:
+        if hasattr(self, 'data_full'):
             logger.warning("Warning! Overwriting existing data for this species.")
 
         logger.info("Loading data from: %s" % file_path)
