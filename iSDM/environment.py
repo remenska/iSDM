@@ -81,7 +81,7 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
     A class for encapsulating the raster environmental layer functionality. Operations such as reprojecting,
     overlaying, sampling pseudo-absence pixels, converting to world map coordinates, are some of the functionalities
     implemented as wrappers around corresponding rasterio/Numpy operations and methods.
-    This class should be used when the expected layer data is in raster format, i.e., 2-dimensional (multi-band) array of data. 
+    This class should be used when the expected layer data is in raster format, i.e., 2-dimensional (multi-band) array of data.
     """
     def __init__(self, source=None, file_path=None, name_layer=None, **kwargs):
         EnvironmentalLayer.__init__(self, source, file_path, name_layer, **kwargs)
@@ -230,7 +230,7 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
         :returns: geopandas.GeoDataFrame
 
         """
-        if not isinstance(data, DataFrame) or not data:
+        if not isinstance(data, pd.DataFrame) or not data:
             logger.info("Please provide the data parameter as a pandas.DataFrame.")
             return
 
@@ -262,12 +262,26 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
         return data_geo
 
     def polygonize(self, band_number=1):
+        """
+        Extract shapes from raster features. This is the inverse of rasterizing shapes.
+        Uses the 'rasterio <https://mapbox.github.io/rasterio/_modules/rasterio/features.html>'_ library
+        for this purpose. The data is loaded into a `geopandas <http://geopandas.org/user.html>`_ GeoDataFrame.
+        GeoDataFrame data structures are pandas DataFrames with added functionality, containing a "geometry"
+        column for the `Shapely <http://toblerity.org/shapely/shapely.geometry.html>`_ geometries.
+        The raster data should be loaded in the layer before calling this method.
+
+        :param int band_number: The index of the raster band which is to be used as input for extracting
+        gemetrical shapes.
+
+        :returns: geopandas.GeoDataFrame
+
+        """
         raster_data = self.read(band_number)
         mask = raster_data != self.raster_reader.nodata
         T0 = self.raster_reader.affine
         shapes = features.shapes(raster_data, mask=mask, transform=T0)
         df = GeoDataFrame.from_records(shapes, columns=['geometry', 'value'])
-        # convert the geometry dictionary from {'coordinates': [[(-73.5, 83.5),
+        # convert the geometry dictionary from a dictionary format like {'coordinates': [[(-73.5, 83.5),
         #   (-73.5, 83.0),
         #   (-68.0, 83.0),
         #   (-68.0, 83.5),
@@ -284,6 +298,22 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
                                figsize=(16, 12),
                                projection='merc',
                                facecolor='crimson'):
+        """
+        Visually plots coordinates on a Basemap <http://matplotlib.org/basemap/api/basemap_api.html#module-mpl_toolkits.basemap`>_.
+        Basemap supports projections (with coastlines and political boundaries) using matplotlib.
+        The data must be in a `geopandas <http://geopandas.org/user.html>`_ DataFrame format.
+        Next, the :func:`__geometrize__` method is used to convert the dataframe into a geoopandas format (with a "geometry" column).
+
+        :param tuple figsize: tuple containing the (width, height) of the plot, in inches. Default is (16, 12)
+
+        :param string projection: The projection to use for plotting. Supported projection values from
+        `Basemap <http://matplotlib.org/basemap/api/basemap_api.html#module-mpl_toolkits.basemap>`_. Default is 'merc' (Mercator)
+
+        :param string facecolor: Fill color for the geometries. Defaylt is "crimson" (red)
+
+        :returns: a map with geometries plotted, zoomed to the total boundaries of the geometry Series (column) of the DataFrame.
+
+        """
         if coordinates is None or not isinstance(coordinates, tuple):
             logger.error("Please provide the coordinates to plot, in the correct format.")
             logger.error("Use pixel_to_world_coordinates() for this.")
