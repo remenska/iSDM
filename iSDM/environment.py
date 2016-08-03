@@ -1,5 +1,11 @@
 
-"""Documentation on environment module."""
+"""
+A module for all environmental layers functionality.
+
+      .. moduleauthor:: Daniela Remenska <remenska@gmail.com>
+
+"""
+
 import logging
 from enum import Enum
 import rasterio
@@ -24,6 +30,9 @@ logger.setLevel(logging.DEBUG)
 
 
 class Source(Enum):
+    """
+    Possible sources of global environmental data.
+    """
     WORLDCLIM = 1
     GLOBE = 2
     UNKNOWN = 3
@@ -33,12 +42,10 @@ class Source(Enum):
 
 class EnvironmentalLayer(object):
     """
-    Some class-level documentaiton on environmental layer class
+    EnvironmentalLayer
+    A generic EnvironmentalLayer class used for subclassing different global-scale environmental data sources.
     """
     def __init__(self, source=None, file_path=None, name_layer=None, **kwargs):
-        # you want to be able to agregate at a different resolution
-        # and back/forth, right?
-        # self.resolution = kwargs['resolution']
         if source:
             if not isinstance(source, Source):
                 raise AttributeError("The source can only be one of the following: %s " % list(Source.__members__))
@@ -50,7 +57,7 @@ class EnvironmentalLayer(object):
         self.name_layer = name_layer
 
     def load_data(self, file_path=None):
-        pass
+        raise NotImplementedError("You need to implement this method in a subclass!")
 
     def set_source(self, source):
         if not isinstance(source, Source):
@@ -61,15 +68,20 @@ class EnvironmentalLayer(object):
         return self.source.name
 
     def save_data(self, full_name=None, dir_name=None, file_name=None):
-        pass
+        raise NotImplementedError("You need to implement this method in a subclass!")
 
     def get_data(self):
-        pass
+        raise NotImplementedError("You need to implement this method in a subclass!")
 
 
 class RasterEnvironmentalLayer(EnvironmentalLayer):
     """
-    Some class-level documentation on raster environmental layer
+    RasterEnvironmentalLayer
+
+    A class for encapsulating the raster environmental layer functionality. Operations such as reprojecting,
+    overlaying, sampling pseudo-absence pixels, converting to world map coordinates, are some of the functionalities
+    implemented as wrappers around corresponding rasterio/Numpy operations and methods.
+    This class should be used when the expected layer data is in raster format, i.e., 2-dimensional (multi-band) array of data. 
     """
     def __init__(self, source=None, file_path=None, name_layer=None, **kwargs):
         EnvironmentalLayer.__init__(self, source, file_path, name_layer, **kwargs)
@@ -100,7 +112,15 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
 
     def load_data(self, file_path=None):
         """
-        Documentation pending on how to load environment aster data
+        Loads the raster data from a previously-saved raster file. Provides information about the
+        loaded data, and returns a rasterio file reader.
+
+        :param string file_path: The full path to the targed GeoTIFF raster file (including the directory and filename in one string).
+
+        :returns: Rasterio RasterReader file object which can be used to read individual bands from the raster file.
+
+        :rtype: rasterio._io.RasterReader
+
         """
         if file_path:
             self.file_path = file_path
@@ -129,20 +149,28 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
                                    raster_data=None,
                                    no_data_value=0,
                                    filter_no_data_value=True,
-                                   band_number=1,
-                                   plot=False):
+                                   band_number=1):
         """
-        Map the pixel coordinates to world coordinates. The affine transformation matrix
-        is used for this purpose. The convention is to reference the pixel corner. To
-        reference the pixel center instead, we translate each pixel by 50%.
+        Map the pixel coordinates to world coordinates. The affine transformation matrix is used for this purpose.
+        The convention is to reference the pixel corner. To reference the pixel center instead, we translate each pixel by 50%.
         The "no value" pixels (cells) can be filtered out.
 
         A dataset's pixel coordinate system has its origin at the "upper left" (imagine it displayed on your screen).
         Column index increases to the right, and row index increases downward. The mapping of these coordinates to
         "world" coordinates in the dataset's reference system is done with an affine transformation matrix.
 
-        :returns: a tuple of arrays. The first array contains the latitude values for each
+        :param str raster_data: the raster data (2-dimensional array) to translate to world coordinates. If not provided,
+        it tries to load existing rasterized data about the RasterEnvironmentalLayer.
+
+        :param int no_data_value: The pixel values depicting non-burned cells. Default is 0.
+
+        : params bool filter_no_data_value: Whether to filter-out the no-data pixel values. Default is true. If set to
+        false, all pixels in a 2-dimensional array will be converted to world coordinates. Typically this option is used
+        to get a "base" map of the coordinates of all pixels in an image (map).
+
+        :returns: a tuple of numpy ndarrays. The first array contains the latitude values for each
         non-zero cell, the second array contains the longitude values for each non-zero cell.
+
         """
         if raster_data is None:
             logger.info("No raster data provided, attempting to load default...")
@@ -171,14 +199,41 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
             logger.info("Not filtering any no_data pixels.")
             coordinates = (T1 * np.where(np.ones_like(raster_data)))
 
-        if plot:
-            self.plot_world_coordinates(coordinates)
-
         logger.info("Transformation to world coordinates completed.")
         return coordinates
 
     @classmethod
-    def __geometrize__(cls, data, latitude_col_name='decimallatitude', longitude_col_name='decimallongitude', crs=None, dropna=True):
+    def __geometrize__(cls,
+                       data,
+                       latitude_col_name='decimallatitude',
+                       longitude_col_name='decimallongitude',
+                       crs=None,
+                       dropna=True):
+        """
+        Private helper class function.
+        Converts data from pandas.DataFrame contents to geopandas.GeoDataFrame format.
+        GeoDataFrames inherit basic DataFrames, and provide more functionality on top of pandas.
+        The biggest difference in terms of the data layout is the addition of a 'geometry' column which contains
+        `Shapely <http://toblerity.org/shapely/shapely.geometry.html>`_ geometries in `geopandas <http://geopandas.org/user.html>`_.
+        The decimallatitude and decimallongitude columns are converted into shapely Point geometry, one Point for each latitude/longitude
+        record.
+
+        :param bool dropna: Whether to drop records with NaN values in the decimallatitude or decimallongitude columns in the conversion process.
+
+        :param string longitude_col_name: The name of the column carrying the decimal longitude values. Default is 'decimallongitude'.
+
+        :param string latitude_col_name: The name of the column carrying the decimal latitude values. Default is 'decimallatitude'
+
+        :param crs: The Coordinate Reference System of the data. Default is "EPSG:4326"
+        :type crs: string or dictionary.
+
+        :returns: geopandas.GeoDataFrame
+
+        """
+        if not isinstance(data, DataFrame) or not data:
+            logger.info("Please provide the data parameter as a pandas.DataFrame.")
+            return
+
         try:
             if crs is None:
                 crs = {'init': "EPSG:4326"}
@@ -221,7 +276,7 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
         # to a proper shapely polygon format
         df.geometry = df.geometry.apply(lambda row: Polygon(row['coordinates'][0]))
         df.crs = self.raster_reader.crs
-        return df   # TODO: maybe return here a VectorEnvironmentalLayer?
+        return df
 
     @classmethod
     def plot_world_coordinates(cls,
@@ -240,6 +295,7 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
         data = pd.DataFrame([coordinates[0], coordinates[1]]).T
         data.columns = ['decimallatitude', 'decimallongitude']
         data_geometrized = cls.__geometrize__(data)
+
         mm = Basemap(projection=projection, lat_0=50, lon_0=-100,
                      resolution='l', area_thresh=1000.0,
                      llcrnrlon=data_geometrized.geometry.total_bounds[0],  # lower left corner longitude point
@@ -616,10 +672,11 @@ class VectorEnvironmentalLayer(EnvironmentalLayer):
 
 class ContinentsLayer(VectorEnvironmentalLayer):
     """
-    Continents Layer will have a separate treatment. This is mostly because, when
-    rasterizing the continents shapefile, there are multiple shapes which should end up with
-    a different pixel value for each continents. The typical rasterizing operation rather
-    produces a raster with binary values (0s and 1s).
+    ContinentsLayer
+    Continents Layer has a special treatment as a VectorEnvironmentLayer.
+    This is mostly because, when rasterizing the continents shapefile, there are multiple shapes
+    which should end up with a different pixel value for each continents. The typical rasterizing
+    operation rather produces a raster with binary values (0s and 1s).
 
     For overlaying selected pseudo-absence biomes (pixels) with continents, it is best to
     have one individual (raster band) matrix per continent, each filled with 0s and 1s, and loop through
@@ -631,7 +688,9 @@ class ContinentsLayer(VectorEnvironmentalLayer):
     def __init__(self, source=None, file_path=None, name_layer=None, **kwargs):
         VectorEnvironmentalLayer.__init__(self, source, file_path, name_layer, **kwargs)
 
-    def rasterize(self, raster_file=None, pixel_size=None, all_touched=False,
+    def rasterize(self, raster_file=None,
+                  pixel_size=None,
+                  all_touched=False,
                   no_data_value=0,
                   default_value=1,
                   crs=None,
@@ -696,7 +755,15 @@ class ContinentsLayer(VectorEnvironmentalLayer):
 
     def load_raster_data(self, raster_file=None):
         """
-        Documentation pending on how to load raster data
+        Loads the raster data from a previously-saved raster file. Provides information about the
+        loaded data, and returns a rasterio file reader.
+
+        :param string raster_file: The full path to the targed GeoTIFF raster file (including the directory and filename in one string).
+
+        :returns: Rasterio RasterReader file object which can be used to read individual bands from the raster file.
+
+        :rtype: rasterio._io.RasterReader
+
         """
         if raster_file:
             self.raster_file = raster_file
