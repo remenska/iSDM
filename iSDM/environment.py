@@ -301,10 +301,14 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
         """
         Visually plots coordinates on a Basemap <http://matplotlib.org/basemap/api/basemap_api.html#module-mpl_toolkits.basemap`>_.
         Basemap supports projections (with coastlines and political boundaries) using matplotlib.
-        The data must be in a `geopandas <http://geopandas.org/user.html>`_ DataFrame format.
+        The coordinates data must be provided as a tuple of Numpy arrays, one for the x, and one for the y values of the coordinates.
+        First, the data is converted to a pandas.DataFrame with the x and y arrays transposed as decimallatitude and decimallongitude
+        columns.
         Next, the :func:`__geometrize__` method is used to convert the dataframe into a geoopandas format (with a "geometry" column).
 
-        :param tuple figsize: tuple containing the (width, height) of the plot, in inches. Default is (16, 12)
+        :param tuple coordinates: A tuple containing Numpy arrays, one for the x, and one for the y values of the coordinates.
+
+        :param tuple figsize: A tuple containing the (width, height) of the plot, in inches. Default is (16, 12)
 
         :param string projection: The projection to use for plotting. Supported projection values from
         `Basemap <http://matplotlib.org/basemap/api/basemap_api.html#module-mpl_toolkits.basemap>`_. Default is 'merc' (Mercator)
@@ -314,7 +318,9 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
         :returns: a map with geometries plotted, zoomed to the total boundaries of the geometry Series (column) of the DataFrame.
 
         """
-        if coordinates is None or not isinstance(coordinates, tuple):
+        if coordinates is None or not isinstance(coordinates, tuple) \
+           or not isinstance(coordinates[0], np.ndarray) \
+           or not isinstance(coordinates[1], np.ndarray):
             logger.error("Please provide the coordinates to plot, in the correct format.")
             logger.error("Use pixel_to_world_coordinates() for this.")
             return
@@ -367,6 +373,14 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
         plt.show()
 
     def plot(self, figsize=(25, 20), band_number=1):
+        """
+        A simple plot of the raster image data. The data should be loaded before calling this method.
+
+        :param tuple figsize: A tuple containing the (width, height) of the plot, in inches. Default is (25, 20)
+
+        :param int band_number: The index of the band to use for plotting the raster data.
+
+        """
         if not self.raster_reader or self.raster_reader.closed:
             logger.info("The dataset is closed. Please load it first using .load_data()")
             return
@@ -376,7 +390,7 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
 
     def close_dataset(self):
         """
-        Documentation pending on what it means to close a dataset
+        Close the rasterio._io.RasterReader file reader, if open. This releases resources such as memory.
         """
         if not self.raster_reader.closed:
             self.raster_reader.close()
@@ -384,16 +398,23 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
 
     def get_data(self):
         """
-        Documentation on what it means to get the data
+        :returns: A raster file reader, from which any band data can be read using .read(band_number)
+
+        :rtype: rasterio._io.RasterReader
         """
         if not self.raster_reader or self.raster_reader.closed:
             logger.info("The dataset is closed. Please load it first using .load_data()")
             return
         return self.raster_reader
 
-    def read(self, band_number=None):
+    def read(self, band_number=1):
         """
-        Documentation pending on reading raster bands
+        Read a particular band from the raster data array.
+
+        :param int band_number: The index of the band to read.
+
+        :returns: A Numpy 2-dimensional array containing the pixel values of that particular band.
+
         """
         if not self.raster_reader or self.raster_reader.closed:
             logger.info("The dataset is closed. Please load it first using .load_data()")
