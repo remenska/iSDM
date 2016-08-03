@@ -1,6 +1,5 @@
 """
-Documentation on the species module.
-Some more text to document what this module is for.
+A module for all species layers functionality.
 
       .. moduleauthor:: Daniela Remenska <remenska@gmail.com>
 
@@ -18,7 +17,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from mpl_toolkits.basemap import Basemap
 from geopandas import GeoSeries, GeoDataFrame
-from osgeo import gdal, ogr
+# from osgeo import gdal, ogr
 from shapely.geometry import Point
 import shapely.ops
 from matplotlib.collections import PatchCollection
@@ -41,9 +40,13 @@ class Source(Enum):
     IUCN = 2
     PREDICTS = 3
     MOL = 4
+    ARCGIS = 5
 
 
 class ObservationsType(Enum):
+    """
+    Possible observation types for the global species data.
+    """
     PRESENCE_ONLY = 1
     PRESENCE_ABSENCE = 2
     RICHNESS = 3
@@ -56,8 +59,9 @@ class Species(object):
     A generic Species class used for subclassing different global-scale species data sources.
 
     :ivar ID: a unique ID for a particular species. For example, for GBIF sources, it is the gbifid metadata field.
+    :vartype ID: integer
     :ivar name_species: initial value: 'Unknown'
-
+    :vartype name_species: string
     """
 
     ID = int(0)
@@ -78,20 +82,23 @@ class Species(object):
             speedups.enable()
             logger.debug("Enabled Shapely speedups for performance.")
         except ImportError:
-            logger.info("Upgrade Shapely for Performance enhancements")
+            logger.info("Upgrade Shapely for Performance enhancements.")
 
     def save_data(self, full_name=None, dir_name=None, file_name=None, method="pickle"):
         """
-        Serializes the loaded species occurrence filtered dataset (`pandas <http://pandas.pydata.org/pandas-docs/stable/dsintro.html>`_ or `geopandas <http://geopandas.org/user.html>`_ DataFrame) into a binary `pickle <https://en.wikipedia.org/wiki/Pickle_%28Python%29>`_  file.
+        Serializes the loaded species dataset (`pandas <http://pandas.pydata.org/pandas-docs/stable/dsintro.html>`_ or `geopandas <http://geopandas.org/user.html>`_ DataFrame) into a binary `pickle <https://en.wikipedia.org/wiki/Pickle_%28Python%29>`_  (or 'msgpack <http://msgpack.org/index.html>'_) file.
 
-       :param str full_name: The full path of the file (including the directory and name in one string),
+       :param str full_name: The full path of the file (including the directory and filename in one string),
         where the data will be saved.
 
-       :param str dir_name: The directory where the file will be stored. If :attr:`file_name` is not specified, the default one :attr:`name_species` + .pkl is given.
+       :param str dir_name: The directory where the file will be stored.
+       If :attr:`file_name` is not specified, the default one :attr:`name_species` + `.pkl` (or `.msg`) is given by default.
 
-       :param str file_name: The name of the file where the data will be saved. If :attr:`dir_name` is not specified, the current working directory is taken by default.
+       :param str file_name: The name of the file where the data will be saved.
+       If :attr:`dir_name` is not specified, the current working directory is taken by default.
 
-       :param str method: The type of serialization to use for the data frame. Default is "pickle". Another possibility is "msgpack", as it has shown as 10$ more efficient for the type of data
+       :param str method: The type of serialization to use for the data frame. Default is "pickle". Another possibility is "msgpack", as it has shown as 10% more efficient
+       in terms of time and memory, for the type of data we are dealing with.
 
        :raises: AttributeError: if the data has not been loaded in the object before. See :func:`load_data` and :func:`find_species_occurrences`
 
@@ -124,11 +131,12 @@ class Species(object):
 
     def load_data(self, file_path=None):
         """
-        Loads the serialized species pickle file data into a pandas DataFrame.
+        Loads the data from the serialized species file into a pandas DataFrame. If the :attr:`file_path` parameter is not supplied,
+        it will try to deduce the file name from the name of the species by default.
 
-        :param str file_path: The full path to the file where the data is serialized to.
+        :param str file_path: The full path to the file (including the directory and filename in one string), where the data is serialized to.
 
-        :returns: Data loaded into geopandas dataframe.
+        :returns: Data loaded into (geo)pandas Dataframe.
 
         :rtype: geopandas.GeoDataFrame
         """
@@ -146,25 +154,53 @@ class Species(object):
             logger.error("Problem loading data! %s " % str(e))
 
     def find_species_occurrences(self, name_species=None, **kwargs):
-        raise NotImplementedError("You need to implement this method!")
+        raise NotImplementedError("You need to implement this method in a subclass!")
 
     def get_data(self):
         """
-        Returns the (pre)loaded species data.
+        Returns the (pre)loaded species data in a (geo)pandas DataFrame.
 
-        :rtype: geopandas.GeoDataFrame
+        :returns: :attr:`self.data_full`
+
+        :rtype: geopandas.GeoDataFrame or pandas.DataFrame
+
         """
         return self.data_full
 
     def set_data(self, data_frame):
         """
-        Careful, overwrites the existing raw data!. More documentation
+        Set the species data to the contents of :attr:`data_frame`. The data passed must be in a
+        pandas or geopandas DataFrame.
+        Careful, it overwrites the existing data!
+
+        :param pandas.DataFrame data_frame: The new data.
+
+        :returns: None
+
         """
-        self.data_full = data_frame
+
+        if not isinstance(self.data_full, GeoDataFrame) or not isinstance(self.data_full, pd.DataFrame):
+            raise AttributeError("Data is not in a correct format! Please pass pandas or geopandas DataFrame.")
+        else:
+            self.data_full = data_frame
 
     def plot_species_occurrence(self, figsize=(16, 12), projection='merc', facecolor='crimson'):
         """
-        Documentation pending on plotting
+        Visually plots the species data on a `Basemap <http://matplotlib.org/basemap/api/basemap_api.html#module-mpl_toolkits.basemap`>_.
+        Basemap supports projections (with coastlines and political boundaries) using matplotlib.
+        The species data must be in a `geopandas <http://geopandas.org/user.html>`_ DataFrame format. If it is not,
+        the :func:`geometrize` method is called, to convert the dataframe into a geoopandas format (with a "geometry" column).
+        The following geometrical (`Shapely <http://toblerity.org/shapely/shapely.geometry.html>`_) shapes are supported:
+        Polygon, MultiPolygon, and Point (plotted with a buffer around it).
+
+        :param tuple figsize: tuple containing the (width, height) of the plot, in inches. Default is (16, 12)
+
+        :param string projection: The projection to use for plotting. Supported projection values from `Basemap <http://matplotlib.org/basemap/api/basemap_api.html#module-mpl_toolkits.basemap>`_. Default is 'merc' (Mercator)
+
+        :param string facecolor: Fill color for the geometries. Defaylt is "crimson" (red)
+
+        :returns: a map with geometries plotted, zoomed to the total boundaries of the geometry Series (column) of the DataFrame.
+
         """
         if not isinstance(self.data_full, GeoDataFrame):
             if not isinstance(self.data_full, pd.DataFrame):
@@ -190,10 +226,9 @@ class Species(object):
                      urcrnrlat=self.data_full.geometry.total_bounds[3]   # upper right latitude point
                      )
 
-        # prepare longitude/latitude list for basemap
         ax1 = plt.subplots(figsize=figsize)[1]
 
-        plt.title("%s occurrence records from %s " % (self.name_species, self.source.name))
+        plt.title("%s Species data from %s " % (self.name_species, self.source.name))
 
         mm.drawcoastlines()
         mm.drawcountries()
@@ -225,21 +260,32 @@ class Species(object):
 
 class GBIFSpecies(Species):
     """
-    Some class-level documentation on GBIF species. One two three.
+    GBIFSpecies
+    A class for encapsulating the `GBIF <http://www.gbif.org/>`_ (Global Biodiversity Information Facility) species layer functionality.
+    Uses the `pygbif <https://github.com/sckott/pygbif>`_ python API for querying the GBIF backbone and acquiring observations data on species.
+
     """
 
     def __init__(self, **kwargs):
-
         Species.__init__(self, **kwargs)
         self.source = Source.GBIF
         self.observations_type = ObservationsType.PRESENCE_ONLY
 
     def find_species_occurrences(self, name_species=None, **kwargs):
         """
-        Finds and loads species occurrence data into pandas DataFrame.
-        Data comes from the GBIF database, based on name or gbif ID
-        the occurrences.search(...) returns a list of json structures
-        which we load into Pandas DataFrame for easier manipulation.
+        Finds and loads species occurrence data into pandas DataFrame. The data comes from GBIF backbone API requests,
+        based on the name of the species (:attr:`name_species`). If the :attr:`name_species` parameter is not provided, it is attempted
+        to query the GBIF backbone using the species object :ivar:`ID` (if already set) as a taxonomical key.
+        The GBIF API provides services for searching occurrence records that have been indexed by GBIF. The results from the search
+        are paginated, and in order to retrieve them all, individual requests are issued for each page. The returned results are
+        limited to a maximum of 300 records per page, at the time of writing this. The method below will loop until there are
+        no more "next" pages (endOfRecords is reached), and combine all species occurrence (meta-)data in a single data structure.
+        The pygbif.occurrences.search(...) returns a list of json structures which are loaded into
+        Pandas DataFrame for easier manipulation.
+
+        :param str name_species: The taxonomical name of the species to use for querying the GBIF backbone.
+
+        :returns: pandas.DataFrame containing all species occurrences (meta-)data.
 
         """
         if name_species:
@@ -257,7 +303,7 @@ class GBIFSpecies(Species):
             self.ID = species_result['usageKey']
             first_res = occurrences.search(taxonKey=self.ID, limit=100000, **kwargs)
 
-        except AttributeError:   # name not provided, assume at least ID is provided
+        except AttributeError:   # name not provided, assume at least ID is provided and try querying using the ID as a taxonkey.
             first_res = occurrences.search(taxonKey=self.ID, limit=100000, **kwargs)
 
         full_results = copy.copy(first_res)
@@ -289,13 +335,14 @@ class GBIFSpecies(Species):
         logger.info("Loading species ... ")
         logger.debug(full_results['count'] == len(full_results['results']))   # match?
         logger.debug("Full results: %s , got: %s " % (full_results['count'], len(full_results['results'])))
-        # TODO: do we want a special way of loading? say, suggesting data types in some columns?
 
-        # TODO: should we reformat the dtypes of the columns? at least day/month/year we care?
+        # TODO: should we reformat the dtypes of the columns? at least day/month/year which are by default floats?
+        # But an integer column cannot contain NaN, so we must fill those with some value (0 for example).
         # data_cleaned[['day', 'month', 'year']] = data_cleaned[['day', 'month', 'year']].fillna(0.0).astype(int)
 
         self.data_full = pd.DataFrame(full_results['results'])  # load results in pandas DF
-        # self.data_full.columns = map(str.lower, self.data_full.columns)  # convert all column headers to lowercase
+        # self.data_full.columns = map(str.lower, self.data_full.columns)
+        # convert all column headers to lowercase
         self.data_full.columns = [x.lower() for x in self.data_full.columns]
 
         if self.data_full.empty:
@@ -306,15 +353,31 @@ class GBIFSpecies(Species):
 
     def load_csv(self, file_path):
         """
-        Documentation pending on loading from csv file
+        Load data from a CSV file into a pandas DataFrame. The records are expected to contain (meta-)data on individual
+        species occurrences. Examples of expected columns: decimallatitude, decimallongitude, specieskey etc.
+        If the file contains data on one particular species (all values in the 'specieskey' column are equal), the ID
+        of the GBIFSpecies object is updated to the 'specieskey' value. The data for the GBIFSpecies object is also
+        updated to contain the CSV file contents, so be careful not to overwrite existing data.
+        All column names are converted to lower-case, for consistency.
+
+        :param str file_path: The full path to the file (including the directory and filename in one string).
+
+        :returns: pandas.DataFrame loaded with data from the CSV file.
+
         """
+        if file_path is None:
+            logger.error("Please supply a file_path parameter with the full path to the CSV file.")
+            return
+        if self.data_full:
+            logger.warning("Warning! Overwriting existing data for this species.")
 
         logger.info("Loading data from: %s" % file_path)
         f = open(file_path, 'r')
         try:
             dialect = csv.Sniffer().sniff(f.read(10240))
             self.data_full = pd.read_csv(file_path, sep=dialect.delimiter)
-            # self.data_full.columns = map(str.lower, self.data_full.columns)  # convert all column headers to lowercase
+            # self.data_full.columns = map(str.lower, self.data_full.columns)
+            # convert all column headers to lowercase
             self.data_full.columns = [x.lower() for x in self.data_full.columns]
             logger.info("Succesfully loaded previously saved CSV data.")
             if 'specieskey' in self.data_full and self.data_full['specieskey'].unique().size == 1:
@@ -325,12 +388,30 @@ class GBIFSpecies(Species):
         finally:
             f.close()
 
-    # vectorize? better name
     def geometrize(self, dropna=True, longitude_col_name='decimallongitude', latitude_col_name='decimallatitude', crs=None):
         """
-        Converts data to geopandas. The latitude/longitude is converted into shapely Point geometry.
-        Geopandas/GeoSeries data structures have a geometry column.
+        Converts the species data from pandas.DataFrame contents to geopandas.GeoDataFrame format.
+        GeoDataFrames inherit basic DataFrames, and provide more functionality on top of pandas.
+        The biggest difference in terms of the data layout is the addition of a 'geometry' column which contains
+        `Shapely <http://toblerity.org/shapely/shapely.geometry.html>`_ geometries in `geopandas <http://geopandas.org/user.html>`_.
+        The decimallatitude and decimallongitude columns are converted into shapely Point geometry, one Point for each latitude/longitude
+        record.
+
+        :param bool dropna: Whether to drop records with NaN values in the decimallatitude or decimallongitude columns in the conversion process.
+
+        :param string longitude_col_name: The name of the column carrying the decimal longitude values. Default is 'decimallongitude'.
+
+        :param string latitude_col_name: The name of the column carrying the decimal latitude values. Default is 'decimallatitude'
+
+        :param crs: The Coordinate Reference System of the data. Default is "EPSG:4326"
+        :type crs: string or dictionary.
+
+        :returns: None
+
         """
+        if isinstance(self.data_full, GeoDataFrame):
+            logger.info("Data already in geopandas.GeoDataFrame format. Skipping...")
+            return
         try:
             if crs is None:
                 crs = {'init': "EPSG:4326"}
@@ -364,9 +445,27 @@ class GBIFSpecies(Species):
                    preserve_topology=False,
                    with_envelope=False):
         """
-        Expand each sample point into its polygon of influence (buffer).
-        Merge the polygons that overlap into a cascaded union (multipolygon)
-        Return a GeoDataFrame
+        Helper method: expands each Shapely Point of the GeoDataFrame species data into its "polygon of influence" (buffer).
+        If the data is not already in a geopandas format, the :func:`geometrize` method is called first.
+        Further merges the polygons that overlap into a cascaded union (multipolygon). The polygon is further simplified,
+        also (optionally) by using an envelope around the buffer. An envelope is thhe smallest rectangular polygon
+        (with sides parallel to the coordinate axes) that contains the buffer geometry. The original species data is un-altered.
+
+        :param int buffer_distance: Unitless distance from the Point geometry, do specify the amount of "influence". Default is 1.
+
+        :param int bufffer_resolution: The resolution of the buffer around each Point. It is used for approximation of a unit radius circle.
+        For example, 16-gon approximation, 3 - triangle approximation etc. The higher the resolution, the closer the approximation of
+        the buffer to a circle shape around the point. Default is 16.
+
+        :param int simplify_tolerance: All points in the simplified geometry will be within the tolerance distance of the original geometry.
+
+        :param bool preserve_topology: If set to False the much quicker Douglas-Peucker algorithm is used in the simplification process.
+        Note that invalid geometric objects may result from simplification that does not preserve topology. Default is False.
+
+        :param bool with_envelope: Whether to use an envelope in the simplification of the geometry. Default is false.
+
+        :returns: geopandas.GeoDataFrame containing all polygons of the simplified geometries.
+s
         """
         if not (isinstance(self.data_full, GeoSeries) or isinstance(self.data_full, GeoDataFrame)):
             self.geometrize(dropna=True)
@@ -398,8 +497,19 @@ class GBIFSpecies(Species):
     def overlay(self, species_range_map):
         """
         Overlays the point records with a species range map. The map can be an instance of IUCNSpecies, or directly
-        a GeoSeries datastructure containing geometry data.
-        This overlaying effectively crops the point records to the area within the range map.
+        a GeoSeries datastructure containing `Shapely <http://toblerity.org/shapely/shapely.geometry.html>`_ geometries.
+        This overlaying effectively crops the point records to the area within the range map, i.e., drops those
+        points that fall outside the union of range polygon(s). If the data is not already in a geopandas format,
+        the :func:`geometrize` method is called first.
+        The geometries are first "prepared" ('Prepared Geometries <http://toblerity.org/shapely/manual.html>`_,
+        for faster operations, such as checking if a polygon contains a point.
+        Careful, the species data is updated to contain only the filtered-out occurrences. The other records are lost.
+
+        :param species_range_map: The species range-map geometry to crop point-record occurrences to.
+        :type species_range_map: geopandas.GeoSeries or IUCNSpecies
+
+        :returns: None
+
         """
         if not (isinstance(species_range_map, GeoSeries) or isinstance(species_range_map, IUCNSpecies)):
             raise AttributeError("Please provide a correct species rangemap input.")
@@ -425,10 +535,13 @@ class GBIFSpecies(Species):
 
 class IUCNSpecies(Species):
     """
-    The input data is in shapefiles(ESRI native format) and contains the known expert range of each species. Ranges are
-    depicted as polygons. One large shapefile contains all the distribution maps of that group, i.e., all geometries. We
-    will need to rasterize IUCN range polygons to grids with a predefined resolution. "Gridify" the data, and that per
-    species rather than all in one region.
+    IUCNSpecies
+    A class for encapsulating the `IUCN Red List <http://http://www.iucnredlist.org/>`_ of threatened species layer functionality.
+    The data for this layer is expected to be shapefiles (ESRI native format) and contains the known expert ranges of species.
+    Ranges are depicted as polygons. One shapefile can contain distribution maps of an entire species group, i.e., all geometries,
+    or alternatively, contain individual species ranges. The shapefiles can be downloaded from the website, as currently there
+    is no IUCN API to directly query the IUCN backend database for particular taxonomical species.
+    The data is always loaded in geopandas.GeoDataFrame format, suitable for geometries and operations.
 
     """
 
@@ -439,21 +552,31 @@ class IUCNSpecies(Species):
 
     def load_shapefile(self, file_path):
         """
-        A GeoDataFrame is a tablular data structure that contains a column called geometry which contains a GeoSeries.
-        So data_full will be a geopandas dataframe, you can obtain it by .get_data()
-        Supported input formats: Shapefiles, GeoJSON.
+        Loads the data from the provided :attr:`file_path` shapefile into a geopandas.GeoDataFrame.
+        A GeoDataFrame is a tablular data structure that contains a column called "geometry" which contains a GeoSeries of
+        `Shapely <http://toblerity.org/shapely/shapely.geometry.html>`_ geometries. all other meta-data column names are
+        converted to a lower-case, for consistency.
+
+        :param str file_path: The full path to the shapefile file (including the directory and filename in one string).
+
         """
         logger.info("Loading data from: %s" % file_path)
         self.data_full = GeoDataFrame.from_file(file_path)   # shapely.geometry type of objects are used
         # self.data_full.columns = map(str.lower, self.data_full.columns)   # convert all column headers to lowercase
-        self.data_full.columns = [x.lower() for x in self.data_full.columns]   # python 2
+        self.data_full.columns = [x.lower() for x in self.data_full.columns]   # python 2, backwards compatible
 
         logger.info("The shapefile contains data on %d species areas." % self.data_full.shape[0])
         self.shape_file = file_path
 
     def find_species_occurrences(self, name_species=None, **kwargs):
         """
-        Documentation pending on filtering species data from a shapefile
+        Filters the (previously loaded) GeoDataFrame data to contain only records for a particular species (binomial).
+        Careful, other records will be lost from the IUCNSpecies object upon calling this method.
+
+        :param str name_species: The binomial name of the species to use for filtering out records.
+
+        :returns: geopandas.GeoDataFrame
+
         """
 
         if not hasattr(self, 'data_full'):
@@ -479,8 +602,19 @@ class IUCNSpecies(Species):
 
     def save_shapefile(self, full_name=None, driver='ESRI Shapefile', overwrite=False):
         """
-        Saves the current (geopandas) data as a shapefile.
-        The geopandas data needs to have geometry as a column, besides the metadata.
+        Saves the current geopandas.GeoDataFrame data in a shapefile. The data is expected to have a 'geometry'
+        as a column, besides other metadata metadata. If the full location and name of the file is not provided,
+        then the :attr:`overwrite` should be set to "True" to overwrite the existing shapefile from which the
+        data was previously loaded.
+
+        :param str file_path: The full path to the targed shapefile file (including the directory and filename in one string).
+
+        :param str driver: The driver to use for storing the geopandas.GeoDataFrame data into a file. Default is "ESRI Shapefile".
+
+        :param bool overwrite: Whether to overwrite the shapefile from which the data was previously loaded, if a new :attr:`file_path` is not supplied.
+
+        :returns: None
+
         """
 
         if not (isinstance(self.data_full, GeoSeries) or isinstance(self.data_full, GeoDataFrame)):
@@ -498,46 +632,46 @@ class IUCNSpecies(Species):
         except AttributeError as e:
             logger.error("Could not save data! %s " % str(e))
 
-    def rasterize_old(self, raster_file=None, pixel_size=None, x_res=None, y_res=None, *args, **kwargs):
-        # options = ["ALL_TOUCHED=TRUE"]
-        # right now it is pixel_size. But we could complicate further with cell width/height.
-        # TODO: no need for x_res y_res?
+    # def rasterize(self, raster_file=None, pixel_size=None, x_res=None, y_res=None, *args, **kwargs):
+    #     # options = ["ALL_TOUCHED=TRUE"]
+    #     # right now it is pixel_size. But we could complicate further with cell width/height.
+    #     # TODO: no need for x_res y_res?
 
-        if not (pixel_size or raster_file):
-            raise AttributeError("Please provide pixel_size and a target raster_file.")
+    #     if not (pixel_size or raster_file):
+    #         raise AttributeError("Please provide pixel_size and a target raster_file.")
 
-        NoData_value = -9999
+    #     NoData_value = -9999
 
-        # Open the data source and read in the extent
-        # TODO: check shapefile exists
-        source_ds = ogr.Open(self.shape_file)
-        source_layer = source_ds.GetLayer()
-        x_min, x_max, y_min, y_max = source_layer.GetExtent()   # boundaries
+    #     # Open the data source and read in the extent
+    #     # TODO: check shapefile exists
+    #     source_ds = ogr.Open(self.shape_file)
+    #     source_layer = source_ds.GetLayer()
+    #     x_min, x_max, y_min, y_max = source_layer.GetExtent()   # boundaries
 
-        # Create the destination data source
-        x_res = int((x_max - x_min) / pixel_size)
-        y_res = int((y_max - y_min) / pixel_size)
-        target_ds = gdal.GetDriverByName('GTiff').Create(raster_file, x_res, y_res, 1, gdal.GDT_Byte)
-        target_ds.SetGeoTransform((x_min, pixel_size, 0, y_max, 0, -pixel_size))
-        band = target_ds.GetRasterBand(1)
-        band.SetNoDataValue(NoData_value)
-        # Rasterize
-        gdal.RasterizeLayer(target_ds, [1], source_layer, burn_values=[255], *args, **kwargs)
+    #     # Create the destination data source
+    #     x_res = int((x_max - x_min) / pixel_size)
+    #     y_res = int((y_max - y_min) / pixel_size)
+    #     target_ds = gdal.GetDriverByName('GTiff').Create(raster_file, x_res, y_res, 1, gdal.GDT_Byte)
+    #     target_ds.SetGeoTransform((x_min, pixel_size, 0, y_max, 0, -pixel_size))
+    #     band = target_ds.GetRasterBand(1)
+    #     band.SetNoDataValue(NoData_value)
+    #     # Rasterize
+    #     gdal.RasterizeLayer(target_ds, [1], source_layer, burn_values=[255], *args, **kwargs)
 
-        # WOW: https://trac.osgeo.org/gdal/wiki/PythonGotchas "To save and close GDAL raster datasets or OGR vector
-        # datasources, the object needs to be dereferenced, such as setting it to None, a different value, or deleting
-        # the object. "
-        # From the book "Python Geospatial Analysis Essentials":
-        # dstFile.Destroy() This closes the destination file and makes sure everything
-        # has been saved to disk.
-        band = None
-        target_ds = None
-        logger.info("Data rasterized into file %s " % raster_file)
-        logger.info("Resolution: x_res={0} y_res={1}".format(x_res, y_res))
+    #     # WOW: https://trac.osgeo.org/gdal/wiki/PythonGotchas "To save and close GDAL raster datasets or OGR vector
+    #     # datasources, the object needs to be dereferenced, such as setting it to None, a different value, or deleting
+    #     # the object. "
+    #     # From the book "Python Geospatial Analysis Essentials":
+    #     # dstFile.Destroy() This closes the destination file and makes sure everything
+    #     # has been saved to disk.
+    #     band = None
+    #     target_ds = None
+    #     logger.info("Data rasterized into file %s " % raster_file)
+    #     logger.info("Resolution: x_res={0} y_res={1}".format(x_res, y_res))
 
-        self.raster_file = raster_file
-        self.x_res = x_res
-        self.y_res = y_res
+    #     self.raster_file = raster_file
+    #     self.x_res = x_res
+    #     self.y_res = y_res
 
     def rasterize(self, raster_file=None, pixel_size=None, all_touched=False,
                   no_data_value=0,
