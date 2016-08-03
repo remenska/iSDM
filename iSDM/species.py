@@ -88,16 +88,16 @@ class Species(object):
         """
         Serializes the loaded species dataset (`pandas <http://pandas.pydata.org/pandas-docs/stable/dsintro.html>`_ or `geopandas <http://geopandas.org/user.html>`_ DataFrame) into a binary `pickle <https://en.wikipedia.org/wiki/Pickle_%28Python%29>`_  (or 'msgpack <http://msgpack.org/index.html>'_) file.
 
-       :param str full_name: The full path of the file (including the directory and filename in one string),
+       :param string full_name: The full path of the file (including the directory and filename in one string),
         where the data will be saved.
 
-       :param str dir_name: The directory where the file will be stored.
+       :param string dir_name: The directory where the file will be stored.
        If :attr:`file_name` is not specified, the default one :attr:`name_species` + `.pkl` (or `.msg`) is given by default.
 
-       :param str file_name: The name of the file where the data will be saved.
+       :param string file_name: The name of the file where the data will be saved.
        If :attr:`dir_name` is not specified, the current working directory is taken by default.
 
-       :param str method: The type of serialization to use for the data frame. Default is "pickle". Another possibility is "msgpack", as it has shown as 10% more efficient
+       :param string method: The type of serialization to use for the data frame. Default is "pickle". Another possibility is "msgpack", as it has shown as 10% more efficient
        in terms of time and memory, for the type of data we are dealing with.
 
        :raises: AttributeError: if the data has not been loaded in the object before. See :func:`load_data` and :func:`find_species_occurrences`
@@ -134,7 +134,7 @@ class Species(object):
         Loads the data from the serialized species file into a pandas DataFrame. If the :attr:`file_path` parameter is not supplied,
         it will try to deduce the file name from the name of the species by default.
 
-        :param str file_path: The full path to the file (including the directory and filename in one string), where the data is serialized to.
+        :param string file_path: The full path to the file (including the directory and filename in one string), where the data is serialized to.
 
         :returns: Data loaded into (geo)pandas Dataframe.
 
@@ -283,7 +283,7 @@ class GBIFSpecies(Species):
         The pygbif.occurrences.search(...) returns a list of json structures which are loaded into
         Pandas DataFrame for easier manipulation.
 
-        :param str name_species: The taxonomical name of the species to use for querying the GBIF backbone.
+        :param string name_species: The taxonomical name of the species to use for querying the GBIF backbone.
 
         :returns: pandas.DataFrame containing all species occurrences (meta-)data.
 
@@ -360,7 +360,7 @@ class GBIFSpecies(Species):
         updated to contain the CSV file contents, so be careful not to overwrite existing data.
         All column names are converted to lower-case, for consistency.
 
-        :param str file_path: The full path to the file (including the directory and filename in one string).
+        :param string file_path: The full path to the file (including the directory and filename in one string).
 
         :returns: pandas.DataFrame loaded with data from the CSV file.
 
@@ -557,7 +557,7 @@ class IUCNSpecies(Species):
         `Shapely <http://toblerity.org/shapely/shapely.geometry.html>`_ geometries. all other meta-data column names are
         converted to a lower-case, for consistency.
 
-        :param str file_path: The full path to the shapefile file (including the directory and filename in one string).
+        :param string file_path: The full path to the shapefile file (including the directory and filename in one string).
 
         """
         logger.info("Loading data from: %s" % file_path)
@@ -573,7 +573,7 @@ class IUCNSpecies(Species):
         Filters the (previously loaded) GeoDataFrame data to contain only records for a particular species (binomial).
         Careful, other records will be lost from the IUCNSpecies object upon calling this method.
 
-        :param str name_species: The binomial name of the species to use for filtering out records.
+        :param string name_species: The binomial name of the species to use for filtering out records.
 
         :returns: geopandas.GeoDataFrame
 
@@ -607,9 +607,9 @@ class IUCNSpecies(Species):
         then the :attr:`overwrite` should be set to "True" to overwrite the existing shapefile from which the
         data was previously loaded.
 
-        :param str file_path: The full path to the targed shapefile file (including the directory and filename in one string).
+        :param string file_path: The full path to the targed shapefile file (including the directory and filename in one string).
 
-        :param str driver: The driver to use for storing the geopandas.GeoDataFrame data into a file. Default is "ESRI Shapefile".
+        :param string driver: The driver to use for storing the geopandas.GeoDataFrame data into a file. Default is "ESRI Shapefile".
 
         :param bool overwrite: Whether to overwrite the shapefile from which the data was previously loaded, if a new :attr:`file_path` is not supplied.
 
@@ -680,7 +680,32 @@ class IUCNSpecies(Species):
                   cropped=False,
                   *args, **kwargs):
         """
-        Documentation pending on how to rasterize geometrical shapes
+        Rasterize (burn) the species rangemaps (geometrical shapes) into pixels (cells), i.e., a 2-dimensional image array
+        of type numpy ndarray. Uses the 'rasterio <https://mapbox.github.io/rasterio/_modules/rasterio/features.html>'_ library
+        for this purpose. All the shapes from the IUCNSpecies object data are burned in a single "band" of the image.
+        Rasterio datasets can generally have one or more bands, or layers. Following the GDAL convention, these are indexed starting with 1.
+
+        :param string raster_file: The full path to the targed GeoTIFF raster file (including the directory and filename in one string).
+
+        :param int pixel_size: The size of the pixel in degrees, i.e., the resolution to use for rasterizing.
+
+        :param bool all_touched: If true, all pixels touched by geometries, will be burned in. If false, only pixels
+        whose center is within the polygon or that are selected by Bresenham's line algorithm, will be burned in.
+
+        :param int no_data_value: Used as value of the pixels which are not burned in. Default is 0.
+
+        :param int default_value: Used as value of the pixels which are burned in. Default is 1.
+
+        :param crs: The Coordinate Reference System to use. Default is "ESPG:4326"
+
+        :param bool cropped: If true, the resulting pixel array (image) is cropped to the region borders, which contain
+        the burned pixels (i.e., an envelope within the range). Otherwise, a "global world map" is used, i.e., the boundaries
+        are set to (-180, -90, 180, 90) for the resulting array.
+
+        :returns: Rasterio RasterReader file object which can be used to read individual bands from the raster file.
+
+        :rtype: rasterio._io.RasterReader
+
         """
         if not (pixel_size or raster_file):
             raise AttributeError("Please provide pixel_size and a target raster_file.")
@@ -747,7 +772,15 @@ class IUCNSpecies(Species):
 
     def load_raster_data(self, raster_file=None):
         """
-        Documentation pending on how to load raster data
+        Loads the raster data from a previously-saved raster file. Provides information about the
+        loaded data, and returns a rasterio file reader.
+
+        :param string raster_file: The full path to the targed GeoTIFF raster file (including the directory and filename in one string).
+
+        :returns: Rasterio RasterReader file object which can be used to read individual bands from the raster file.
+
+        :rtype: rasterio._io.RasterReader
+
         """
         if raster_file:
             self.raster_file = raster_file
@@ -776,17 +809,26 @@ class IUCNSpecies(Species):
                                    filter_no_data_value=True,
                                    band_number=1):
         """
-        Map the pixel coordinates to world coordinates. The affine transformation matrix
-        is used for this purpose. The convention is to reference the pixel corner. To
-        reference the pixel center instead, we translate each pixel by 50%.
+        Map the pixel coordinates to world coordinates. The affine transformation matrix is used for this purpose.
+        The convention is to reference the pixel corner. To reference the pixel center instead, we translate each pixel by 50%.
         The "no value" pixels (cells) can be filtered out.
 
         A dataset's pixel coordinate system has its origin at the "upper left" (imagine it displayed on your screen).
         Column index increases to the right, and row index increases downward. The mapping of these coordinates to
         "world" coordinates in the dataset's reference system is done with an affine transformation matrix.
 
-        :returns: a tuple of arrays. The first array contains the latitude values for each
+        :param str raster_data: the raster data (2-dimensional array) to translate to world coordinates. If not provided,
+        it tries to load existing rasterized data about the IUCNSpeices.
+
+        :param int no_data_value: The pixel values depicting non-burned cells. Default is 0.
+
+        : params bool filter_no_data_value: Whether to filter-out the no-data pixel values. Default is true. If set to
+        false, all pixels in a 2-dimensional array will be converted to world coordinates. Typically this option is used
+        to get a "base" map of the coordinates of all pixels in an image (map).
+
+        :returns: a tuple of numpy ndarrays. The first array contains the latitude values for each
         non-zero cell, the second array contains the longitude values for each non-zero cell.
+
         """
         if raster_data is None:
             logger.info("No raster data provided, attempting to load default...")
@@ -890,9 +932,9 @@ class IUCNSpecies(Species):
         6       Presence Uncertain
 
         Species can have both areas(polygons) in which they are extinct(5) AND areas in which they are not.
-        We keep such species, and only filter-out species for which all areas are extinct.
+        Such species are kept, and only species for which all areas are extinct, are filtered-out.
 
-        :param str presence_column_name: The column name which contains the presence code values. Default is 'presence'.
+        :param string presence_column_name: The column name which contains the presence code values. Default is 'presence'.
 
         :param bool discard_bad: Whether to keep or discard species with "unknown only" areas (code==0). By default they
         are kept (discard_bad=False).
