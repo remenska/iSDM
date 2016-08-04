@@ -68,7 +68,7 @@ class TestsEnvironment(unittest.TestCase):
     def test_RasterEnvironmentalLayer_reproject(self):
         self.climate_layer.load_data()
         original_resolution = self.climate_layer.resolution
-        self.climate_layer.reproject(destination_file="./data/tmp.tif", resolution=original_resolution[0] * 2)
+        self.climate_layer.reproject(destination_file="./data/tmp.tif", resolution=(original_resolution[0] * 2, original_resolution[1] * 2))
         self.climate_layer.load_data("./data/tmp.tif")
         self.assertEqual(original_resolution, (self.climate_layer.resolution[0] / 2, self.climate_layer.resolution[1] / 2))
 
