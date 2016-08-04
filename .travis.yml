@@ -5,7 +5,8 @@ notifications:
     - remenska@gmail.com
 
   #- sudo apt-get -y install r-base
-
+before_install:
+  - sudo apt-get install libproj-dev
 install:
   # Conda
   - if [ "${TRAVIS_OS_NAME}" == "osx" ]; then curl --silent http://repo.continuum.io/miniconda/Miniconda-latest-MacOSX-x86_64.sh -o miniconda.sh; fi
