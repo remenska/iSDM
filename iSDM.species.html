@@ -137,49 +137,151 @@
             
   <div class="section" id="module-iSDM.species">
 <span id="isdm-species-module"></span><h1>iSDM.species module<a class="headerlink" href="#module-iSDM.species" title="Permalink to this headline">¶</a></h1>
-<p>Documentation on the species module.
-Some more text to document what this module is for.</p>
+<p>A module for all species layers functionality.</p>
 <dl class="class">
 <dt id="iSDM.species.GBIFSpecies">
 <em class="property">class </em><code class="descclassname">iSDM.species.</code><code class="descname">GBIFSpecies</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.species.GBIFSpecies" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#iSDM.species.Species" title="iSDM.species.Species"><code class="xref py py-class docutils literal"><span class="pre">iSDM.species.Species</span></code></a></p>
-<p>Some class-level documentation on GBIF species. One two three.</p>
+<p>A class for encapsulating the <a class="reference external" href="http://www.gbif.org/">GBIF</a> (Global Biodiversity Information Facility) species layer functionality.
+Uses the <a class="reference external" href="https://github.com/sckott/pygbif">pygbif</a> python API for querying the GBIF backbone and acquiring observations data on species.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Variables:</th><td class="field-body"><strong>data_full</strong> (<em>pandas.DataFrame or geopandas.GeoDataFrame</em>) &#8211; Data frame containing the full data for the species occurrences.</td>
+</tr>
+</tbody>
+</table>
 <dl class="method">
 <dt id="iSDM.species.GBIFSpecies.find_species_occurrences">
 <code class="descname">find_species_occurrences</code><span class="sig-paren">(</span><em>name_species=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.species.GBIFSpecies.find_species_occurrences" title="Permalink to this definition">¶</a></dt>
-<dd><p>Finds and loads species occurrence data into pandas DataFrame.
-Data comes from the GBIF database, based on name or gbif ID
-the occurrences.search(...) returns a list of json structures
-which we load into Pandas DataFrame for easier manipulation.</p>
+<dd><p>Finds and loads species occurrence data into pandas DataFrame. The data comes from GBIF backbone API requests,
+based on the name of the species (<code class="xref py py-attr docutils literal"><span class="pre">name_species</span></code>). If the <code class="xref py py-attr docutils literal"><span class="pre">name_species</span></code> parameter is not provided, it is attempted
+to query the GBIF backbone using the species object <a href="#id1"><span class="problematic" id="id2">:ivar:`ID`</span></a> (if already set) as a taxonomical key.
+The GBIF API provides services for searching occurrence records that have been indexed by GBIF. The results from the search
+are paginated, and in order to retrieve them all, individual requests are issued for each page. The returned results are
+limited to a maximum of 300 records per page, at the time of writing this. The method below will loop until there are
+no more &#8220;next&#8221; pages (<code class="docutils literal"><span class="pre">endOfRecords</span></code> is reached), and combine all species occurrence (meta-)data in a single data structure.
+The pygbif.occurrences.search(...) returns a list of json structures which are loaded into <code class="docutils literal"><span class="pre">pandas.DataFrame</span></code> for easier manipulation.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>name_species</strong> (<em>string</em>) &#8211; <p>The taxonomical name of the species to use for querying the <a class="reference external" href="http://www.gbif.org/">GBIF</a> backbone.</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Data frame containing all species occurrences (meta-)data.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">pandas.DataFrame</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
 <dt id="iSDM.species.GBIFSpecies.geometrize">
-<code class="descname">geometrize</code><span class="sig-paren">(</span><em>dropna=True</em>, <em>longitude_col_name='decimallongitude'</em>, <em>latitude_col_name='decimallatitude'</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.species.GBIFSpecies.geometrize" title="Permalink to this definition">¶</a></dt>
-<dd><p>Converts data to geopandas. The latitude/longitude is converted into shapely Point geometry.
-Geopandas/GeoSeries data structures have a geometry column.</p>
+<code class="descname">geometrize</code><span class="sig-paren">(</span><em>dropna=True</em>, <em>longitude_col_name='decimallongitude'</em>, <em>latitude_col_name='decimallatitude'</em>, <em>crs=None</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.species.GBIFSpecies.geometrize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts the species data from pandas.DataFrame contents to geopandas.GeoDataFrame format.
+GeoDataFrames inherit basic DataFrames, and provide more functionality on top of pandas.
+The biggest difference in terms of the data layout is the addition of a &#8216;geometry&#8217; column which contains
+<a class="reference external" href="http://toblerity.org/shapely/shapely.geometry.html">Shapely</a> geometries in <a class="reference external" href="http://geopandas.org/user.html">geopandas</a>.
+The <code class="docutils literal"><span class="pre">decimallatitude</span></code> and <code class="docutils literal"><span class="pre">decimallongitude</span></code> columns are converted into shapely Point geometry, one Point for each latitude/longitude
+record.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>dropna</strong> (<em>bool</em>) &#8211; Whether to drop records with NaN values in the decimallatitude or decimallongitude columns in the conversion process.</li>
+<li><strong>longitude_col_name</strong> (<em>string</em>) &#8211; The name of the column carrying the decimal longitude values. Default is &#8216;decimallongitude&#8217;.</li>
+<li><strong>latitude_col_name</strong> (<em>string</em>) &#8211; The name of the column carrying the decimal latitude values. Default is &#8216;decimallatitude&#8217;.</li>
+<li><strong>crs</strong> (<em>string or dictionary.</em>) &#8211; The Coordinate Reference System of the data. Default is &#8220;EPSG:4326&#8221;.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">None</p>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
 <dt id="iSDM.species.GBIFSpecies.load_csv">
 <code class="descname">load_csv</code><span class="sig-paren">(</span><em>file_path</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.species.GBIFSpecies.load_csv" title="Permalink to this definition">¶</a></dt>
-<dd><p>Documentation pending on loading from csv file</p>
+<dd><p>Load data from a CSV file into a  <code class="docutils literal"><span class="pre">pandas.DataFrame</span></code>. The records are expected to contain (meta-)data on individual
+species occurrences. Examples of expected columns: <code class="docutils literal"><span class="pre">decimallatitude</span></code>, <code class="docutils literal"><span class="pre">decimallongitude</span></code>, <code class="docutils literal"><span class="pre">specieskey</span></code> etc.
+If the file contains data on one particular species (all values in the <code class="docutils literal"><span class="pre">specieskey</span></code> column are equal), the <a href="#id4"><span class="problematic" id="id5">:ivar:`ID`</span></a>
+of the GBIFSpecies object is updated to the <code class="docutils literal"><span class="pre">specieskey</span></code> value. The data for the GBIFSpecies object is also
+updated to contain the CSV file contents, so be careful not to overwrite existing data.
+All column names are converted to lower-case, for consistency.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>file_path</strong> (<em>string</em>) &#8211; The full path to the file (including the directory and filename in one string).</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Data frame loaded with data from the CSV file.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">pandas.DataFrame</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
 <dt id="iSDM.species.GBIFSpecies.overlay">
 <code class="descname">overlay</code><span class="sig-paren">(</span><em>species_range_map</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.species.GBIFSpecies.overlay" title="Permalink to this definition">¶</a></dt>
 <dd><p>Overlays the point records with a species range map. The map can be an instance of IUCNSpecies, or directly
-a GeoSeries datastructure containing geometry data.
-This overlaying effectively crops the point records to the area within the range map.</p>
+a GeoSeries datastructure containing <a class="reference external" href="http://toblerity.org/shapely/shapely.geometry.html">Shapely</a> geometries.
+This overlaying effectively crops the point records to the area within the range map, i.e., drops those
+points that fall outside the union of range polygon(s). If the data is not already in a geopandas format,
+the <a class="reference internal" href="#iSDM.species.GBIFSpecies.geometrize" title="iSDM.species.GBIFSpecies.geometrize"><code class="xref py py-func docutils literal"><span class="pre">geometrize()</span></code></a> method is called first.
+The geometries are first &#8220;prepared&#8221; (<a class="reference external" href="http://toblerity.org/shapely/manual.html">Prepared Geometries</a>),
+for faster operations, such as checking if a polygon contains a point.
+<strong>Careful</strong>, the species data is updated to contain only the filtered-out occurrences. The other records are lost.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>species_range_map</strong> (<em>geopandas.GeoSeries or IUCNSpecies</em>) &#8211; The species range-map geometry to crop point-record occurrences to.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">None</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
 <dt id="iSDM.species.GBIFSpecies.polygonize">
 <code class="descname">polygonize</code><span class="sig-paren">(</span><em>buffer_distance=1</em>, <em>buffer_resolution=16</em>, <em>simplify_tolerance=0.1</em>, <em>preserve_topology=False</em>, <em>with_envelope=False</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.species.GBIFSpecies.polygonize" title="Permalink to this definition">¶</a></dt>
-<dd><p>Expand each sample point into its polygon of influence (buffer).
-Merge the polygons that overlap into a cascaded union (multipolygon)
-Return a GeoDataFrame</p>
+<dd><p>Helper method: expands each <a class="reference external" href="http://toblerity.org/shapely/shapely.geometry.html">Shapely</a> Point of the <code class="docutils literal"><span class="pre">geopandas.GeoDataFrame</span></code>
+species data into its <em>&#8220;polygon of influence&#8221;</em> (buffer). If the data is not already in a geopandas format,
+the <a class="reference internal" href="#iSDM.species.GBIFSpecies.geometrize" title="iSDM.species.GBIFSpecies.geometrize"><code class="xref py py-func docutils literal"><span class="pre">geometrize()</span></code></a> method is called first. Further merges the polygons that overlap into a <em>cascaded union</em> (multipolygon).
+The polygon is further simplified, also (optionally) by using an envelope around the buffer. An <em>envelope</em> is the smallest
+rectangular polygon (with sides parallel to the coordinate axes) that contains the buffer geometry.
+The original species data is un-altered.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>buffer_distance</strong> (<em>int</em>) &#8211; Unitless distance from the Point geometry, specifying the amount of &#8220;influence&#8221;. Default is 1.</li>
+<li><strong>buffer_resolution</strong> (<em>int</em>) &#8211; The resolution of the buffer around each Point. It is used for approximation of a unit radius circle.         For example, 16-gon approximation, 3 - triangle approximation etc. The higher the resolution, the closer the approximation of         the buffer to a circle shape around the point. Default is 16.</li>
+<li><strong>simplify_tolerance</strong> (<em>int</em>) &#8211; All points in the simplified geometry will be within the tolerance distance of the original geometry.</li>
+<li><strong>preserve_topology</strong> (<em>bool</em>) &#8211; If set to False the much quicker Douglas-Peucker algorithm is used in the simplification process.         Note that invalid geometric objects may result from simplification that does not preserve topology. Default is False.</li>
+<li><strong>with_envelope</strong> (<em>bool</em>) &#8211; Whether to use an envelope in the simplification of the geometry. Default is false.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Data frame containing all polygons of the simplified geometries.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">geopandas.GeoDataFrame</p>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 </dd></dl>
@@ -188,57 +290,251 @@ Return a GeoDataFrame</p>
 <dt id="iSDM.species.IUCNSpecies">
 <em class="property">class </em><code class="descclassname">iSDM.species.</code><code class="descname">IUCNSpecies</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.species.IUCNSpecies" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#iSDM.species.Species" title="iSDM.species.Species"><code class="xref py py-class docutils literal"><span class="pre">iSDM.species.Species</span></code></a></p>
-<p>The input data is in shapefiles(ESRI native format) and contains the known expert range of each species. Ranges are
-depicted as polygons. One large shapefile contains all the distribution maps of that group, i.e., all geometries. We
-will need to rasterize IUCN range polygons to grids with a predefined resolution. &#8220;Gridify&#8221; the data, and that per
-species rather than all in one region.</p>
+<p>A class for encapsulating the <a class="reference external" href="http://http://www.iucnredlist.org/">IUCN Red List</a> of threatened species layer functionality.
+The data for this layer is expected to be shapefiles (ESRI native format) and contains the known expert ranges of species.
+Ranges are depicted as polygons. One shapefile can contain distribution maps of an entire species group, i.e., all geometries,
+or alternatively, contain individual species ranges. The shapefiles can be downloaded from the website, as currently there
+is no IUCN API to directly query the IUCN backend database for particular taxonomical species.
+The data is always loaded in <code class="docutils literal"><span class="pre">geopandas.GeoDataFrame</span></code> format, suitable for geometries and operations on them.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Variables:</th><td class="field-body"><ul class="first last simple">
+<li><strong>shape_file</strong> (<em>string</em>) &#8211; Location of the shapefile from which the data is loaded.</li>
+<li><strong>raster_file</strong> (<em>string</em>) &#8211; Location of the raster file to which the corresponding rasterized data is stored.</li>
+<li><strong>raster_affine</strong> (<em>rasterio.transform.Affine</em>) &#8211; Affine translation used in the species raster map.</li>
+<li><strong>raster_reader</strong> (<em>rasterio._io.RasterReader</em>) &#8211; file reader for the corresponding rasterized data.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="iSDM.species.IUCNSpecies.drop_extinct_species">
+<code class="descname">drop_extinct_species</code><span class="sig-paren">(</span><em>presence_column_name='presence'</em>, <em>discard_bad=False</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.species.IUCNSpecies.drop_extinct_species" title="Permalink to this definition">¶</a></dt>
+<dd><p>According to the current IUCN Coded Domain Values for <code class="docutils literal"><span class="pre">Presence</span></code>:</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="16%" />
+<col width="84%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">Code</th>
+<th class="head">Presence</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>1</td>
+<td>Extant</td>
+</tr>
+<tr class="row-odd"><td>2</td>
+<td>Probably Extant (discontinued)</td>
+</tr>
+<tr class="row-even"><td>3</td>
+<td>Possibly Extant</td>
+</tr>
+<tr class="row-odd"><td>4</td>
+<td>Possibly Extinct</td>
+</tr>
+<tr class="row-even"><td>5</td>
+<td>Extinct (post 1500)</td>
+</tr>
+<tr class="row-odd"><td>6</td>
+<td>Presence Uncertain</td>
+</tr>
+</tbody>
+</table>
+<p>Species can have both areas (polygons) in which they are extinct (5) AND areas in which they are not.
+Such species are kept, and only species for which all areas are extinct, are filtered-out.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>presence_column_name</strong> (<em>string</em>) &#8211; The column name which contains the presence code values. Default is &#8216;presence&#8217;.</li>
+<li><strong>discard_bad</strong> (<em>bool</em>) &#8211; Whether to keep or discard species with &#8220;unknown only&#8221; areas (code==0). By default they         are kept (discard_bad=False). There are currently (july 2016) four such problematic species:         <em>Acipenser baerii</em>, <em>Ambassis urotaenia</em>, <em>Microphysogobio tungtingensis</em>, <em>Rhodeus sericeus</em>.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">None</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 <dl class="method">
 <dt id="iSDM.species.IUCNSpecies.find_species_occurrences">
 <code class="descname">find_species_occurrences</code><span class="sig-paren">(</span><em>name_species=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.species.IUCNSpecies.find_species_occurrences" title="Permalink to this definition">¶</a></dt>
-<dd><p>Documentation pending on filtering species data from a shapefile</p>
+<dd><p>Filters the (previously loaded) <code class="docutils literal"><span class="pre">geopandas.GeoDataFrame</span></code> data to contain only records for a particular species (binomial).
+<strong>Careful</strong>, other records will be lost from the IUCNSpecies object upon calling this method.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>name_species</strong> (<em>string</em>) &#8211; The binomial name of the species to use for filtering out records.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A data frame with filtered-out species records.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">geopandas.GeoDataFrame</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
 <dt id="iSDM.species.IUCNSpecies.load_raster_data">
 <code class="descname">load_raster_data</code><span class="sig-paren">(</span><em>raster_file=None</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.species.IUCNSpecies.load_raster_data" title="Permalink to this definition">¶</a></dt>
-<dd><p>Documentation pending on how to load raster data</p>
+<dd><p>Loads the raster data from a previously-saved raster file. Provides information about the
+loaded data, and returns a rasterio file reader.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>raster_file</strong> (<em>string</em>) &#8211; The full path to the targed GeoTIFF raster file (including the directory and filename in one string).</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Rasterio RasterReader file object which can be used to read individual bands from the raster file.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">rasterio._io.RasterReader</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
 <dt id="iSDM.species.IUCNSpecies.load_shapefile">
 <code class="descname">load_shapefile</code><span class="sig-paren">(</span><em>file_path</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.species.IUCNSpecies.load_shapefile" title="Permalink to this definition">¶</a></dt>
-<dd><p>A GeoDataFrame is a tablular data structure that contains a column called geometry which contains a GeoSeries.
-So data_full will be a geopandas dataframe, you can obtain it by .get_data()
-Supported input formats: Shapefiles, GeoJSON.</p>
+<dd><p>Loads the data from the provided <code class="xref py py-attr docutils literal"><span class="pre">file_path</span></code> shapefile into a geopandas.GeoDataFrame.
+A GeoDataFrame is a tablular data structure that contains a column called <code class="docutils literal"><span class="pre">geometry</span></code> which contains a <code class="docutils literal"><span class="pre">geopandas.GeoSeries</span></code> of
+<a class="reference external" href="http://toblerity.org/shapely/shapely.geometry.html">Shapely</a> geometries. All other meta-data column names are
+converted to a lower-case, for consistency.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>file_path</strong> (<em>string</em>) &#8211; The full path to the shapefile file (including the directory and filename in one string).</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">None</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="iSDM.species.IUCNSpecies.pixel_to_world_coordinates">
+<code class="descname">pixel_to_world_coordinates</code><span class="sig-paren">(</span><em>raster_data=None</em>, <em>no_data_value=0</em>, <em>filter_no_data_value=True</em>, <em>band_number=1</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.species.IUCNSpecies.pixel_to_world_coordinates" title="Permalink to this definition">¶</a></dt>
+<dd><p>Map the pixel coordinates to world coordinates. The affine transformation matrix is used for this purpose.
+The convention is to reference the pixel corner. To reference the pixel center instead, we translate each pixel by 50%.
+The &#8220;no value&#8221; pixels (cells) can be filtered out.</p>
+<p>A dataset&#8217;s pixel coordinate system has its origin at the &#8220;upper left&#8221; (imagine it displayed on your screen).
+Column index increases to the right, and row index increases downward. The mapping of these coordinates to
+&#8220;world&#8221; coordinates in the dataset&#8217;s reference system is done with an affine transformation matrix.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>raster_data</strong> (<em>string</em>) &#8211; the raster data (2-dimensional array) to translate to world coordinates. If not provided,         it tries to load existing rasterized data from the IUCNSpeices object.</li>
+<li><strong>no_data_value</strong> (<em>int</em>) &#8211; The pixel values depicting non-burned cells. Default is 0.</li>
+<li><strong>filter_no_data_value</strong> (<em>bool</em>) &#8211; Whether to filter-out the no-data pixel values. Default is true. If set to         false, all pixels in a 2-dimensional array will be converted to world coordinates. Typically this option is used         to get a &#8220;base&#8221; map of the coordinates of all pixels in an image (map).</li>
+<li><strong>band_number</strong> (<em>int</em>) &#8211; The index of the band from which to load raster data.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A tuple of numpy ndarrays. The first array contains the latitude values for each         non-zero cell, the second array contains the longitude values for each non-zero cell.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">tuple(np.ndarray, np.ndarray)</p>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
 <dt id="iSDM.species.IUCNSpecies.random_pseudo_absence_points">
-<code class="descname">random_pseudo_absence_points</code><span class="sig-paren">(</span><em>buffer_distance=5</em>, <em>buffer_resolution=16</em>, <em>simplify_tolerance=0.1</em>, <em>preserve_topology=True</em>, <em>count=100</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.species.IUCNSpecies.random_pseudo_absence_points" title="Permalink to this definition">¶</a></dt>
-<dd><p>Draw random pseudo-absence points from within a buffer around the geometry. First makes a convex-hull
+<code class="descname">random_pseudo_absence_points</code><span class="sig-paren">(</span><em>buffer_distance=2</em>, <em>buffer_resolution=16</em>, <em>simplify_tolerance=1</em>, <em>preserve_topology=True</em>, <em>fast=False</em>, <em>count=100</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.species.IUCNSpecies.random_pseudo_absence_points" title="Permalink to this definition">¶</a></dt>
+<dd><p>Draw random pseudo-absence points from within a buffer around the geometry. First it simplifies the geometry
 with a buffer around the original geometry. Then calculates the difference between this one, and the original
 geometry, to determine a geometry from which to sample random points. Finally, generates random points one by
-one and tests if they fall in that difference-geometry, until a &lt;count&gt; number of points are generated.</p>
-<p>A more efficient approach would be to just generate a &lt;count&gt; number of points from the first step, i.e.,
-from the convex-hull with a buffer. Some points will fall within the original shape, and they can be discarded,
-so the number of pseudo-absence points will not actually be equal to &lt;count&gt;.
-If precision is not an issue, we could provide a &lt;count&gt; number that is larger but calculated according
-to the original_area/buffered_convex_hull ratio.</p>
+one and tests if they fall in that difference-geometry, until a <code class="xref py py-attr docutils literal"><span class="pre">count</span></code> number of points are generated.
+If the &#8220;buffered&#8221; geometry is invalid (which could happen), it gradually tries to simplify it by applying a
+bigger value for the <code class="xref py py-attr docutils literal"><span class="pre">simplify_tolerance</span></code> parameter, until the geometry becomes valid. The reason is that an
+operation like difference/intersection is problematic to apply on an invalid geometry.
+The value is increased by maximum of 100.</p>
+<p>A more efficient approach would be to just generate a <code class="xref py py-attr docutils literal"><span class="pre">count</span></code> number of points from the first step, i.e.,
+from the buffer. Some points will fall within the original shape, and they can be discarded,
+so the number of pseudo-absence points will not actually be equal to <code class="xref py py-attr docutils literal"><span class="pre">count</span></code>.
+If precision is not an issue, we could provide a <code class="xref py py-attr docutils literal"><span class="pre">count</span></code> number that is larger but calculated according
+to the <code class="docutils literal"><span class="pre">original_area/buffered_convex_hull</span></code> ratio.</p>
+<p><strong>Update:</strong> Maybe not even necessary, given that shapely&#8217;s <code class="docutils literal"><span class="pre">prep(..)</span></code> operation speeds up a factor of 100 to 1000!</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="iSDM.species.IUCNSpecies.rasterize">
-<code class="descname">rasterize</code><span class="sig-paren">(</span><em>raster_file=None</em>, <em>pixel_size=None</em>, <em>all_touched=False</em>, <em>no_data_value=0</em>, <em>default_value=1</em>, <em>crs=None</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.species.IUCNSpecies.rasterize" title="Permalink to this definition">¶</a></dt>
-<dd><p>Documentation pending on how to rasterize geometrical shapes</p>
+<code class="descname">rasterize</code><span class="sig-paren">(</span><em>raster_file=None</em>, <em>pixel_size=None</em>, <em>all_touched=False</em>, <em>no_data_value=0</em>, <em>default_value=1</em>, <em>crs=None</em>, <em>cropped=False</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.species.IUCNSpecies.rasterize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Rasterize (burn) the species rangemaps (geometrical shapes) into pixels (cells), i.e., a 2-dimensional image array
+of type numpy ndarray. Uses the <a class="reference external" href="https://mapbox.github.io/rasterio/_modules/rasterio/features.html">Rasterio</a> library
+for this purpose. All the shapes from the <code class="docutils literal"><span class="pre">IUCNSpecies</span></code> object data are burned in a single &#8220;band&#8221; of the image.
+Rasterio datasets can generally have one or more bands, or layers. Following the GDAL convention, these are indexed starting with 1.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>raster_file</strong> (<em>string</em>) &#8211; The full path to the targed GeoTIFF raster file (including the directory and filename in one string).</li>
+<li><strong>pixel_size</strong> (<em>int</em>) &#8211; The size of the pixel in degrees, i.e., the resolution to use for rasterizing.</li>
+<li><strong>all_touched</strong> (<em>bool</em>) &#8211; If true, all pixels touched by geometries, will be burned in. If false, only pixels         whose center is within the polygon or that are selected by <em>Bresenham&#8217;s line algorithm</em>, will be burned in.</li>
+<li><strong>no_data_value</strong> (<em>int</em>) &#8211; Used as value of the pixels which are not burned in. Default is 0.</li>
+<li><strong>default_value</strong> (<em>int</em>) &#8211; Used as value of the pixels which are burned in. Default is 1.</li>
+<li><strong>crs</strong> (<em>dict</em>) &#8211; The Coordinate Reference System to use. Default is &#8220;ESPG:4326&#8221;</li>
+<li><strong>cropped</strong> (<em>bool</em>) &#8211; If true, the resulting pixel array (image) is cropped to the region borders, which contain         the burned pixels (i.e., an envelope within the range). Otherwise, a &#8220;global world map&#8221; is used, i.e., the boundaries         are set to (-180, -90, 180, 90) for the resulting array.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Rasterio RasterReader file object which can be used to read individual bands from the raster file.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">rasterio._io.RasterReader</p>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
 <dt id="iSDM.species.IUCNSpecies.save_shapefile">
 <code class="descname">save_shapefile</code><span class="sig-paren">(</span><em>full_name=None</em>, <em>driver='ESRI Shapefile'</em>, <em>overwrite=False</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.species.IUCNSpecies.save_shapefile" title="Permalink to this definition">¶</a></dt>
-<dd><p>Saves the current (geopandas) data as a shapefile.
-The geopandas data needs to have geometry as a column, besides the metadata.</p>
+<dd><p>Saves the current geopandas.GeoDataFrame data in a shapefile. The data is expected to have a <code class="docutils literal"><span class="pre">geometry</span></code>
+as a column, besides other (meta-)data. If the full location and name of the file is not provided,
+then the <code class="xref py py-attr docutils literal"><span class="pre">overwrite</span></code> should be set to <code class="docutils literal"><span class="pre">True</span></code>, to overwrite the existing shapefile from which the
+data was previously loaded.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>file_path</strong> (<em>string</em>) &#8211; The full path to the targed shapefile file (including the directory and filename in one string).</li>
+<li><strong>driver</strong> (<em>string</em>) &#8211; The driver to use for storing the geopandas.GeoDataFrame data into a file. Default is &#8220;ESRI Shapefile&#8221;.</li>
+<li><strong>overwrite</strong> (<em>bool</em>) &#8211; Whether to overwrite the shapefile from which the data was previously loaded, if a new <code class="xref py py-attr docutils literal"><span class="pre">file_path</span></code> is not supplied.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">None</p>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
+</dd></dl>
+
+<dl class="class">
+<dt id="iSDM.species.ObservationsType">
+<em class="property">class </em><code class="descclassname">iSDM.species.</code><code class="descname">ObservationsType</code><a class="headerlink" href="#iSDM.species.ObservationsType" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">enum.Enum</span></code></p>
+<p>Possible observation types for the global species data.</p>
 </dd></dl>
 
 <dl class="class">
@@ -258,8 +554,8 @@ The geopandas data needs to have geometry as a column, besides the metadata.</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Variables:</th><td class="field-body"><ul class="first last simple">
-<li><strong>ID</strong> &#8211; a unique ID for a particular species. For example, for GBIF sources, it is the gbifid metadata field.</li>
-<li><strong>name_species</strong> &#8211; initial value: &#8216;Unknown&#8217;</li>
+<li><strong>ID</strong> (<em>integer</em>) &#8211; a unique ID for a particular species. For example, for GBIF sources, it is the <code class="docutils literal"><span class="pre">gbifid</span></code> metadata field.</li>
+<li><strong>name_species</strong> (<em>string</em>) &#8211; initial value: &#8216;Unknown&#8217;.</li>
 </ul>
 </td>
 </tr>
@@ -268,12 +564,14 @@ The geopandas data needs to have geometry as a column, besides the metadata.</p>
 <dl class="method">
 <dt id="iSDM.species.Species.get_data">
 <code class="descname">get_data</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.species.Species.get_data" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the (pre)loaded species data.</p>
+<dd><p>Returns the (pre)loaded species data in a (geo)pandas DataFrame.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">geopandas.GeoDataFrame</td>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><code class="xref py py-attr docutils literal"><span class="pre">self.data_full</span></code></td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">geopandas.GeoDataFrame or pandas.DataFrame</td>
 </tr>
 </tbody>
 </table>
@@ -282,14 +580,15 @@ The geopandas data needs to have geometry as a column, besides the metadata.</p>
 <dl class="method">
 <dt id="iSDM.species.Species.load_data">
 <code class="descname">load_data</code><span class="sig-paren">(</span><em>file_path=None</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.species.Species.load_data" title="Permalink to this definition">¶</a></dt>
-<dd><p>Loads the serialized species pickle file data into a pandas DataFrame.</p>
+<dd><p>Loads the data from the serialized species file into a pandas DataFrame. If the <code class="xref py py-attr docutils literal"><span class="pre">file_path</span></code> parameter is not supplied,
+it will try to deduce the file name from the name of the species by default.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>file_path</strong> (<em>str</em>) &#8211; The full path to the file where the data is serialized to.</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>file_path</strong> (<em>string</em>) &#8211; The full path to the file (including the directory and filename in one string), where the data is serialized to.</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Data loaded into geopandas dataframe.</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Data loaded into (geo)pandas Dataframe.</td>
 </tr>
 <tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">geopandas.GeoDataFrame</td>
 </tr>
@@ -300,23 +599,58 @@ The geopandas data needs to have geometry as a column, besides the metadata.</p>
 <dl class="method">
 <dt id="iSDM.species.Species.plot_species_occurrence">
 <code class="descname">plot_species_occurrence</code><span class="sig-paren">(</span><em>figsize=(16</em>, <em>12)</em>, <em>projection='merc'</em>, <em>facecolor='crimson'</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.species.Species.plot_species_occurrence" title="Permalink to this definition">¶</a></dt>
-<dd><p>Documentation pending on plotting</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="iSDM.species.Species.save_data">
-<code class="descname">save_data</code><span class="sig-paren">(</span><em>full_name=None</em>, <em>dir_name=None</em>, <em>file_name=None</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.species.Species.save_data" title="Permalink to this definition">¶</a></dt>
-<dd><blockquote>
-<div>Serializes the loaded species occurrence filtered dataset (<a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/dsintro.html">pandas</a> or <a class="reference external" href="http://geopandas.org/user.html">geopandas</a> DataFrame) into a binary <a class="reference external" href="https://en.wikipedia.org/wiki/Pickle_%28Python%29">pickle</a>  file.</div></blockquote>
+<dd><p>Visually plots the species data on a <a class="reference external" href="http://matplotlib.org/basemap/api/basemap_api.html#module-mpl_toolkits.basemap">Basemap</a>.
+Basemap supports projections (with coastlines and political boundaries) using matplotlib.
+The species data must be in a <a class="reference external" href="http://geopandas.org/user.html">geopandas</a> DataFrame format. If it is not,
+the <code class="xref py py-func docutils literal"><span class="pre">geometrize()</span></code> method is called, to convert the dataframe into a <code class="docutils literal"><span class="pre">geopandas.GeoDataFrame</span></code> format (with a <code class="docutils literal"><span class="pre">geometry</span></code> column).
+The following geometrical (<a class="reference external" href="http://toblerity.org/shapely/shapely.geometry.html">Shapely</a>) shapes are supported:
+<em>Polygon</em>, <em>MultiPolygon</em>, and <em>Point</em> (plotted with a buffer around it).</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>full_name</strong> (<em>str</em>) &#8211; The full path of the file (including the directory and name in one string),
+<li><strong>figsize</strong> (<em>tuple</em>) &#8211; tuple containing the (width, height) of the plot, in inches. Default is (16, 12).</li>
+<li><strong>projection</strong> (<em>string</em>) &#8211; <p>The projection to use for plotting. Supported projection values from <a class="reference external" href="http://matplotlib.org/basemap/api/basemap_api.html#module-mpl_toolkits.basemap">Basemap</a>. Default is <code class="docutils literal"><span class="pre">merc</span></code> (Mercator).</p>
+</li>
+<li><strong>facecolor</strong> (<em>string</em>) &#8211; Fill color for the geometries. Default is <code class="docutils literal"><span class="pre">crimson</span></code> (red).</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A map with geometries plotted, zoomed to the total boundaries of the geometry Series (column) of the DataFrame.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="iSDM.species.Species.save_data">
+<code class="descname">save_data</code><span class="sig-paren">(</span><em>full_name=None</em>, <em>dir_name=None</em>, <em>file_name=None</em>, <em>method='pickle'</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.species.Species.save_data" title="Permalink to this definition">¶</a></dt>
+<dd><blockquote>
+<div>Serializes the loaded species dataset (<a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/dsintro.html">pandas</a> or <a class="reference external" href="http://geopandas.org/user.html">geopandas</a> DataFrame)
+into a binary <a class="reference external" href="https://en.wikipedia.org/wiki/Pickle_%28Python%29">pickle</a>  (or <a class="reference external" href="http://msgpack.org/index.html">msgpack</a>) file.</div></blockquote>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>full_name</strong> (<em>string</em>) &#8211; The full path of the file (including the directory and filename in one string),
 where the data will be saved.</li>
-<li><strong>dir_name</strong> (<em>str</em>) &#8211; The directory where the file will be stored. If <code class="xref py py-attr docutils literal"><span class="pre">file_name</span></code> is not specified, the default one <code class="xref py py-attr docutils literal"><span class="pre">name_species</span></code> + <code class="xref py py-attr docutils literal"><span class="pre">ID</span></code>.pkl is given.</li>
-<li><strong>file_name</strong> (<em>str</em>) &#8211; The name of the file where the data will be saved. If <code class="xref py py-attr docutils literal"><span class="pre">dir_name</span></code> is not specified, the current working directory is taken by default.</li>
+<li><strong>dir_name</strong> (<em>string</em>) &#8211; The directory where the file will be stored.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>If <code class="xref py py-attr docutils literal"><span class="pre">file_name</span></code> is not specified, the default one <code class="xref py py-attr docutils literal"><span class="pre">name_species</span></code> + <code class="docutils literal"><span class="pre">.pkl</span></code> (or <code class="docutils literal"><span class="pre">.msg</span></code>) is given by default.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>file_name</strong> (<em>string</em>) &#8211; The name of the file where the data will be saved.        If <code class="xref py py-attr docutils literal"><span class="pre">dir_name</span></code> is not specified, the current working directory is taken by default.</li>
+<li><strong>method</strong> (<em>string</em>) &#8211; The type of serialization to use for the data frame. Default is &#8220;pickle&#8221;. Another possibility is &#8220;msgpack&#8221;, as it has shown as 10% more efficient        in terms of time and memory, for the type of data we are dealing with.</li>
 </ul>
 </td>
 </tr>
@@ -333,7 +667,19 @@ where the data will be saved.</li>
 <dl class="method">
 <dt id="iSDM.species.Species.set_data">
 <code class="descname">set_data</code><span class="sig-paren">(</span><em>data_frame</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.species.Species.set_data" title="Permalink to this definition">¶</a></dt>
-<dd><p>Careful, overwrites the existing raw data!. More documentation</p>
+<dd><p>Set the species data to the contents of <code class="xref py py-attr docutils literal"><span class="pre">data_frame</span></code>. The data passed must be in a
+pandas or geopandas DataFrame.
+<strong>Careful</strong>, it overwrites the existing data!</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>data_frame</strong> (<em>pandas.DataFrame</em>) &#8211; The new data.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">None</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 </dd></dl>

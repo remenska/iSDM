@@ -137,49 +137,80 @@
             
   <div class="section" id="module-iSDM.environment">
 <span id="isdm-environment-module"></span><h1>iSDM.environment module<a class="headerlink" href="#module-iSDM.environment" title="Permalink to this headline">¶</a></h1>
-<p>Documentation on environment module.</p>
-<dl class="class">
-<dt id="iSDM.environment.BioGeographicLayer">
-<em class="property">class </em><code class="descclassname">iSDM.environment.</code><code class="descname">BioGeographicLayer</code><span class="sig-paren">(</span><em>source=None</em>, <em>file_path=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.BioGeographicLayer" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#iSDM.environment.VectorEnvironmentalLayer" title="iSDM.environment.VectorEnvironmentalLayer"><code class="xref py py-class docutils literal"><span class="pre">iSDM.environment.VectorEnvironmentalLayer</span></code></a></p>
-</dd></dl>
-
+<p>A module for all environmental layers functionality.</p>
 <dl class="class">
 <dt id="iSDM.environment.ClimateLayer">
-<em class="property">class </em><code class="descclassname">iSDM.environment.</code><code class="descname">ClimateLayer</code><span class="sig-paren">(</span><em>source=None</em>, <em>file_path=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.ClimateLayer" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">iSDM.environment.</code><code class="descname">ClimateLayer</code><span class="sig-paren">(</span><em>source=None</em>, <em>file_path=None</em>, <em>name_layer=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.ClimateLayer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#iSDM.environment.RasterEnvironmentalLayer" title="iSDM.environment.RasterEnvironmentalLayer"><code class="xref py py-class docutils literal"><span class="pre">iSDM.environment.RasterEnvironmentalLayer</span></code></a></p>
 </dd></dl>
 
 <dl class="class">
+<dt id="iSDM.environment.ContinentsLayer">
+<em class="property">class </em><code class="descclassname">iSDM.environment.</code><code class="descname">ContinentsLayer</code><span class="sig-paren">(</span><em>source=None</em>, <em>file_path=None</em>, <em>name_layer=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.ContinentsLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#iSDM.environment.VectorEnvironmentalLayer" title="iSDM.environment.VectorEnvironmentalLayer"><code class="xref py py-class docutils literal"><span class="pre">iSDM.environment.VectorEnvironmentalLayer</span></code></a></p>
+<p>Continents Layer has a special treatment as a <code class="docutils literal"><span class="pre">VectorEnvironmentLayer</span></code>.
+This is mostly because, when rasterizing the continents shapefile, there are multiple shapes
+which should end up with a different pixel value for each continents. The typical rasterizing
+operation rather produces a raster with binary values (0s and 1s), on a single band.</p>
+<p>For overlaying selected pseudo-absence biomes (pixels) with continents, it is best to
+have one individual (raster band) matrix per continent, each filled with 0s and 1s, and loop through
+the list of continents (not many layers, so should be fast). Then &#8220;overlaying&#8221; or clipping
+with biomes would amount to simple arithmetics, like multiplying the matrices (element by element)
+to filter out anything with 0-valued pixels in any matrix.</p>
+<dl class="method">
+<dt id="iSDM.environment.ContinentsLayer.rasterize">
+<code class="descname">rasterize</code><span class="sig-paren">(</span><em>raster_file=None</em>, <em>pixel_size=None</em>, <em>all_touched=False</em>, <em>no_data_value=0</em>, <em>default_value=1</em>, <em>crs=None</em>, <em>cropped=False</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.ContinentsLayer.rasterize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Documentation pending on how to rasterize continents</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
 <dt id="iSDM.environment.DEMLayer">
-<em class="property">class </em><code class="descclassname">iSDM.environment.</code><code class="descname">DEMLayer</code><span class="sig-paren">(</span><em>source=None</em>, <em>file_path=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.DEMLayer" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">iSDM.environment.</code><code class="descname">DEMLayer</code><span class="sig-paren">(</span><em>source=None</em>, <em>file_path=None</em>, <em>name_layer=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.DEMLayer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#iSDM.environment.RasterEnvironmentalLayer" title="iSDM.environment.RasterEnvironmentalLayer"><code class="xref py py-class docutils literal"><span class="pre">iSDM.environment.RasterEnvironmentalLayer</span></code></a></p>
 </dd></dl>
 
 <dl class="class">
 <dt id="iSDM.environment.EnvironmentalLayer">
-<em class="property">class </em><code class="descclassname">iSDM.environment.</code><code class="descname">EnvironmentalLayer</code><span class="sig-paren">(</span><em>source=None</em>, <em>file_path=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.EnvironmentalLayer" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">iSDM.environment.</code><code class="descname">EnvironmentalLayer</code><span class="sig-paren">(</span><em>source=None</em>, <em>file_path=None</em>, <em>name_layer=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.EnvironmentalLayer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
-<p>Some class-level documentaiton on environmental layer class</p>
+<p>A generic EnvironmentalLayer class used for subclassing different global-scale environmental data sources.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Variables:</th><td class="field-body"><ul class="first last simple">
+<li><strong>source</strong> (<a class="reference internal" href="#iSDM.environment.Source" title="iSDM.environment.Source"><em>iSDM.environment.Source</em></a>) &#8211; The source of the global environmental data.</li>
+<li><strong>name_layer</strong> (<em>string</em>) &#8211; Description of the layer</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
 <dl class="method">
 <dt id="iSDM.environment.EnvironmentalLayer.get_data">
 <code class="descname">get_data</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.EnvironmentalLayer.get_data" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Needs to be implemented in a subclass.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="iSDM.environment.EnvironmentalLayer.get_source">
 <code class="descname">get_source</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.EnvironmentalLayer.get_source" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Needs to be implemented in a subclass.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="iSDM.environment.EnvironmentalLayer.load_data">
 <code class="descname">load_data</code><span class="sig-paren">(</span><em>file_path=None</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.EnvironmentalLayer.load_data" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Needs to be implemented in a subclass.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="iSDM.environment.EnvironmentalLayer.save_data">
 <code class="descname">save_data</code><span class="sig-paren">(</span><em>full_name=None</em>, <em>dir_name=None</em>, <em>file_name=None</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.EnvironmentalLayer.save_data" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Needs to be implemented in a subclass.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="iSDM.environment.EnvironmentalLayer.set_source">
@@ -190,51 +221,259 @@
 
 <dl class="class">
 <dt id="iSDM.environment.LandCoverlayer">
-<em class="property">class </em><code class="descclassname">iSDM.environment.</code><code class="descname">LandCoverlayer</code><span class="sig-paren">(</span><em>source=None</em>, <em>file_path=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.LandCoverlayer" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">iSDM.environment.</code><code class="descname">LandCoverlayer</code><span class="sig-paren">(</span><em>source=None</em>, <em>file_path=None</em>, <em>name_layer=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.LandCoverlayer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#iSDM.environment.VectorEnvironmentalLayer" title="iSDM.environment.VectorEnvironmentalLayer"><code class="xref py py-class docutils literal"><span class="pre">iSDM.environment.VectorEnvironmentalLayer</span></code></a></p>
 </dd></dl>
 
 <dl class="class">
 <dt id="iSDM.environment.RasterEnvironmentalLayer">
-<em class="property">class </em><code class="descclassname">iSDM.environment.</code><code class="descname">RasterEnvironmentalLayer</code><span class="sig-paren">(</span><em>source=None</em>, <em>file_path=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.RasterEnvironmentalLayer" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">iSDM.environment.</code><code class="descname">RasterEnvironmentalLayer</code><span class="sig-paren">(</span><em>source=None</em>, <em>file_path=None</em>, <em>name_layer=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.RasterEnvironmentalLayer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#iSDM.environment.EnvironmentalLayer" title="iSDM.environment.EnvironmentalLayer"><code class="xref py py-class docutils literal"><span class="pre">iSDM.environment.EnvironmentalLayer</span></code></a></p>
-<p>Some class-level documentation on raster environmental layer</p>
+<p>A class for encapsulating the raster environmental layer functionality. Operations such as reprojecting,
+overlaying, sampling pseudo-absence pixels, converting to world map coordinates, are some of the functionalities
+implemented as wrappers around corresponding rasterio/Numpy operations and methods.
+This class should be used when the expected layer data is in raster format, i.e., 2-dimensional (multi-band) array of data.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Variables:</th><td class="field-body"><ul class="first last simple">
+<li><strong>file_path</strong> (<em>string</em>) &#8211; Location of the raster file from which the raster map data is loaded.</li>
+<li><strong>raster_affine</strong> (<em>rasterio.transform.Affine</em>) &#8211; Affine translation used in the environmental raster map.</li>
+<li><strong>resolution</strong> (<em>tuple(int, int)</em>) &#8211; The resolution of the raster map, as a tuple (height, width) in pixels.</li>
+<li><strong>raster_reader</strong> (<em>rasterio._io.RasterReader</em>) &#8211; file reader for the corresponding rasterized data.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
 <dl class="method">
 <dt id="iSDM.environment.RasterEnvironmentalLayer.close_dataset">
 <code class="descname">close_dataset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.RasterEnvironmentalLayer.close_dataset" title="Permalink to this definition">¶</a></dt>
-<dd><p>Documentation pending on what it means to close a dataset</p>
+<dd><p>Close the <code class="docutils literal"><span class="pre">rasterio._io.RasterReader</span></code> file reader, if open. This releases resources such as memory.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="iSDM.environment.RasterEnvironmentalLayer.get_data">
 <code class="descname">get_data</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.RasterEnvironmentalLayer.get_data" title="Permalink to this definition">¶</a></dt>
-<dd><p>Documentation on what it means to get the data</p>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">A raster file reader, from which any band data can be read using .read(band_number)</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">rasterio._io.RasterReader</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
 <dt id="iSDM.environment.RasterEnvironmentalLayer.load_data">
 <code class="descname">load_data</code><span class="sig-paren">(</span><em>file_path=None</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.RasterEnvironmentalLayer.load_data" title="Permalink to this definition">¶</a></dt>
-<dd><p>Documentation pending on how to load environment raster data</p>
+<dd><p>Loads the raster data from a previously-saved raster file. Provides information about the
+loaded data, and returns a rasterio file reader.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>file_path</strong> (<em>string</em>) &#8211; The full path to the targed GeoTIFF raster file (including the directory and filename in one string).</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Rasterio RasterReader file object which can be used to read individual bands from the raster file.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">rasterio._io.RasterReader</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
-<dt id="iSDM.environment.RasterEnvironmentalLayer.overlay">
-<code class="descname">overlay</code><span class="sig-paren">(</span><em>range_map</em>, <em>plot=False</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.RasterEnvironmentalLayer.overlay" title="Permalink to this definition">¶</a></dt>
-<dd><p>To extract data from a raster only where it intersects with a vector feature.
-rasterio provides option to &#8220;burn&#8221; vector shapes into rasters (rasterize the geometry). Then we create
-a raster mask layer</p>
+<dt id="iSDM.environment.RasterEnvironmentalLayer.pixel_to_world_coordinates">
+<code class="descname">pixel_to_world_coordinates</code><span class="sig-paren">(</span><em>raster_data=None</em>, <em>no_data_value=0</em>, <em>filter_no_data_value=True</em>, <em>band_number=1</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.RasterEnvironmentalLayer.pixel_to_world_coordinates" title="Permalink to this definition">¶</a></dt>
+<dd><p>Map the pixel coordinates to world coordinates. The affine transformation matrix is used for this purpose.
+The convention is to reference the pixel corner. To reference the pixel center instead, we translate each pixel by 50%.
+The &#8220;no value&#8221; pixels (cells) can be filtered out.</p>
+<p>A dataset&#8217;s pixel coordinate system has its origin at the &#8220;upper left&#8221; (imagine it displayed on your screen).
+Column index increases to the right, and row index increases downward. The mapping of these coordinates to
+&#8220;world&#8221; coordinates in the dataset&#8217;s reference system is done with an affine transformation matrix.</p>
+<p>param string raster_data: the raster data (2-dimensional array) to translate to world coordinates. If not provided,         it tries to load existing rasterized data about the RasterEnvironmentalLayer.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>no_data_value</strong> (<em>int</em>) &#8211; The pixel values depicting non-burned cells. Default is 0.</td>
+</tr>
+</tbody>
+</table>
+<p>: params bool filter_no_data_value: Whether to filter-out the no-data pixel values. Default is true. If set to         false, all pixels in a 2-dimensional array will be converted to world coordinates. Typically this option is used         to get a &#8220;base&#8221; map of the coordinates of all pixels in an image (map).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">a tuple of numpy ndarrays. The first array contains the latitude values for each         non-zero cell, the second array contains the longitude values for each non-zero cell.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="iSDM.environment.RasterEnvironmentalLayer.plot">
+<code class="descname">plot</code><span class="sig-paren">(</span><em>figsize=(25</em>, <em>20)</em>, <em>band_number=1</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.RasterEnvironmentalLayer.plot" title="Permalink to this definition">¶</a></dt>
+<dd><p>A simple plot of the raster image data. The data should be loaded before calling this method.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>figsize</strong> (<em>tuple</em>) &#8211; A tuple containing the (width, height) of the plot, in inches. Default is (25, 20)</li>
+<li><strong>band_number</strong> (<em>int</em>) &#8211; The index of the band to use for plotting the raster data.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="iSDM.environment.RasterEnvironmentalLayer.plot_world_coordinates">
+<em class="property">classmethod </em><code class="descname">plot_world_coordinates</code><span class="sig-paren">(</span><em>coordinates=None</em>, <em>figsize=(16</em>, <em>12)</em>, <em>projection='merc'</em>, <em>facecolor='crimson'</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.RasterEnvironmentalLayer.plot_world_coordinates" title="Permalink to this definition">¶</a></dt>
+<dd><p>Visually plots coordinates on a <a class="reference external" href="http://matplotlib.org/basemap/api/basemap_api.html#module-mpl_toolkits.basemap">Basemap</a>.
+Basemap supports projections (with coastlines and political boundaries) using matplotlib.
+The coordinates data must be provided as a tuple of Numpy arrays, one for the x, and one for the y values of the coordinates.
+First, the data is converted to a <code class="docutils literal"><span class="pre">pandas.DataFrame</span></code> with the x and y arrays transposed as <code class="docutils literal"><span class="pre">decimallatitude</span></code> and <code class="docutils literal"><span class="pre">decimallongitude</span></code>
+columns.
+Next, the <code class="xref py py-func docutils literal"><span class="pre">__geometrize__()</span></code> method is used to convert the dataframe into a geoopandas format (with a <code class="docutils literal"><span class="pre">geometry</span></code> column).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>coordinates</strong> (<em>tuple</em>) &#8211; A tuple containing Numpy arrays, one for the x, and one for the y values of the coordinates.</li>
+<li><strong>figsize</strong> (<em>tuple</em>) &#8211; A tuple containing the (width, height) of the plot, in inches. Default is (16, 12)</li>
+<li><strong>projection</strong> (<em>string</em>) &#8211; The projection to use for plotting. Supported projection values from</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p><a class="reference external" href="http://matplotlib.org/basemap/api/basemap_api.html#module-mpl_toolkits.basemap">Basemap</a>. Default is &#8216;merc&#8217; (Mercator)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>facecolor</strong> (<em>string</em>) &#8211; Fill color for the geometries. Defaylt is &#8220;crimson&#8221; (red)</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">a map with geometries plotted, zoomed to the total boundaries of the geometry Series (column) of the DataFrame.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="iSDM.environment.RasterEnvironmentalLayer.polygonize">
+<code class="descname">polygonize</code><span class="sig-paren">(</span><em>band_number=1</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.RasterEnvironmentalLayer.polygonize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract shapes from raster features. This is the inverse operation of rasterizing shapes.
+Uses the <a class="reference external" href="http://geopandas.org/user.html">Rasterio &lt;https://mapbox.github.io/rasterio/_modules/rasterio/features.html&gt;&#8217;_ library
+for this purpose. The data is loaded into a `geopandas</a> GeoDataFrame.
+GeoDataFrame data structures are pandas DataFrames with added functionality, containing a <code class="docutils literal"><span class="pre">geometry</span></code>
+column for the <a class="reference external" href="http://toblerity.org/shapely/shapely.geometry.html">Shapely</a> geometries.
+The raster data should be loaded in the layer before calling this method.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>band_number</strong> (<em>int</em>) &#8211; The index of the raster band which is to be used as input for extracting         gemetrical shapes.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">geopandas.GeoDataFrame</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
 <dt id="iSDM.environment.RasterEnvironmentalLayer.read">
-<code class="descname">read</code><span class="sig-paren">(</span><em>band_number=None</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.RasterEnvironmentalLayer.read" title="Permalink to this definition">¶</a></dt>
-<dd><p>Documentation pending on reading raster bands</p>
+<code class="descname">read</code><span class="sig-paren">(</span><em>band_number=1</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.RasterEnvironmentalLayer.read" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read a particular band from the raster data array.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>band_number</strong> (<em>int</em>) &#8211; The index of the band to read.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A 2-dimensional Numpy array containing the pixel values of that particular band.</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
 <dt id="iSDM.environment.RasterEnvironmentalLayer.reproject">
 <code class="descname">reproject</code><span class="sig-paren">(</span><em>source_file=None</em>, <em>destination_file=None</em>, <em>resampling=0</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.RasterEnvironmentalLayer.reproject" title="Permalink to this definition">¶</a></dt>
-<dd><p>Documentation pending on how to reproject/resample data</p>
+<dd><p>Reprojects the pixels of a source raster map to a destination raster, with a different reference coordinate
+system and Affine transform. It uses <a class="reference external" href="https://github.com/mapbox/rasterio/blob/master/docs/reproject.rst">Rasterio</a>
+calculate_default_transform() to calculate parameters such as the resolution (if not provided), and the destination
+transform and dimensions.</p>
+<p>param string source_file: Full path to the source file containing a raster map</p>
+<p>param string destination_file: Full path to the destination file containing a raster map</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>resampling</strong> (<em>int</em>) &#8211; Resampling method to use. Can be one of the following: <code class="docutils literal"><span class="pre">Resampling.nearest</span></code>, <code class="docutils literal"><span class="pre">Resampling.bilinear</span></code>,         <code class="docutils literal"><span class="pre">Resampling.cubic</span></code>, <code class="docutils literal"><span class="pre">Resampling.cubic_spline</span></code>, <code class="docutils literal"><span class="pre">Resampling.lanczos</span></code>, <code class="docutils literal"><span class="pre">Resampling.average</span></code>, <code class="docutils literal"><span class="pre">Resampling.mode</span></code>.</li>
+<li><strong>kwargs</strong> (<em>dict</em>) &#8211; Optional additional arguments passed to the method, to parametrize the reprojection.         For example: <code class="xref py py-attr docutils literal"><span class="pre">dst_crs</span></code> for the target coordinate reference system, <code class="xref py py-attr docutils literal"><span class="pre">resolution</span></code> for the target resolution,         in units of target coordinate reference system.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="iSDM.environment.RasterEnvironmentalLayer.sample_pseudo_absences">
+<code class="descname">sample_pseudo_absences</code><span class="sig-paren">(</span><em>species_raster_data=None</em>, <em>band_number=1</em>, <em>number_of_pseudopoints=1000</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.RasterEnvironmentalLayer.sample_pseudo_absences" title="Permalink to this definition">¶</a></dt>
+<dd><p>Samples a <code class="xref py py-attr docutils literal"><span class="pre">number_of_pseudopoints</span></code> points from the <code class="docutils literal"><span class="pre">RasterEnvironmentalLayer</span></code> data (raster map),
+based on a given species raster map which is assumed to contain species presence points.
+The <code class="xref py py-attr docutils literal"><span class="pre">species_raster_data</span></code> is used to determine which distinct regions (cell values) from the entire
+environmental raster map, should be taken into account for potential pseudo-absence sampling regions.
+Next, all the pixels from the environmental raster map whose values are in the distinct regions are
+merged on a filtered environmental raster map. Finally, presence pixels are removed from this map, and
+the resulting pixels are used as a base for sampling pseudo-absences. If the number of such resulting pixels
+left is smaller than the number of requested pseudo-absence points, all pixels are automatically taken
+as pseudo-absence points, and no random sampling is done.</p>
+<p>Otherwise, <code class="xref py py-attr docutils literal"><span class="pre">number_of_pseudopoints</span></code> pixels positions (indices) are randomly chosen at once (for speed),
+rather than randomly sampling one by one until the desired number of pseudo-absences is reached. Due to this,
+it could be that some random pixel positions repeat, and the resulting number of unique pixels is slightly smaller
+than the required one.
+<em>For instance, experiments show that around 980 unique pixels are drawn when the random
+samples requested is 1000.</em></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>species_raster_data</strong> (<em>np.ndarray</em>) &#8211; A raster map containing the species presence pixels. If not provided,</td>
+</tr>
+</tbody>
+</table>
+<p>by default the one loaded previously (if available, otherwise .load_data() should be used before) is used.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>band_number</strong> (<em>int</em>) &#8211; The index of the band from the <code class="xref py py-attr docutils literal"><span class="pre">species_raster_data</span></code> to use as input. Default is 1.</li>
+<li><strong>number_of_pseudopoints</strong> (<em>int</em>) &#8211; Number of pseudo-absence points to sample from the raster environmental layer data.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A tuple containing two raster maps, one with all potential background pixels chosen to sample from,         and second with all the actual sampled pixels.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">tuple(np.ndarray, np.ndarray)</p>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 </dd></dl>
@@ -243,29 +482,156 @@ a raster mask layer</p>
 <dt id="iSDM.environment.Source">
 <em class="property">class </em><code class="descclassname">iSDM.environment.</code><code class="descname">Source</code><a class="headerlink" href="#iSDM.environment.Source" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">enum.Enum</span></code></p>
+<p>Possible sources of global environmental data.</p>
 </dd></dl>
 
 <dl class="class">
 <dt id="iSDM.environment.VectorEnvironmentalLayer">
-<em class="property">class </em><code class="descclassname">iSDM.environment.</code><code class="descname">VectorEnvironmentalLayer</code><span class="sig-paren">(</span><em>source=None</em>, <em>file_path=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.VectorEnvironmentalLayer" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">iSDM.environment.</code><code class="descname">VectorEnvironmentalLayer</code><span class="sig-paren">(</span><em>source=None</em>, <em>file_path=None</em>, <em>name_layer=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.VectorEnvironmentalLayer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#iSDM.environment.EnvironmentalLayer" title="iSDM.environment.EnvironmentalLayer"><code class="xref py py-class docutils literal"><span class="pre">iSDM.environment.EnvironmentalLayer</span></code></a></p>
-<p>Some class-level documentation on vector environmental layers here</p>
+<p>A class for encapsulating the vector environmental layer functionality, with operations such as rasterizing.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Variables:</th><td class="field-body"><ul class="first last simple">
+<li><strong>file_path</strong> (<em>string</em>) &#8211; Full location of the shapefile containing the data for this layer.</li>
+<li><strong>data_full</strong> (<em>geopandas.GeoDataFrame</em>) &#8211; Data frame containing the full data for the environmental layer geometries.</li>
+<li><strong>raster_file</strong> (<em>string</em>) &#8211; Full location of the corresponding raster map data for this layer.</li>
+<li><strong>raster_affine</strong> (<em>rasterio.transform.Affine</em>) &#8211; Affine translation used in the corresponding raster map of this layer.</li>
+<li><strong>raster_reader</strong> (<em>rasterio._io.RasterReader</em>) &#8211; file reader for the corresponding rasterized data.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
 <dl class="method">
 <dt id="iSDM.environment.VectorEnvironmentalLayer.get_data">
 <code class="descname">get_data</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.VectorEnvironmentalLayer.get_data" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Returns the (pre)loaded species data in a (geo)pandas DataFrame.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><code class="xref py py-attr docutils literal"><span class="pre">self.data_full</span></code></td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">geopandas.GeoDataFrame or pandas.DataFrame</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt id="iSDM.environment.VectorEnvironmentalLayer.load_data">
 <code class="descname">load_data</code><span class="sig-paren">(</span><em>file_path=None</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.VectorEnvironmentalLayer.load_data" title="Permalink to this definition">¶</a></dt>
-<dd><p>Documentation on how to load shapefile environmental layer</p>
+<dd><p>Loads the environmental data from the provided <code class="xref py py-attr docutils literal"><span class="pre">file_path</span></code> shapefile into a <code class="docutils literal"><span class="pre">geopandas.GeoDataFrame</span></code>.
+A GeoDataFrame is a tablular data structure that contains a column called <code class="docutils literal"><span class="pre">geometry</span></code> which contains a GeoSeries of
+<a class="reference external" href="http://toblerity.org/shapely/shapely.geometry.html">Shapely</a> geometries. all other meta-data column names are
+converted to a lower-case, for consistency.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>file_path</strong> (<em>string</em>) &#8211; The full path to the shapefile file (including the directory and filename in one string).</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">None</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="iSDM.environment.VectorEnvironmentalLayer.load_raster_data">
+<code class="descname">load_raster_data</code><span class="sig-paren">(</span><em>raster_file=None</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.VectorEnvironmentalLayer.load_raster_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loads the raster data from a previously-saved raster file. Provides information about the
+loaded data, and returns a rasterio file reader.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>raster_file</strong> (<em>string</em>) &#8211; The full path to the targed GeoTIFF raster file (including the directory and filename in one string).</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Rasterio RasterReader file object which can be used to read individual bands from the raster file.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">rasterio._io.RasterReader</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="iSDM.environment.VectorEnvironmentalLayer.rasterize">
+<code class="descname">rasterize</code><span class="sig-paren">(</span><em>raster_file=None</em>, <em>pixel_size=None</em>, <em>all_touched=True</em>, <em>no_data_value=0</em>, <em>default_value=1</em>, <em>crs=None</em>, <em>cropped=False</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.VectorEnvironmentalLayer.rasterize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Rasterize (burn) the environment rangemaps (geometrical shapes) into pixels (cells), i.e., a 2-dimensional image array
+of type numpy ndarray. Uses the <a class="reference external" href="https://mapbox.github.io/rasterio/_modules/rasterio/features.html">Rasterio</a> library
+for this purpose. All the shapes from the <code class="docutils literal"><span class="pre">VectorEnvironmentalLayer</span></code> object data are burned in a single <em>band</em> of the image.
+Rasterio datasets can generally have one or more bands, or layers. Following the GDAL convention, these are indexed starting with 1.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>raster_file</strong> (<em>string</em>) &#8211; The full path to the targed GeoTIFF raster file (including the directory and filename in one string).</li>
+<li><strong>pixel_size</strong> (<em>int</em>) &#8211; The size of the pixel in degrees, i.e., the resolution to use for rasterizing.</li>
+<li><strong>all_touched</strong> (<em>bool</em>) &#8211; If true, all pixels touched by geometries, will be burned in. If false, only pixels         whose center is within the polygon or that are selected by Bresenham&#8217;s line algorithm, will be burned in.</li>
+<li><strong>no_data_value</strong> (<em>int</em>) &#8211; Used as value of the pixels which are not burned in. Default is 0.</li>
+<li><strong>default_value</strong> (<em>int</em>) &#8211; Used as value of the pixels which are burned in. Default is 1.</li>
+<li><strong>crs</strong> &#8211; The Coordinate Reference System to use. Default is &#8220;ESPG:4326&#8221;</li>
+<li><strong>cropped</strong> (<em>bool</em>) &#8211; If true, the resulting pixel array (image) is cropped to the region borders, which contain         the burned pixels (i.e., an envelope within the range). Otherwise, a &#8220;global world map&#8221; is used, i.e., the boundaries         are set to (-180, -90, 180, 90) for the resulting array.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Rasterio RasterReader file object which can be used to read individual bands from the raster file.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">rasterio._io.RasterReader</p>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
 <dt id="iSDM.environment.VectorEnvironmentalLayer.save_data">
 <code class="descname">save_data</code><span class="sig-paren">(</span><em>full_name=None</em>, <em>driver='ESRI Shapefile'</em>, <em>overwrite=False</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.VectorEnvironmentalLayer.save_data" title="Permalink to this definition">¶</a></dt>
-<dd><p>Saves the current (geopandas) data as a shapefile.
-The geopandas data needs to have geometry as a column, besides the metadata.</p>
+<dd><p>Saves the current <code class="docutils literal"><span class="pre">geopandas.GeoDataFrame</span></code> data in a shapefile. The data is expected to have a &#8216;geometry&#8217;
+as a column, besides other metadata metadata. If the full location and name of the file is not provided,
+then the <code class="xref py py-attr docutils literal"><span class="pre">overwrite</span></code> should be set to <code class="docutils literal"><span class="pre">True</span></code> to overwrite the existing shapefile from which the
+data was previously loaded.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>file_path</strong> (<em>string</em>) &#8211; The full path to the targed shapefile file (including the directory and filename in one string).</li>
+<li><strong>driver</strong> (<em>string</em>) &#8211; The driver to use for storing the geopandas.GeoDataFrame data into a file. Default is &#8220;ESRI Shapefile&#8221;.</li>
+<li><strong>overwrite</strong> (<em>bool</em>) &#8211; Whether to overwrite the shapefile from which the data was previously loaded, if a new <code class="xref py py-attr docutils literal"><span class="pre">file_path</span></code> is not supplied.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">None</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="iSDM.environment.VectorEnvironmentalLayer.set_data">
+<code class="descname">set_data</code><span class="sig-paren">(</span><em>data_frame</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.VectorEnvironmentalLayer.set_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set the species data to the contents of <code class="xref py py-attr docutils literal"><span class="pre">data_frame</span></code>. The data passed must be in a
+pandas or geopandas DataFrame.
+<strong>Careful</strong>, it overwrites the existing data!</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>data_frame</strong> (<em>pandas.DataFrame</em>) &#8211; The new data.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">None</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 </dd></dl>
