@@ -869,7 +869,7 @@ class IUCNSpecies(Species):
                 logger.info("Succesfully loaded existing raster data from %s." % self.raster_file)
             except AttributeError as e:
                 logger.error("Could not open raster file. %s " % str(e))
-                return
+                raise AttributeError(e)
 
         # first get the original Affine transformation matrix
         T0 = self.raster_affine
