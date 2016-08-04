@@ -265,6 +265,9 @@ class GBIFSpecies(Species):
     A class for encapsulating the `GBIF <http://www.gbif.org/>`_ (Global Biodiversity Information Facility) species layer functionality.
     Uses the `pygbif <https://github.com/sckott/pygbif>`_ python API for querying the GBIF backbone and acquiring observations data on species.
 
+    :ivar data_full: Data frame containing the full data for the species occurrences.
+    :vartype name_species: pandas.DataFrame or geopandas.GeoDataFrame
+
     """
 
     def __init__(self, **kwargs):
@@ -550,6 +553,17 @@ class IUCNSpecies(Species):
     is no IUCN API to directly query the IUCN backend database for particular taxonomical species.
     The data is always loaded in ``geopandas.GeoDataFrame`` format, suitable for geometries and operations on them.
 
+    :ivar shape_file: Location of the shapefile from which the data is loaded.
+    :vartypee shape_file: string
+
+    :ivar raster_file: Location of the raster file to which the corresponding rasterized data is stored.
+    :vartypee shape_file: string
+
+    :ivar raster_affine: Affine translation used in the species raster map.
+    :vartype raster_affine: rasterio.transform.Affine
+
+    :ivar raster_reader: file reader for the corresponding rasterized data.
+    :vartype raster_reader: rasterio._io.RasterReader
     """
 
     def __init__(self, **kwargs):
