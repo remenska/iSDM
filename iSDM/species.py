@@ -279,7 +279,7 @@ class GBIFSpecies(Species):
         """
         Finds and loads species occurrence data into pandas DataFrame. The data comes from GBIF backbone API requests,
         based on the name of the species (:attr:`name_species`). If the :attr:`name_species` parameter is not provided, it is attempted
-        to query the GBIF backbone using the species object :ivar:`ID` (if already set) as a taxonomical key.
+        to query the GBIF backbone using the species object :py:attr:`ID` (if already set) as a taxonomical key.
         The GBIF API provides services for searching occurrence records that have been indexed by GBIF. The results from the search
         are paginated, and in order to retrieve them all, individual requests are issued for each page. The returned results are
         limited to a maximum of 300 records per page, at the time of writing this. The method below will loop until there are
@@ -360,7 +360,7 @@ class GBIFSpecies(Species):
         """
         Load data from a CSV file into a  ``pandas.DataFrame``. The records are expected to contain (meta-)data on individual
         species occurrences. Examples of expected columns: ``decimallatitude``, ``decimallongitude``, ``specieskey`` etc.
-        If the file contains data on one particular species (all values in the ``specieskey`` column are equal), the :ivar:`ID`
+        If the file contains data on one particular species (all values in the ``specieskey`` column are equal), the :py:attr:`ID`
         of the GBIFSpecies object is updated to the ``specieskey`` value. The data for the GBIFSpecies object is also
         updated to contain the CSV file contents, so be careful not to overwrite existing data.
         All column names are converted to lower-case, for consistency.
