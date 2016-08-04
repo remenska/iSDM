@@ -159,7 +159,7 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
         Column index increases to the right, and row index increases downward. The mapping of these coordinates to
         "world" coordinates in the dataset's reference system is done with an affine transformation matrix.
 
-        :param str raster_data: the raster data (2-dimensional array) to translate to world coordinates. If not provided,
+        param string raster_data: the raster data (2-dimensional array) to translate to world coordinates. If not provided,
         it tries to load existing rasterized data about the RasterEnvironmentalLayer.
 
         :param int no_data_value: The pixel values depicting non-burned cells. Default is 0.
@@ -429,9 +429,9 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
         calculate_default_transform() to calculate parameters such as the resolution (if not provided), and the destination
         transform and dimensions.
 
-        :param str source_file: Full path to the source file containing a raster map
+        param string source_file: Full path to the source file containing a raster map
 
-        :param str destination_file: Full path to the destination file containing a raster map
+        param string destination_file: Full path to the destination file containing a raster map
 
         :param int resampling: Resampling method to use. Can be one of the following: Resampling.nearest, Resampling.bilinear,
         Resampling.cubic, Resampling.cubic_spline, Resampling.lanczos, Resampling.average, Resampling.mode.

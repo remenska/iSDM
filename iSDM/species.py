@@ -58,9 +58,9 @@ class Species(object):
     Species
     A generic Species class used for subclassing different global-scale species data sources.
 
-    :ivar ID: a unique ID for a particular species. For example, for GBIF sources, it is the gbifid metadata field.
+    :ivar ID: a unique ID for a particular species. For example, for GBIF sources, it is the ``gbifid`` metadata field.
     :vartype ID: integer
-    :ivar name_species: initial value: 'Unknown'
+    :ivar name_species: initial value: 'Unknown'.
     :vartype name_species: string
     """
 
@@ -86,13 +86,13 @@ class Species(object):
 
     def save_data(self, full_name=None, dir_name=None, file_name=None, method="pickle"):
         """
-        Serializes the loaded species dataset (`pandas <http://pandas.pydata.org/pandas-docs/stable/dsintro.html>`_ or `geopandas <http://geopandas.org/user.html>`_ DataFrame) into a binary `pickle <https://en.wikipedia.org/wiki/Pickle_%28Python%29>`_  (or 'msgpack <http://msgpack.org/index.html>'_) file.
+        Serializes the loaded species dataset (`pandas <http://pandas.pydata.org/pandas-docs/stable/dsintro.html>`_ or `geopandas <http://geopandas.org/user.html>`_ DataFrame) into a binary `pickle <https://en.wikipedia.org/wiki/Pickle_%28Python%29>`_  (or `msgpack <http://msgpack.org/index.html>`_) file.
 
        :param string full_name: The full path of the file (including the directory and filename in one string),
         where the data will be saved.
 
        :param string dir_name: The directory where the file will be stored.
-       If :attr:`file_name` is not specified, the default one :attr:`name_species` + `.pkl` (or `.msg`) is given by default.
+       If :attr:`file_name` is not specified, the default one :attr:`name_species` + ``.pkl`` (or ``.msg``) is given by default.
 
        :param string file_name: The name of the file where the data will be saved.
        If :attr:`dir_name` is not specified, the current working directory is taken by default.
@@ -171,7 +171,7 @@ class Species(object):
         """
         Set the species data to the contents of :attr:`data_frame`. The data passed must be in a
         pandas or geopandas DataFrame.
-        Careful, it overwrites the existing data!
+        **Careful**, it overwrites the existing data!
 
         :param pandas.DataFrame data_frame: The new data.
 
@@ -186,20 +186,20 @@ class Species(object):
 
     def plot_species_occurrence(self, figsize=(16, 12), projection='merc', facecolor='crimson'):
         """
-        Visually plots the species data on a `Basemap <http://matplotlib.org/basemap/api/basemap_api.html#module-mpl_toolkits.basemap`>_.
+        Visually plots the species data on a `Basemap <http://matplotlib.org/basemap/api/basemap_api.html#module-mpl_toolkits.basemap>`_.
         Basemap supports projections (with coastlines and political boundaries) using matplotlib.
         The species data must be in a `geopandas <http://geopandas.org/user.html>`_ DataFrame format. If it is not,
-        the :func:`geometrize` method is called, to convert the dataframe into a geoopandas format (with a "geometry" column).
+        the :func:`geometrize` method is called, to convert the dataframe into a ``geopandas.GeoDataFrame`` format (with a ``geometry`` column).
         The following geometrical (`Shapely <http://toblerity.org/shapely/shapely.geometry.html>`_) shapes are supported:
-        Polygon, MultiPolygon, and Point (plotted with a buffer around it).
+        *Polygon*, *MultiPolygon*, and *Point* (plotted with a buffer around it).
 
-        :param tuple figsize: tuple containing the (width, height) of the plot, in inches. Default is (16, 12)
+        :param tuple figsize: tuple containing the (width, height) of the plot, in inches. Default is (16, 12).
 
-        :param string projection: The projection to use for plotting. Supported projection values from `Basemap <http://matplotlib.org/basemap/api/basemap_api.html#module-mpl_toolkits.basemap>`_. Default is 'merc' (Mercator)
+        :param string projection: The projection to use for plotting. Supported projection values from `Basemap <http://matplotlib.org/basemap/api/basemap_api.html#module-mpl_toolkits.basemap>`_. Default is 'merc' (Mercator).
 
-        :param string facecolor: Fill color for the geometries. Defaylt is "crimson" (red)
+        :param string facecolor: Fill color for the geometries. Default is "crimson" (red).
 
-        :returns: a map with geometries plotted, zoomed to the total boundaries of the geometry Series (column) of the DataFrame.
+        :returns: A map with geometries plotted, zoomed to the total boundaries of the geometry Series (column) of the DataFrame.
 
         """
         if not isinstance(self.data_full, GeoDataFrame):
@@ -279,13 +279,14 @@ class GBIFSpecies(Species):
         The GBIF API provides services for searching occurrence records that have been indexed by GBIF. The results from the search
         are paginated, and in order to retrieve them all, individual requests are issued for each page. The returned results are
         limited to a maximum of 300 records per page, at the time of writing this. The method below will loop until there are
-        no more "next" pages (endOfRecords is reached), and combine all species occurrence (meta-)data in a single data structure.
-        The pygbif.occurrences.search(...) returns a list of json structures which are loaded into
-        Pandas DataFrame for easier manipulation.
+        no more "next" pages (``endOfRecords`` is reached), and combine all species occurrence (meta-)data in a single data structure.
+        The pygbif.occurrences.search(...) returns a list of json structures which are loaded into ``pandas.DataFrame`` for easier manipulation.
 
-        :param string name_species: The taxonomical name of the species to use for querying the GBIF backbone.
+        :param string name_species: The taxonomical name of the species to use for querying the `GBIF <http://www.gbif.org/>`_ backbone.
 
-        :returns: pandas.DataFrame containing all species occurrences (meta-)data.
+        :returns: Data frame containing all species occurrences (meta-)data.
+
+        :rtype: pandas.DataFrame
 
         """
         if name_species:
@@ -353,16 +354,18 @@ class GBIFSpecies(Species):
 
     def load_csv(self, file_path):
         """
-        Load data from a CSV file into a pandas DataFrame. The records are expected to contain (meta-)data on individual
-        species occurrences. Examples of expected columns: decimallatitude, decimallongitude, specieskey etc.
-        If the file contains data on one particular species (all values in the 'specieskey' column are equal), the ID
-        of the GBIFSpecies object is updated to the 'specieskey' value. The data for the GBIFSpecies object is also
+        Load data from a CSV file into a  ``pandas.DataFrame``. The records are expected to contain (meta-)data on individual
+        species occurrences. Examples of expected columns: ``decimallatitude``, ``decimallongitude``, ``specieskey`` etc.
+        If the file contains data on one particular species (all values in the ``specieskey`` column are equal), the :ivar:`ID`
+        of the GBIFSpecies object is updated to the ``specieskey`` value. The data for the GBIFSpecies object is also
         updated to contain the CSV file contents, so be careful not to overwrite existing data.
         All column names are converted to lower-case, for consistency.
 
         :param string file_path: The full path to the file (including the directory and filename in one string).
 
-        :returns: pandas.DataFrame loaded with data from the CSV file.
+        :returns: Data frame loaded with data from the CSV file.
+
+        :rtype: pandas.DataFrame
 
         """
         if file_path is None:
@@ -394,16 +397,16 @@ class GBIFSpecies(Species):
         GeoDataFrames inherit basic DataFrames, and provide more functionality on top of pandas.
         The biggest difference in terms of the data layout is the addition of a 'geometry' column which contains
         `Shapely <http://toblerity.org/shapely/shapely.geometry.html>`_ geometries in `geopandas <http://geopandas.org/user.html>`_.
-        The decimallatitude and decimallongitude columns are converted into shapely Point geometry, one Point for each latitude/longitude
+        The ``decimallatitude`` and ``decimallongitude`` columns are converted into shapely Point geometry, one Point for each latitude/longitude
         record.
 
         :param bool dropna: Whether to drop records with NaN values in the decimallatitude or decimallongitude columns in the conversion process.
 
         :param string longitude_col_name: The name of the column carrying the decimal longitude values. Default is 'decimallongitude'.
 
-        :param string latitude_col_name: The name of the column carrying the decimal latitude values. Default is 'decimallatitude'
+        :param string latitude_col_name: The name of the column carrying the decimal latitude values. Default is 'decimallatitude'.
 
-        :param crs: The Coordinate Reference System of the data. Default is "EPSG:4326"
+        :param crs: The Coordinate Reference System of the data. Default is "EPSG:4326".
         :type crs: string or dictionary.
 
         :returns: None
@@ -445,15 +448,16 @@ class GBIFSpecies(Species):
                    preserve_topology=False,
                    with_envelope=False):
         """
-        Helper method: expands each Shapely Point of the GeoDataFrame species data into its "polygon of influence" (buffer).
-        If the data is not already in a geopandas format, the :func:`geometrize` method is called first.
-        Further merges the polygons that overlap into a cascaded union (multipolygon). The polygon is further simplified,
-        also (optionally) by using an envelope around the buffer. An envelope is thhe smallest rectangular polygon
-        (with sides parallel to the coordinate axes) that contains the buffer geometry. The original species data is un-altered.
+        Helper method: expands each `Shapely <http://toblerity.org/shapely/shapely.geometry.html>`_ Point of the `geopandas.GeoDataFrame`
+        species data into its *"polygon of influence"* (buffer). If the data is not already in a geopandas format,
+        the :func:`geometrize` method is called first. Further merges the polygons that overlap into a *cascaded union* (multipolygon).
+        The polygon is further simplified, also (optionally) by using an envelope around the buffer. An *envelope* is the smallest
+        rectangular polygon (with sides parallel to the coordinate axes) that contains the buffer geometry.
+        The original species data is un-altered.
 
-        :param int buffer_distance: Unitless distance from the Point geometry, do specify the amount of "influence". Default is 1.
+        :param int buffer_distance: Unitless distance from the Point geometry, specifying the amount of "influence". Default is 1.
 
-        :param int bufffer_resolution: The resolution of the buffer around each Point. It is used for approximation of a unit radius circle.
+        :param int buffer_resolution: The resolution of the buffer around each Point. It is used for approximation of a unit radius circle.
         For example, 16-gon approximation, 3 - triangle approximation etc. The higher the resolution, the closer the approximation of
         the buffer to a circle shape around the point. Default is 16.
 
@@ -464,8 +468,10 @@ class GBIFSpecies(Species):
 
         :param bool with_envelope: Whether to use an envelope in the simplification of the geometry. Default is false.
 
-        :returns: geopandas.GeoDataFrame containing all polygons of the simplified geometries.
-s
+        :returns: Data frame containing all polygons of the simplified geometries.
+
+        :rtype: geopandas.GeoDataFrame
+
         """
         if not (isinstance(self.data_full, GeoSeries) or isinstance(self.data_full, GeoDataFrame)):
             self.geometrize(dropna=True)
@@ -501,9 +507,9 @@ s
         This overlaying effectively crops the point records to the area within the range map, i.e., drops those
         points that fall outside the union of range polygon(s). If the data is not already in a geopandas format,
         the :func:`geometrize` method is called first.
-        The geometries are first "prepared" ('Prepared Geometries <http://toblerity.org/shapely/manual.html>`_,
+        The geometries are first "prepared" (`Prepared Geometries <http://toblerity.org/shapely/manual.html>`_,
         for faster operations, such as checking if a polygon contains a point.
-        Careful, the species data is updated to contain only the filtered-out occurrences. The other records are lost.
+        **Careful**, the species data is updated to contain only the filtered-out occurrences. The other records are lost.
 
         :param species_range_map: The species range-map geometry to crop point-record occurrences to.
         :type species_range_map: geopandas.GeoSeries or IUCNSpecies
@@ -541,7 +547,7 @@ class IUCNSpecies(Species):
     Ranges are depicted as polygons. One shapefile can contain distribution maps of an entire species group, i.e., all geometries,
     or alternatively, contain individual species ranges. The shapefiles can be downloaded from the website, as currently there
     is no IUCN API to directly query the IUCN backend database for particular taxonomical species.
-    The data is always loaded in geopandas.GeoDataFrame format, suitable for geometries and operations.
+    The data is always loaded in ``geopandas.GeoDataFrame`` format, suitable for geometries and operations on them.
 
     """
 
@@ -553,8 +559,8 @@ class IUCNSpecies(Species):
     def load_shapefile(self, file_path):
         """
         Loads the data from the provided :attr:`file_path` shapefile into a geopandas.GeoDataFrame.
-        A GeoDataFrame is a tablular data structure that contains a column called "geometry" which contains a GeoSeries of
-        `Shapely <http://toblerity.org/shapely/shapely.geometry.html>`_ geometries. all other meta-data column names are
+        A GeoDataFrame is a tablular data structure that contains a column called ``geometry`` which contains a ``geopandas.GeoSeries`` of
+        `Shapely <http://toblerity.org/shapely/shapely.geometry.html>`_ geometries. All other meta-data column names are
         converted to a lower-case, for consistency.
 
         :param string file_path: The full path to the shapefile file (including the directory and filename in one string).
@@ -572,12 +578,14 @@ class IUCNSpecies(Species):
 
     def find_species_occurrences(self, name_species=None, **kwargs):
         """
-        Filters the (previously loaded) GeoDataFrame data to contain only records for a particular species (binomial).
-        Careful, other records will be lost from the IUCNSpecies object upon calling this method.
+        Filters the (previously loaded) ``geopandas.GeoDataFrame`` data to contain only records for a particular species (binomial).
+        **Careful**, other records will be lost from the IUCNSpecies object upon calling this method.
 
         :param string name_species: The binomial name of the species to use for filtering out records.
 
-        :returns: geopandas.GeoDataFrame
+        :returns: A data frame with filtered-out species records.
+
+        :rtype: geopandas.GeoDataFrame
 
         """
 
@@ -604,9 +612,9 @@ class IUCNSpecies(Species):
 
     def save_shapefile(self, full_name=None, driver='ESRI Shapefile', overwrite=False):
         """
-        Saves the current geopandas.GeoDataFrame data in a shapefile. The data is expected to have a 'geometry'
-        as a column, besides other metadata metadata. If the full location and name of the file is not provided,
-        then the :attr:`overwrite` should be set to "True" to overwrite the existing shapefile from which the
+        Saves the current geopandas.GeoDataFrame data in a shapefile. The data is expected to have a ``geometry``
+        as a column, besides other (meta-)data. If the full location and name of the file is not provided,
+        then the :attr:`overwrite` should be set to ``True``, to overwrite the existing shapefile from which the
         data was previously loaded.
 
         :param string file_path: The full path to the targed shapefile file (including the directory and filename in one string).
@@ -683,7 +691,7 @@ class IUCNSpecies(Species):
                   *args, **kwargs):
         """
         Rasterize (burn) the species rangemaps (geometrical shapes) into pixels (cells), i.e., a 2-dimensional image array
-        of type numpy ndarray. Uses the 'rasterio <https://mapbox.github.io/rasterio/_modules/rasterio/features.html>'_ library
+        of type numpy ndarray. Uses the `Rasterio <https://mapbox.github.io/rasterio/_modules/rasterio/features.html>'_ library
         for this purpose. All the shapes from the IUCNSpecies object data are burned in a single "band" of the image.
         Rasterio datasets can generally have one or more bands, or layers. Following the GDAL convention, these are indexed starting with 1.
 
@@ -692,13 +700,13 @@ class IUCNSpecies(Species):
         :param int pixel_size: The size of the pixel in degrees, i.e., the resolution to use for rasterizing.
 
         :param bool all_touched: If true, all pixels touched by geometries, will be burned in. If false, only pixels
-        whose center is within the polygon or that are selected by Bresenham's line algorithm, will be burned in.
+        whose center is within the polygon or that are selected by *Bresenham's line algorithm*, will be burned in.
 
         :param int no_data_value: Used as value of the pixels which are not burned in. Default is 0.
 
         :param int default_value: Used as value of the pixels which are burned in. Default is 1.
 
-        :param crs: The Coordinate Reference System to use. Default is "ESPG:4326"
+        :param dict crs: The Coordinate Reference System to use. Default is "ESPG:4326"
 
         :param bool cropped: If true, the resulting pixel array (image) is cropped to the region borders, which contain
         the burned pixels (i.e., an envelope within the range). Otherwise, a "global world map" is used, i.e., the boundaries
@@ -819,17 +827,21 @@ class IUCNSpecies(Species):
         Column index increases to the right, and row index increases downward. The mapping of these coordinates to
         "world" coordinates in the dataset's reference system is done with an affine transformation matrix.
 
-        :param str raster_data: the raster data (2-dimensional array) to translate to world coordinates. If not provided,
-        it tries to load existing rasterized data about the IUCNSpeices.
+        param string raster_data: the raster data (2-dimensional array) to translate to world coordinates. If not provided,
+        it tries to load existing rasterized data from the IUCNSpeices object.
 
         :param int no_data_value: The pixel values depicting non-burned cells. Default is 0.
 
-        : params bool filter_no_data_value: Whether to filter-out the no-data pixel values. Default is true. If set to
+        :param bool filter_no_data_value: Whether to filter-out the no-data pixel values. Default is true. If set to
         false, all pixels in a 2-dimensional array will be converted to world coordinates. Typically this option is used
         to get a "base" map of the coordinates of all pixels in an image (map).
 
+        :param int band_number: The index of the band from which to load raster data.
+
         :returns: a tuple of numpy ndarrays. The first array contains the latitude values for each
         non-zero cell, the second array contains the longitude values for each non-zero cell.
+
+        :rtype: tuple(np.ndarray, np.ndarray)
 
         """
         if raster_data is None:
@@ -871,18 +883,18 @@ class IUCNSpecies(Species):
         Draw random pseudo-absence points from within a buffer around the geometry. First it simplifies the geometry
         with a buffer around the original geometry. Then calculates the difference between this one, and the original
         geometry, to determine a geometry from which to sample random points. Finally, generates random points one by
-        one and tests if they fall in that difference-geometry, until a <count> number of points are generated.
+        one and tests if they fall in that difference-geometry, until a :attr:`count` number of points are generated.
         If the "buffered" geometry is invalid (which could happen), it gradually tries to simplify it by applying a
-        bigger value for the simplify_tolerance parameter, until the geometry becomes valid. The reason is that an
+        bigger value for the :attr:`simplify_tolerance` parameter, until the geometry becomes valid. The reason is that an
         operation like difference/intersection is problematic to apply on an invalid geometry.
         The value is increased by maximum of 100.
 
-        A more efficient approach would be to just generate a <count> number of points from the first step, i.e.,
+        A more efficient approach would be to just generate a :attr:`count` number of points from the first step, i.e.,
         from the buffer. Some points will fall within the original shape, and they can be discarded,
-        so the number of pseudo-absence points will not actually be equal to <count>.
-        If precision is not an issue, we could provide a <count> number that is larger but calculated according
-        to the original_area/buffered_convex_hull ratio.
-        update: Maybe not even necessary, given that shapely's prep(..) speeds up a factor of 100 to 1000
+        so the number of pseudo-absence points will not actually be equal to :attr:`count`.
+        If precision is not an issue, we could provide a :attr:`number` that is larger but calculated according
+        to the ``original_area/buffered_convex_hull`` ratio.
+        update: Maybe not even necessary, given that shapely's ``prep(..)`` operation speeds up a factor of 100 to 1000
         """
         # First simplify (necessary) and apply a buffer around the geometry
         simplified_buffer = (self.data_full.geometry.buffer(0)
@@ -925,23 +937,25 @@ class IUCNSpecies(Species):
     def drop_extinct_species(self, presence_column_name='presence', discard_bad=False):
         """
         According to the current IUCN Coded Domain Values for Presence:
-        Code    Presence
+        =====  =================================
+        Code   Presence
+        =====  =================================
         1       Extant
         2       Probably Extant (discontinued)
         3       Possibly Extant
         4       Possibly Extinct
         5       Extinct (post 1500)
         6       Presence Uncertain
+        =====  =================================
 
-        Species can have both areas(polygons) in which they are extinct(5) AND areas in which they are not.
+        Species can have both areas (polygons) in which they are extinct (5) AND areas in which they are not.
         Such species are kept, and only species for which all areas are extinct, are filtered-out.
 
         :param string presence_column_name: The column name which contains the presence code values. Default is 'presence'.
 
         :param bool discard_bad: Whether to keep or discard species with "unknown only" areas (code==0). By default they
-        are kept (discard_bad=False).
-        There are currently (july 2016) four such problematic species:
-        Acipenser baerii, Ambassis urotaenia, Microphysogobio tungtingensis, Rhodeus sericeus
+        are kept (discard_bad=False). There are currently (july 2016) four such problematic species:
+        *Acipenser baerii*, *Ambassis urotaenia*, *Microphysogobio tungtingensis*, *Rhodeus sericeus*.
 
         :returns: None
 
