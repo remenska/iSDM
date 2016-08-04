@@ -211,6 +211,7 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
                 logger.info("Succesfully loaded existing raster data from %s." % self.file_path)
             except AttributeError as e:
                 logger.error("Could not open raster file. %s " % str(e))
+                raise AttributeError(e)
 
         logger.info("Transforming to world coordinates...")
         # first get the original Affine transformation matrix
@@ -449,12 +450,14 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
         :returns: A 2-dimensional Numpy array containing the pixel values of that particular band.
 
         """
+        if not hasattr(self, 'raster_reader'):
+            raise AttributeError("Please load the data first, using .load_data()")
         if not self.raster_reader or self.raster_reader.closed:
             logger.info("The dataset is closed. Please load it first using .load_data()")
             return
         return self.raster_reader.read(band_number)
 
-    def reproject(self, source_file=None, destination_file=None, resampling=RESAMPLING.nearest, **kwargs):
+    def reproject(self, destination_file, source_file=None, resampling=RESAMPLING.nearest, **kwargs):
         """
         Reprojects the pixels of a source raster map to a destination raster, with a different reference coordinate
         system and Affine transform. It uses `Rasterio <https://github.com/mapbox/rasterio/blob/master/docs/reproject.rst>`_
@@ -558,7 +561,7 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
     #     logger.info("Use the .masked_data attribute to access it.")
 
     def sample_pseudo_absences(self,
-                               species_raster_data=None,
+                               species_raster_data,
                                band_number=1,
                                number_of_pseudopoints=1000):
         """
@@ -640,7 +643,7 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
         if number_pixels_to_sample_from == 0:
             logger.error("There are no pixels left to sample from. Perhaps the species raster data")
             logger.error("covers the entire range from which it was intended to sample.")
-            return
+            return None
         sampled_pixels = np.zeros_like(selected_pixels)
 
         if number_pixels_to_sample_from < number_of_pseudopoints:
