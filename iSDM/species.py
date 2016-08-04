@@ -457,13 +457,13 @@ class GBIFSpecies(Species):
 
         :param int buffer_distance: Unitless distance from the Point geometry, specifying the amount of "influence". Default is 1.
 
-        :param int buffer_resolution: The resolution of the buffer around each Point. It is used for approximation of a unit radius circle.
+        :param int buffer_resolution: The resolution of the buffer around each Point. It is used for approximation of a unit radius circle. \
         For example, 16-gon approximation, 3 - triangle approximation etc. The higher the resolution, the closer the approximation of
         the buffer to a circle shape around the point. Default is 16.
 
         :param int simplify_tolerance: All points in the simplified geometry will be within the tolerance distance of the original geometry.
 
-        :param bool preserve_topology: If set to False the much quicker Douglas-Peucker algorithm is used in the simplification process.
+        :param bool preserve_topology: If set to False the much quicker Douglas-Peucker algorithm is used in the simplification process. \
         Note that invalid geometric objects may result from simplification that does not preserve topology. Default is False.
 
         :param bool with_envelope: Whether to use an envelope in the simplification of the geometry. Default is false.
@@ -691,8 +691,8 @@ class IUCNSpecies(Species):
                   *args, **kwargs):
         """
         Rasterize (burn) the species rangemaps (geometrical shapes) into pixels (cells), i.e., a 2-dimensional image array
-        of type numpy ndarray. Uses the `Rasterio <https://mapbox.github.io/rasterio/_modules/rasterio/features.html>'_ library
-        for this purpose. All the shapes from the IUCNSpecies object data are burned in a single "band" of the image.
+        of type numpy ndarray. Uses the `Rasterio <https://mapbox.github.io/rasterio/_modules/rasterio/features.html>`_ library
+        for this purpose. All the shapes from the ``IUCNSpecies`` object data are burned in a single "band" of the image.
         Rasterio datasets can generally have one or more bands, or layers. Following the GDAL convention, these are indexed starting with 1.
 
         :param string raster_file: The full path to the targed GeoTIFF raster file (including the directory and filename in one string).
@@ -827,12 +827,12 @@ class IUCNSpecies(Species):
         Column index increases to the right, and row index increases downward. The mapping of these coordinates to
         "world" coordinates in the dataset's reference system is done with an affine transformation matrix.
 
-        param string raster_data: the raster data (2-dimensional array) to translate to world coordinates. If not provided,
+        :param string raster_data: the raster data (2-dimensional array) to translate to world coordinates. If not provided,
         it tries to load existing rasterized data from the IUCNSpeices object.
 
         :param int no_data_value: The pixel values depicting non-burned cells. Default is 0.
 
-        :param bool filter_no_data_value: Whether to filter-out the no-data pixel values. Default is true. If set to
+        :param bool filter_no_data_value: Whether to filter-out the no-data pixel values. Default is true. If set to \
         false, all pixels in a 2-dimensional array will be converted to world coordinates. Typically this option is used
         to get a "base" map of the coordinates of all pixels in an image (map).
 
@@ -892,7 +892,7 @@ class IUCNSpecies(Species):
         A more efficient approach would be to just generate a :attr:`count` number of points from the first step, i.e.,
         from the buffer. Some points will fall within the original shape, and they can be discarded,
         so the number of pseudo-absence points will not actually be equal to :attr:`count`.
-        If precision is not an issue, we could provide a :attr:`number` that is larger but calculated according
+        If precision is not an issue, we could provide a :attr:`count` number that is larger but calculated according
         to the ``original_area/buffered_convex_hull`` ratio.
         update: Maybe not even necessary, given that shapely's ``prep(..)`` operation speeds up a factor of 100 to 1000
         """
@@ -937,23 +937,24 @@ class IUCNSpecies(Species):
     def drop_extinct_species(self, presence_column_name='presence', discard_bad=False):
         """
         According to the current IUCN Coded Domain Values for Presence:
-        =====  =================================
-        Code   Presence
-        =====  =================================
-        1       Extant
-        2       Probably Extant (discontinued)
-        3       Possibly Extant
-        4       Possibly Extinct
-        5       Extinct (post 1500)
-        6       Presence Uncertain
-        =====  =================================
+
+        +------+--------------------------------+
+        | Code |   Presence                     |
+        +======+================================+
+        |  1   | Extant                         |
+        |  2   | Probably Extant (discontinued) |
+        |  3   | Possibly Extant                |
+        |  4   | Possibly Extinct               |
+        |  5   | Extinct (post 1500)            |
+        |  6   | Presence Uncertain             |
+        +------+--------------------------------+
 
         Species can have both areas (polygons) in which they are extinct (5) AND areas in which they are not.
         Such species are kept, and only species for which all areas are extinct, are filtered-out.
 
         :param string presence_column_name: The column name which contains the presence code values. Default is 'presence'.
 
-        :param bool discard_bad: Whether to keep or discard species with "unknown only" areas (code==0). By default they
+        :param bool discard_bad: Whether to keep or discard species with "unknown only" areas (code==0). By default they \
         are kept (discard_bad=False). There are currently (july 2016) four such problematic species:
         *Acipenser baerii*, *Ambassis urotaenia*, *Microphysogobio tungtingensis*, *Rhodeus sericeus*.
 
