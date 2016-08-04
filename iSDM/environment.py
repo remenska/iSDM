@@ -57,6 +57,9 @@ class EnvironmentalLayer(object):
         self.name_layer = name_layer
 
     def load_data(self, file_path=None):
+        """
+        Needs to be implemented in a subclass.
+        """
         raise NotImplementedError("You need to implement this method in a subclass!")
 
     def set_source(self, source):
@@ -65,12 +68,21 @@ class EnvironmentalLayer(object):
         self.source = source
 
     def get_source(self):
+        """
+        Needs to be implemented in a subclass.
+        """
         return self.source.name
 
     def save_data(self, full_name=None, dir_name=None, file_name=None):
+        """
+        Needs to be implemented in a subclass.
+        """
         raise NotImplementedError("You need to implement this method in a subclass!")
 
     def get_data(self):
+        """
+        Needs to be implemented in a subclass.
+        """
         raise NotImplementedError("You need to implement this method in a subclass!")
 
 
@@ -159,16 +171,16 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
         Column index increases to the right, and row index increases downward. The mapping of these coordinates to
         "world" coordinates in the dataset's reference system is done with an affine transformation matrix.
 
-        param string raster_data: the raster data (2-dimensional array) to translate to world coordinates. If not provided,
+        param string raster_data: the raster data (2-dimensional array) to translate to world coordinates. If not provided, \
         it tries to load existing rasterized data about the RasterEnvironmentalLayer.
 
         :param int no_data_value: The pixel values depicting non-burned cells. Default is 0.
 
-        : params bool filter_no_data_value: Whether to filter-out the no-data pixel values. Default is true. If set to
-        false, all pixels in a 2-dimensional array will be converted to world coordinates. Typically this option is used
+        : params bool filter_no_data_value: Whether to filter-out the no-data pixel values. Default is true. If set to \
+        false, all pixels in a 2-dimensional array will be converted to world coordinates. Typically this option is used \
         to get a "base" map of the coordinates of all pixels in an image (map).
 
-        :returns: a tuple of numpy ndarrays. The first array contains the latitude values for each
+        :returns: a tuple of numpy ndarrays. The first array contains the latitude values for each \
         non-zero cell, the second array contains the longitude values for each non-zero cell.
 
         """
@@ -263,14 +275,14 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
 
     def polygonize(self, band_number=1):
         """
-        Extract shapes from raster features. This is the inverse of rasterizing shapes.
-        Uses the 'rasterio <https://mapbox.github.io/rasterio/_modules/rasterio/features.html>'_ library
+        Extract shapes from raster features. This is the inverse operation of rasterizing shapes.
+        Uses the `Rasterio <https://mapbox.github.io/rasterio/_modules/rasterio/features.html>'_ library
         for this purpose. The data is loaded into a `geopandas <http://geopandas.org/user.html>`_ GeoDataFrame.
-        GeoDataFrame data structures are pandas DataFrames with added functionality, containing a "geometry"
+        GeoDataFrame data structures are pandas DataFrames with added functionality, containing a ``geometry``
         column for the `Shapely <http://toblerity.org/shapely/shapely.geometry.html>`_ geometries.
         The raster data should be loaded in the layer before calling this method.
 
-        :param int band_number: The index of the raster band which is to be used as input for extracting
+        :param int band_number: The index of the raster band which is to be used as input for extracting \
         gemetrical shapes.
 
         :returns: geopandas.GeoDataFrame
@@ -299,12 +311,12 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
                                projection='merc',
                                facecolor='crimson'):
         """
-        Visually plots coordinates on a Basemap <http://matplotlib.org/basemap/api/basemap_api.html#module-mpl_toolkits.basemap`>_.
+        Visually plots coordinates on a `Basemap <http://matplotlib.org/basemap/api/basemap_api.html#module-mpl_toolkits.basemap>`_.
         Basemap supports projections (with coastlines and political boundaries) using matplotlib.
         The coordinates data must be provided as a tuple of Numpy arrays, one for the x, and one for the y values of the coordinates.
-        First, the data is converted to a pandas.DataFrame with the x and y arrays transposed as decimallatitude and decimallongitude
+        First, the data is converted to a ``pandas.DataFrame`` with the x and y arrays transposed as ``decimallatitude`` and ``decimallongitude``
         columns.
-        Next, the :func:`__geometrize__` method is used to convert the dataframe into a geoopandas format (with a "geometry" column).
+        Next, the :func:`__geometrize__` method is used to convert the dataframe into a geoopandas format (with a ``geometry`` column).
 
         :param tuple coordinates: A tuple containing Numpy arrays, one for the x, and one for the y values of the coordinates.
 
@@ -390,7 +402,7 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
 
     def close_dataset(self):
         """
-        Close the rasterio._io.RasterReader file reader, if open. This releases resources such as memory.
+        Close the ``rasterio._io.RasterReader`` file reader, if open. This releases resources such as memory.
         """
         if not self.raster_reader.closed:
             self.raster_reader.close()
@@ -433,11 +445,11 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
 
         param string destination_file: Full path to the destination file containing a raster map
 
-        :param int resampling: Resampling method to use. Can be one of the following: Resampling.nearest, Resampling.bilinear,
-        Resampling.cubic, Resampling.cubic_spline, Resampling.lanczos, Resampling.average, Resampling.mode.
+        :param int resampling: Resampling method to use. Can be one of the following: ``Resampling.nearest``, ``Resampling.bilinear``, \
+        ``Resampling.cubic``, ``Resampling.cubic_spline``, ``Resampling.lanczos``, ``Resampling.average``, ``Resampling.mode``.
 
-        :param dict kwargs: Optional additional arguments passed to the method, to parametrize the reprojection.
-        For example: :attr:`dst_crs` for the target coordinate reference system, :attr:`resolution` for the arget resolution,
+        :param dict kwargs: Optional additional arguments passed to the method, to parametrize the reprojection. \
+        For example: :attr:`dst_crs` for the target coordinate reference system, :attr:`resolution` for the target resolution, \
         in units of target coordinate reference system.
 
         """
@@ -530,9 +542,9 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
                                band_number=1,
                                number_of_pseudopoints=1000):
         """
-        Samples a :attr:`number_of_pseudopoints` points from the RasterEnvironmentalLayer data (raster map),
+        Samples a :attr:`number_of_pseudopoints` points from the ``RasterEnvironmentalLayer`` data (raster map),
         based on a given species raster map which is assumed to contain species presence points.
-        The :attr:`species_raster_data`is used to determine which distinct regions (cell values) from the entire
+        The :attr:`species_raster_data` is used to determine which distinct regions (cell values) from the entire
         environmental raster map, should be taken into account for potential pseudo-absence sampling regions.
         Next, all the pixels from the environmental raster map whose values are in the distinct regions are
         merged on a filtered environmental raster map. Finally, presence pixels are removed from this map, and
@@ -543,8 +555,9 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
         Otherwise, :attr:`number_of_pseudopoints` pixels positions (indices) are randomly chosen at once (for speed),
         rather than randomly sampling one by one until the desired number of pseudo-absences is reached. Due to this,
         it could be that some random pixel positions repeat, and the resulting number of unique pixels is slightly smaller
-        than the required one. For instance, experiments show that around 980 unique pixels are drawn when the random
-        samples requested is 1000.
+        than the required one.
+        *For instance, experiments show that around 980 unique pixels are drawn when the random
+        samples requested is 1000.*
 
         :param np.ndarray species_raster_data: A raster map containing the species presence pixels. If not provided,
         by default the one loaded previously (if available, otherwise .load_data() should be used before) is used.
@@ -553,7 +566,7 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
 
         :param int number_of_pseudopoints: Number of pseudo-absence points to sample from the raster environmental layer data.
 
-        :returns: A tuple containing two raster maps, one with all potential background pixels chosen to sample from,
+        :returns: A tuple containing two raster maps, one with all potential background pixels chosen to sample from, \
         and second with all the actual sampled pixels.
 
         :rtype: tuple(np.ndarray, np.ndarray)
@@ -648,8 +661,8 @@ class VectorEnvironmentalLayer(EnvironmentalLayer):
 
     def load_data(self, file_path=None):
         """
-        Loads the environmental data from the provided :attr:`file_path` shapefile into a geopandas.GeoDataFrame.
-        A GeoDataFrame is a tablular data structure that contains a column called "geometry" which contains a GeoSeries of
+        Loads the environmental data from the provided :attr:`file_path` shapefile into a ``geopandas.GeoDataFrame``.
+        A GeoDataFrame is a tablular data structure that contains a column called ``geometry`` which contains a GeoSeries of
         `Shapely <http://toblerity.org/shapely/shapely.geometry.html>`_ geometries. all other meta-data column names are
         converted to a lower-case, for consistency.
 
@@ -672,9 +685,9 @@ class VectorEnvironmentalLayer(EnvironmentalLayer):
 
     def save_data(self, full_name=None, driver='ESRI Shapefile', overwrite=False):
         """
-        Saves the current geopandas.GeoDataFrame data in a shapefile. The data is expected to have a 'geometry'
+        Saves the current ``geopandas.GeoDataFrame`` data in a shapefile. The data is expected to have a 'geometry'
         as a column, besides other metadata metadata. If the full location and name of the file is not provided,
-        then the :attr:`overwrite` should be set to "True" to overwrite the existing shapefile from which the
+        then the :attr:`overwrite` should be set to ``True`` to overwrite the existing shapefile from which the
         data was previously loaded.
 
         :param string file_path: The full path to the targed shapefile file (including the directory and filename in one string).
@@ -717,7 +730,7 @@ class VectorEnvironmentalLayer(EnvironmentalLayer):
         """
         Set the species data to the contents of :attr:`data_frame`. The data passed must be in a
         pandas or geopandas DataFrame.
-        Careful, it overwrites the existing data!
+        **Careful**, it overwrites the existing data!
 
         :param pandas.DataFrame data_frame: The new data.
 
@@ -738,15 +751,15 @@ class VectorEnvironmentalLayer(EnvironmentalLayer):
                   *args, **kwargs):
         """
         Rasterize (burn) the environment rangemaps (geometrical shapes) into pixels (cells), i.e., a 2-dimensional image array
-        of type numpy ndarray. Uses the 'rasterio <https://mapbox.github.io/rasterio/_modules/rasterio/features.html>'_ library
-        for this purpose. All the shapes from the VectorEnvironmentalLayer object data are burned in a single "band" of the image.
+        of type numpy ndarray. Uses the `Rasterio <https://mapbox.github.io/rasterio/_modules/rasterio/features.html>`_ library
+        for this purpose. All the shapes from the ``VectorEnvironmentalLayer`` object data are burned in a single *band* of the image.
         Rasterio datasets can generally have one or more bands, or layers. Following the GDAL convention, these are indexed starting with 1.
 
         :param string raster_file: The full path to the targed GeoTIFF raster file (including the directory and filename in one string).
 
         :param int pixel_size: The size of the pixel in degrees, i.e., the resolution to use for rasterizing.
 
-        :param bool all_touched: If true, all pixels touched by geometries, will be burned in. If false, only pixels
+        :param bool all_touched: If true, all pixels touched by geometries, will be burned in. If false, only pixels \
         whose center is within the polygon or that are selected by Bresenham's line algorithm, will be burned in.
 
         :param int no_data_value: Used as value of the pixels which are not burned in. Default is 0.
@@ -755,8 +768,8 @@ class VectorEnvironmentalLayer(EnvironmentalLayer):
 
         :param crs: The Coordinate Reference System to use. Default is "ESPG:4326"
 
-        :param bool cropped: If true, the resulting pixel array (image) is cropped to the region borders, which contain
-        the burned pixels (i.e., an envelope within the range). Otherwise, a "global world map" is used, i.e., the boundaries
+        :param bool cropped: If true, the resulting pixel array (image) is cropped to the region borders, which contain \
+        the burned pixels (i.e., an envelope within the range). Otherwise, a "global world map" is used, i.e., the boundaries \
         are set to (-180, -90, 180, 90) for the resulting array.
 
         :returns: Rasterio RasterReader file object which can be used to read individual bands from the raster file.
@@ -844,7 +857,7 @@ class VectorEnvironmentalLayer(EnvironmentalLayer):
 class ContinentsLayer(VectorEnvironmentalLayer):
     """
     ContinentsLayer
-    Continents Layer has a special treatment as a VectorEnvironmentLayer.
+    Continents Layer has a special treatment as a ``VectorEnvironmentLayer``.
     This is mostly because, when rasterizing the continents shapefile, there are multiple shapes
     which should end up with a different pixel value for each continents. The typical rasterizing
     operation rather produces a raster with binary values (0s and 1s), on a single band.

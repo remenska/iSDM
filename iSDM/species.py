@@ -449,7 +449,7 @@ class GBIFSpecies(Species):
                    preserve_topology=False,
                    with_envelope=False):
         """
-        Helper method: expands each `Shapely <http://toblerity.org/shapely/shapely.geometry.html>`_ Point of the `geopandas.GeoDataFrame`
+        Helper method: expands each `Shapely <http://toblerity.org/shapely/shapely.geometry.html>`_ Point of the ``geopandas.GeoDataFrame``
         species data into its *"polygon of influence"* (buffer). If the data is not already in a geopandas format,
         the :func:`geometrize` method is called first. Further merges the polygons that overlap into a *cascaded union* (multipolygon).
         The polygon is further simplified, also (optionally) by using an envelope around the buffer. An *envelope* is the smallest
@@ -459,7 +459,7 @@ class GBIFSpecies(Species):
         :param int buffer_distance: Unitless distance from the Point geometry, specifying the amount of "influence". Default is 1.
 
         :param int buffer_resolution: The resolution of the buffer around each Point. It is used for approximation of a unit radius circle. \
-        For example, 16-gon approximation, 3 - triangle approximation etc. The higher the resolution, the closer the approximation of
+        For example, 16-gon approximation, 3 - triangle approximation etc. The higher the resolution, the closer the approximation of \
         the buffer to a circle shape around the point. Default is 16.
 
         :param int simplify_tolerance: All points in the simplified geometry will be within the tolerance distance of the original geometry.
@@ -508,7 +508,7 @@ class GBIFSpecies(Species):
         This overlaying effectively crops the point records to the area within the range map, i.e., drops those
         points that fall outside the union of range polygon(s). If the data is not already in a geopandas format,
         the :func:`geometrize` method is called first.
-        The geometries are first "prepared" (`Prepared Geometries <http://toblerity.org/shapely/manual.html>`_,
+        The geometries are first "prepared" (`Prepared Geometries <http://toblerity.org/shapely/manual.html>`_),
         for faster operations, such as checking if a polygon contains a point.
         **Careful**, the species data is updated to contain only the filtered-out occurrences. The other records are lost.
 
@@ -710,7 +710,7 @@ class IUCNSpecies(Species):
         :param dict crs: The Coordinate Reference System to use. Default is "ESPG:4326"
 
         :param bool cropped: If true, the resulting pixel array (image) is cropped to the region borders, which contain \
-        the burned pixels (i.e., an envelope within the range). Otherwise, a "global world map" is used, i.e., the boundaries
+        the burned pixels (i.e., an envelope within the range). Otherwise, a "global world map" is used, i.e., the boundaries \
         are set to (-180, -90, 180, 90) for the resulting array.
 
         :returns: Rasterio RasterReader file object which can be used to read individual bands from the raster file.
@@ -828,7 +828,7 @@ class IUCNSpecies(Species):
         Column index increases to the right, and row index increases downward. The mapping of these coordinates to
         "world" coordinates in the dataset's reference system is done with an affine transformation matrix.
 
-        :param string raster_data: the raster data (2-dimensional array) to translate to world coordinates. If not provided,
+        :param string raster_data: the raster data (2-dimensional array) to translate to world coordinates. If not provided, \
         it tries to load existing rasterized data from the IUCNSpeices object.
 
         :param int no_data_value: The pixel values depicting non-burned cells. Default is 0.
@@ -839,7 +839,7 @@ class IUCNSpecies(Species):
 
         :param int band_number: The index of the band from which to load raster data.
 
-        :returns: a tuple of numpy ndarrays. The first array contains the latitude values for each \
+        :returns: A tuple of numpy ndarrays. The first array contains the latitude values for each \
         non-zero cell, the second array contains the longitude values for each non-zero cell.
 
         :rtype: tuple(np.ndarray, np.ndarray)
@@ -895,7 +895,9 @@ class IUCNSpecies(Species):
         so the number of pseudo-absence points will not actually be equal to :attr:`count`.
         If precision is not an issue, we could provide a :attr:`count` number that is larger but calculated according
         to the ``original_area/buffered_convex_hull`` ratio.
-        update: Maybe not even necessary, given that shapely's ``prep(..)`` operation speeds up a factor of 100 to 1000
+
+        **Update:** Maybe not even necessary, given that shapely's ``prep(..)`` operation speeds up a factor of 100 to 1000!
+
         """
         # First simplify (necessary) and apply a buffer around the geometry
         simplified_buffer = (self.data_full.geometry.buffer(0)
@@ -943,15 +945,15 @@ class IUCNSpecies(Species):
         | Code |   Presence                     |
         +======+================================+
         |  1   | Extant                         |
-        |------+--------------------------------+
+        +------+--------------------------------+
         |  2   | Probably Extant (discontinued) |
-        |------+--------------------------------+
+        +------+--------------------------------+
         |  3   | Possibly Extant                |
-        |------+--------------------------------+
+        +------+--------------------------------+
         |  4   | Possibly Extinct               |
-        |------+--------------------------------+
+        +------+--------------------------------+
         |  5   | Extinct (post 1500)            |
-        |------+--------------------------------+
+        +------+--------------------------------+
         |  6   | Presence Uncertain             |
         +------+--------------------------------+
 
