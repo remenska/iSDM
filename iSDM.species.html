@@ -157,7 +157,7 @@ Uses the <a class="reference external" href="https://github.com/sckott/pygbif">p
 <code class="descname">find_species_occurrences</code><span class="sig-paren">(</span><em>name_species=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.species.GBIFSpecies.find_species_occurrences" title="Permalink to this definition">¶</a></dt>
 <dd><p>Finds and loads species occurrence data into pandas DataFrame. The data comes from GBIF backbone API requests,
 based on the name of the species (<code class="xref py py-attr docutils literal"><span class="pre">name_species</span></code>). If the <code class="xref py py-attr docutils literal"><span class="pre">name_species</span></code> parameter is not provided, it is attempted
-to query the GBIF backbone using the species object <a href="#id1"><span class="problematic" id="id2">:ivar:`ID`</span></a> (if already set) as a taxonomical key.
+to query the GBIF backbone using the species object <code class="xref py py-attr docutils literal"><span class="pre">ID</span></code> (if already set) as a taxonomical key.
 The GBIF API provides services for searching occurrence records that have been indexed by GBIF. The results from the search
 are paginated, and in order to retrieve them all, individual requests are issued for each page. The returned results are
 limited to a maximum of 300 records per page, at the time of writing this. The method below will loop until there are
@@ -211,7 +211,7 @@ record.</p>
 <code class="descname">load_csv</code><span class="sig-paren">(</span><em>file_path</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.species.GBIFSpecies.load_csv" title="Permalink to this definition">¶</a></dt>
 <dd><p>Load data from a CSV file into a  <code class="docutils literal"><span class="pre">pandas.DataFrame</span></code>. The records are expected to contain (meta-)data on individual
 species occurrences. Examples of expected columns: <code class="docutils literal"><span class="pre">decimallatitude</span></code>, <code class="docutils literal"><span class="pre">decimallongitude</span></code>, <code class="docutils literal"><span class="pre">specieskey</span></code> etc.
-If the file contains data on one particular species (all values in the <code class="docutils literal"><span class="pre">specieskey</span></code> column are equal), the <a href="#id4"><span class="problematic" id="id5">:ivar:`ID`</span></a>
+If the file contains data on one particular species (all values in the <code class="docutils literal"><span class="pre">specieskey</span></code> column are equal), the <code class="xref py py-attr docutils literal"><span class="pre">ID</span></code>
 of the GBIFSpecies object is updated to the <code class="docutils literal"><span class="pre">specieskey</span></code> value. The data for the GBIFSpecies object is also
 updated to contain the CSV file contents, so be careful not to overwrite existing data.
 All column names are converted to lower-case, for consistency.</p>
