@@ -965,7 +965,7 @@ class ContinentsLayer(VectorEnvironmentalLayer):
                                nodata=no_data_value,
                                transform=transform,
                                crs=crs) as out:
-                out.write(result.astype(np.uint8), indexes=i)
+                out.write(band.astype(np.uint8), indexes=i)
 
         out.close()
         logger.info("RASTERIO: Data rasterized into file %s " % raster_file)
