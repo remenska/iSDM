@@ -44,6 +44,13 @@ class EnvironmentalLayer(object):
     """
     EnvironmentalLayer
     A generic EnvironmentalLayer class used for subclassing different global-scale environmental data sources.
+
+    :ivar source: The source of the global environmental data.
+    :vartype source: iSDM.environment.Source
+
+    :ivar name_layer: Description of the layer
+    :vartype name_layer: string
+
     """
     def __init__(self, source=None, file_path=None, name_layer=None, **kwargs):
         if source:
@@ -94,6 +101,19 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
     overlaying, sampling pseudo-absence pixels, converting to world map coordinates, are some of the functionalities
     implemented as wrappers around corresponding rasterio/Numpy operations and methods.
     This class should be used when the expected layer data is in raster format, i.e., 2-dimensional (multi-band) array of data.
+
+    :ivar file_path: Location of the raster file from which the raster map data is loaded.
+    :vartype file_path: string
+
+    :ivar raster_affine: Affine translation used in the environmental raster map.
+    :vartype raster_affine: rasterio.transform.Affine
+
+    :ivar resolution: The resolution of the raster map, as a tuple (height, width) in pixels.
+    :vartype resolution: tuple(int, int)
+
+    :ivar raster_reader: file reader for the corresponding rasterized data.
+    :vartype raster_reader: rasterio._io.RasterReader
+
     """
     def __init__(self, source=None, file_path=None, name_layer=None, **kwargs):
         EnvironmentalLayer.__init__(self, source, file_path, name_layer, **kwargs)
@@ -655,6 +675,21 @@ class VectorEnvironmentalLayer(EnvironmentalLayer):
 
     A class for encapsulating the vector environmental layer functionality, with operations such as rasterizing.
 
+    :ivar file_path: Full location of the shapefile containing the data for this layer.
+    :vartype file_path: string
+
+    :ivar data_full: Data frame containing the full data for the environmental layer geometries.
+    :vartype data_full: geopandas.GeoDataFrame
+
+    :ivar raster_file: Full location of the corresponding raster map data for this layer.
+    :vartype raster_file: string
+
+    :ivar raster_affine: Affine translation used in the corresponding raster map of this layer.
+    :vartype raster_affine: rasterio.transform.Affine
+
+    :ivar raster_reader: file reader for the corresponding rasterized data.
+    :vartype raster_reader: rasterio._io.RasterReader
+
     """
     def __init__(self, source=None, file_path=None, name_layer=None, **kwargs):
         EnvironmentalLayer.__init__(self, source, file_path, name_layer, **kwargs)
@@ -681,7 +716,6 @@ class VectorEnvironmentalLayer(EnvironmentalLayer):
         self.data_full = GeoDataFrame.from_file(self.file_path)
         self.data_full.columns = [x.lower() for x in self.data_full.columns]
         logger.info("The shapefile contains data on %d environmental regions." % self.data_full.shape[0])
-        self.shape_file = self.file_path
 
     def save_data(self, full_name=None, driver='ESRI Shapefile', overwrite=False):
         """
@@ -705,7 +739,7 @@ class VectorEnvironmentalLayer(EnvironmentalLayer):
                                  "Please geometrize first!")
 
         if overwrite:
-            full_name = self.shape_file
+            full_name = self.file_path
         elif not overwrite and full_name is None:
             raise AttributeError("Please provide a shape_file location, or set overwrite=True")
 
