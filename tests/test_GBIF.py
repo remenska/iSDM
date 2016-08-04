@@ -30,11 +30,6 @@ class TestGBIF(unittest.TestCase):
         self.assertIsInstance(self.test_species2.data_full, pd.DataFrame)
         self.assertIsNotNone(self.test_species2.data_full)
 
-    def tearDown(self):
-        self.test_species = None
-        self.test_species1 = None
-        self.test_species2 = None
-
     def test_GBIF_geometrize(self):
         self.test_species.find_species_occurrences()
         self.test_species.geometrize()
@@ -48,6 +43,11 @@ class TestGBIF(unittest.TestCase):
         number_species = self.test_species.data_full.shape[0]
         self.test_species.geometrize(dropna=False)
         self.assertEqual(number_species, self.test_species.data_full.shape[0])
+
+    def tearDown(self):
+        del self.test_species
+        del self.test_species1
+        del self.test_species2
 
 if __name__ == '__main__':
     unittest.main()

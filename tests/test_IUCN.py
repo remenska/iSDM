@@ -52,6 +52,20 @@ class TestIUCN(unittest.TestCase):
         result1 = self.test_species.rasterize(pixel_size=0.5, raster_file="./data/fish/tmp.tif", no_data_value=55, default_value=11)
         self.assertEqual(set(np.unique(result1)), {55, 11})
 
+    def test_IUCN_pixel_to_world_coordinates(self):
+        with self.assertRaises(AttributeError):
+            self.test_species.pixel_to_world_coordinates()
+        self.test_species.load_shapefile("./data/fish/selection/acrocheilus_alutaceus/acrocheilus_alutaceus.shp")
+        result = self.test_species.rasterize(pixel_size=1, raster_file="./data/fish/tmp.tif")
+        self.assertEqual(result.shape, (180, 360))
+        coordinates = self.test_species.pixel_to_world_coordinates(filter_no_data_value=False)
+        self.assertIsInstance(coordinates, tuple)
+        self.assertIsInstance(coordinates[0], np.ndarray)
+        self.assertEqual(len(coordinates[0]), np.product(result.shape))
+        self.assertEqual(coordinates[0][0], 89.5)
+
+    def tearDown(self):
+        del self.test_species
 
 if __name__ == '__main__':
     unittest.main()
