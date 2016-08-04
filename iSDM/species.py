@@ -86,7 +86,8 @@ class Species(object):
 
     def save_data(self, full_name=None, dir_name=None, file_name=None, method="pickle"):
         """
-        Serializes the loaded species dataset (`pandas <http://pandas.pydata.org/pandas-docs/stable/dsintro.html>`_ or `geopandas <http://geopandas.org/user.html>`_ DataFrame) into a binary `pickle <https://en.wikipedia.org/wiki/Pickle_%28Python%29>`_  (or `msgpack <http://msgpack.org/index.html>`_) file.
+        Serializes the loaded species dataset (`pandas <http://pandas.pydata.org/pandas-docs/stable/dsintro.html>`_ or `geopandas <http://geopandas.org/user.html>`_ DataFrame)
+        into a binary `pickle <https://en.wikipedia.org/wiki/Pickle_%28Python%29>`_  (or `msgpack <http://msgpack.org/index.html>`_) file.
 
        :param string full_name: The full path of the file (including the directory and filename in one string),
         where the data will be saved.
@@ -94,10 +95,10 @@ class Species(object):
        :param string dir_name: The directory where the file will be stored.
        If :attr:`file_name` is not specified, the default one :attr:`name_species` + ``.pkl`` (or ``.msg``) is given by default.
 
-       :param string file_name: The name of the file where the data will be saved.
+       :param string file_name: The name of the file where the data will be saved. \
        If :attr:`dir_name` is not specified, the current working directory is taken by default.
 
-       :param string method: The type of serialization to use for the data frame. Default is "pickle". Another possibility is "msgpack", as it has shown as 10% more efficient
+       :param string method: The type of serialization to use for the data frame. Default is "pickle". Another possibility is "msgpack", as it has shown as 10% more efficient \
        in terms of time and memory, for the type of data we are dealing with.
 
        :raises: AttributeError: if the data has not been loaded in the object before. See :func:`load_data` and :func:`find_species_occurrences`
@@ -195,9 +196,9 @@ class Species(object):
 
         :param tuple figsize: tuple containing the (width, height) of the plot, in inches. Default is (16, 12).
 
-        :param string projection: The projection to use for plotting. Supported projection values from `Basemap <http://matplotlib.org/basemap/api/basemap_api.html#module-mpl_toolkits.basemap>`_. Default is 'merc' (Mercator).
+        :param string projection: The projection to use for plotting. Supported projection values from `Basemap <http://matplotlib.org/basemap/api/basemap_api.html#module-mpl_toolkits.basemap>`_. Default is ``merc`` (Mercator).
 
-        :param string facecolor: Fill color for the geometries. Default is "crimson" (red).
+        :param string facecolor: Fill color for the geometries. Default is ``crimson`` (red).
 
         :returns: A map with geometries plotted, zoomed to the total boundaries of the geometry Series (column) of the DataFrame.
 
@@ -699,7 +700,7 @@ class IUCNSpecies(Species):
 
         :param int pixel_size: The size of the pixel in degrees, i.e., the resolution to use for rasterizing.
 
-        :param bool all_touched: If true, all pixels touched by geometries, will be burned in. If false, only pixels
+        :param bool all_touched: If true, all pixels touched by geometries, will be burned in. If false, only pixels \
         whose center is within the polygon or that are selected by *Bresenham's line algorithm*, will be burned in.
 
         :param int no_data_value: Used as value of the pixels which are not burned in. Default is 0.
@@ -708,7 +709,7 @@ class IUCNSpecies(Species):
 
         :param dict crs: The Coordinate Reference System to use. Default is "ESPG:4326"
 
-        :param bool cropped: If true, the resulting pixel array (image) is cropped to the region borders, which contain
+        :param bool cropped: If true, the resulting pixel array (image) is cropped to the region borders, which contain \
         the burned pixels (i.e., an envelope within the range). Otherwise, a "global world map" is used, i.e., the boundaries
         are set to (-180, -90, 180, 90) for the resulting array.
 
@@ -833,12 +834,12 @@ class IUCNSpecies(Species):
         :param int no_data_value: The pixel values depicting non-burned cells. Default is 0.
 
         :param bool filter_no_data_value: Whether to filter-out the no-data pixel values. Default is true. If set to \
-        false, all pixels in a 2-dimensional array will be converted to world coordinates. Typically this option is used
+        false, all pixels in a 2-dimensional array will be converted to world coordinates. Typically this option is used \
         to get a "base" map of the coordinates of all pixels in an image (map).
 
         :param int band_number: The index of the band from which to load raster data.
 
-        :returns: a tuple of numpy ndarrays. The first array contains the latitude values for each
+        :returns: a tuple of numpy ndarrays. The first array contains the latitude values for each \
         non-zero cell, the second array contains the longitude values for each non-zero cell.
 
         :rtype: tuple(np.ndarray, np.ndarray)
@@ -936,16 +937,21 @@ class IUCNSpecies(Species):
 
     def drop_extinct_species(self, presence_column_name='presence', discard_bad=False):
         """
-        According to the current IUCN Coded Domain Values for Presence:
+        According to the current IUCN Coded Domain Values for ``Presence``:
 
         +------+--------------------------------+
         | Code |   Presence                     |
         +======+================================+
         |  1   | Extant                         |
+        |------+--------------------------------+
         |  2   | Probably Extant (discontinued) |
+        |------+--------------------------------+
         |  3   | Possibly Extant                |
+        |------+--------------------------------+
         |  4   | Possibly Extinct               |
+        |------+--------------------------------+
         |  5   | Extinct (post 1500)            |
+        |------+--------------------------------+
         |  6   | Presence Uncertain             |
         +------+--------------------------------+
 
@@ -955,7 +961,7 @@ class IUCNSpecies(Species):
         :param string presence_column_name: The column name which contains the presence code values. Default is 'presence'.
 
         :param bool discard_bad: Whether to keep or discard species with "unknown only" areas (code==0). By default they \
-        are kept (discard_bad=False). There are currently (july 2016) four such problematic species:
+        are kept (discard_bad=False). There are currently (july 2016) four such problematic species: \
         *Acipenser baerii*, *Ambassis urotaenia*, *Microphysogobio tungtingensis*, *Rhodeus sericeus*.
 
         :returns: None
