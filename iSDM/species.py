@@ -266,7 +266,7 @@ class GBIFSpecies(Species):
     Uses the `pygbif <https://github.com/sckott/pygbif>`_ python API for querying the GBIF backbone and acquiring observations data on species.
 
     :ivar data_full: Data frame containing the full data for the species occurrences.
-    :vartype name_species: pandas.DataFrame or geopandas.GeoDataFrame
+    :vartype data_full: pandas.DataFrame or geopandas.GeoDataFrame
 
     """
 
@@ -554,10 +554,10 @@ class IUCNSpecies(Species):
     The data is always loaded in ``geopandas.GeoDataFrame`` format, suitable for geometries and operations on them.
 
     :ivar shape_file: Location of the shapefile from which the data is loaded.
-    :vartypee shape_file: string
+    :vartype shape_file: string
 
     :ivar raster_file: Location of the raster file to which the corresponding rasterized data is stored.
-    :vartypee shape_file: string
+    :vartype raster_file: string
 
     :ivar raster_affine: Affine translation used in the species raster map.
     :vartype raster_affine: rasterio.transform.Affine
