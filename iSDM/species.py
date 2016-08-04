@@ -1,6 +1,5 @@
 """
-Documentation on the species module.
-Some more text to document what this module is for.
+A module for all species layers functionality.
 
       .. moduleauthor:: Daniela Remenska <remenska@gmail.com>
 
@@ -18,14 +17,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 from mpl_toolkits.basemap import Basemap
 from geopandas import GeoSeries, GeoDataFrame
-from osgeo import gdal, ogr
+# from osgeo import gdal, ogr
 from shapely.geometry import Point
 import shapely.ops
 from matplotlib.collections import PatchCollection
 from descartes import PolygonPatch
 from rasterio.transform import Affine
 import rasterio
-import rasterio.features
+from rasterio import features
 from shapely.prepared import prep
 import pprint
 
@@ -41,9 +40,13 @@ class Source(Enum):
     IUCN = 2
     PREDICTS = 3
     MOL = 4
+    ARCGIS = 5
 
 
 class ObservationsType(Enum):
+    """
+    Possible observation types for the global species data.
+    """
     PRESENCE_ONLY = 1
     PRESENCE_ABSENCE = 2
     RICHNESS = 3
@@ -55,9 +58,10 @@ class Species(object):
     Species
     A generic Species class used for subclassing different global-scale species data sources.
 
-    :ivar ID: a unique ID for a particular species. For example, for GBIF sources, it is the gbifid metadata field.
-    :ivar name_species: initial value: 'Unknown'
-
+    :ivar ID: a unique ID for a particular species. For example, for GBIF sources, it is the ``gbifid`` metadata field.
+    :vartype ID: integer
+    :ivar name_species: initial value: 'Unknown'.
+    :vartype name_species: string
     """
 
     ID = int(0)
@@ -78,20 +82,24 @@ class Species(object):
             speedups.enable()
             logger.debug("Enabled Shapely speedups for performance.")
         except ImportError:
-            logger.info("Upgrade Shapely for Performance enhancements")
+            logger.info("Upgrade Shapely for Performance enhancements.")
 
     def save_data(self, full_name=None, dir_name=None, file_name=None, method="pickle"):
         """
-        Serializes the loaded species occurrence filtered dataset (`pandas <http://pandas.pydata.org/pandas-docs/stable/dsintro.html>`_ or `geopandas <http://geopandas.org/user.html>`_ DataFrame) into a binary `pickle <https://en.wikipedia.org/wiki/Pickle_%28Python%29>`_  file.
+        Serializes the loaded species dataset (`pandas <http://pandas.pydata.org/pandas-docs/stable/dsintro.html>`_ or `geopandas <http://geopandas.org/user.html>`_ DataFrame)
+        into a binary `pickle <https://en.wikipedia.org/wiki/Pickle_%28Python%29>`_  (or `msgpack <http://msgpack.org/index.html>`_) file.
 
-       :param str full_name: The full path of the file (including the directory and name in one string),
+       :param string full_name: The full path of the file (including the directory and filename in one string),
         where the data will be saved.
 
-       :param str dir_name: The directory where the file will be stored. If :attr:`file_name` is not specified, the default one :attr:`name_species` + .pkl is given.
+       :param string dir_name: The directory where the file will be stored.
+       If :attr:`file_name` is not specified, the default one :attr:`name_species` + ``.pkl`` (or ``.msg``) is given by default.
 
-       :param str file_name: The name of the file where the data will be saved. If :attr:`dir_name` is not specified, the current working directory is taken by default.
+       :param string file_name: The name of the file where the data will be saved. \
+       If :attr:`dir_name` is not specified, the current working directory is taken by default.
 
-       :param str method: The type of serialization to use for the data frame. Default is "pickle". Another possibility is "msgpack", as it has shown as 10$ more efficient for the type of data
+       :param string method: The type of serialization to use for the data frame. Default is "pickle". Another possibility is "msgpack", as it has shown as 10% more efficient \
+       in terms of time and memory, for the type of data we are dealing with.
 
        :raises: AttributeError: if the data has not been loaded in the object before. See :func:`load_data` and :func:`find_species_occurrences`
 
@@ -124,11 +132,12 @@ class Species(object):
 
     def load_data(self, file_path=None):
         """
-        Loads the serialized species pickle file data into a pandas DataFrame.
+        Loads the data from the serialized species file into a pandas DataFrame. If the :attr:`file_path` parameter is not supplied,
+        it will try to deduce the file name from the name of the species by default.
 
-        :param str file_path: The full path to the file where the data is serialized to.
+        :param string file_path: The full path to the file (including the directory and filename in one string), where the data is serialized to.
 
-        :returns: Data loaded into geopandas dataframe.
+        :returns: Data loaded into (geo)pandas Dataframe.
 
         :rtype: geopandas.GeoDataFrame
         """
@@ -146,25 +155,53 @@ class Species(object):
             logger.error("Problem loading data! %s " % str(e))
 
     def find_species_occurrences(self, name_species=None, **kwargs):
-        raise NotImplementedError("You need to implement this method!")
+        raise NotImplementedError("You need to implement this method in a subclass!")
 
     def get_data(self):
         """
-        Returns the (pre)loaded species data.
+        Returns the (pre)loaded species data in a (geo)pandas DataFrame.
 
-        :rtype: geopandas.GeoDataFrame
+        :returns: :attr:`self.data_full`
+
+        :rtype: geopandas.GeoDataFrame or pandas.DataFrame
+
         """
         return self.data_full
 
     def set_data(self, data_frame):
         """
-        Careful, overwrites the existing raw data!. More documentation
+        Set the species data to the contents of :attr:`data_frame`. The data passed must be in a
+        pandas or geopandas DataFrame.
+        **Careful**, it overwrites the existing data!
+
+        :param pandas.DataFrame data_frame: The new data.
+
+        :returns: None
+
         """
-        self.data_full = data_frame
+
+        if not isinstance(self.data_full, GeoDataFrame) or not isinstance(self.data_full, pd.DataFrame):
+            raise AttributeError("Data is not in a correct format! Please pass pandas or geopandas DataFrame.")
+        else:
+            self.data_full = data_frame
 
     def plot_species_occurrence(self, figsize=(16, 12), projection='merc', facecolor='crimson'):
         """
-        Documentation pending on plotting
+        Visually plots the species data on a `Basemap <http://matplotlib.org/basemap/api/basemap_api.html#module-mpl_toolkits.basemap>`_.
+        Basemap supports projections (with coastlines and political boundaries) using matplotlib.
+        The species data must be in a `geopandas <http://geopandas.org/user.html>`_ DataFrame format. If it is not,
+        the :func:`geometrize` method is called, to convert the dataframe into a ``geopandas.GeoDataFrame`` format (with a ``geometry`` column).
+        The following geometrical (`Shapely <http://toblerity.org/shapely/shapely.geometry.html>`_) shapes are supported:
+        *Polygon*, *MultiPolygon*, and *Point* (plotted with a buffer around it).
+
+        :param tuple figsize: tuple containing the (width, height) of the plot, in inches. Default is (16, 12).
+
+        :param string projection: The projection to use for plotting. Supported projection values from `Basemap <http://matplotlib.org/basemap/api/basemap_api.html#module-mpl_toolkits.basemap>`_. Default is ``merc`` (Mercator).
+
+        :param string facecolor: Fill color for the geometries. Default is ``crimson`` (red).
+
+        :returns: A map with geometries plotted, zoomed to the total boundaries of the geometry Series (column) of the DataFrame.
+
         """
         if not isinstance(self.data_full, GeoDataFrame):
             if not isinstance(self.data_full, pd.DataFrame):
@@ -190,10 +227,9 @@ class Species(object):
                      urcrnrlat=self.data_full.geometry.total_bounds[3]   # upper right latitude point
                      )
 
-        # prepare longitude/latitude list for basemap
         ax1 = plt.subplots(figsize=figsize)[1]
 
-        plt.title("%s occurrence records from %s " % (self.name_species, self.source.name))
+        plt.title("%s Species data from %s " % (self.name_species, self.source.name))
 
         mm.drawcoastlines()
         mm.drawcountries()
@@ -225,21 +261,36 @@ class Species(object):
 
 class GBIFSpecies(Species):
     """
-    Some class-level documentation on GBIF species. One two three.
+    GBIFSpecies
+    A class for encapsulating the `GBIF <http://www.gbif.org/>`_ (Global Biodiversity Information Facility) species layer functionality.
+    Uses the `pygbif <https://github.com/sckott/pygbif>`_ python API for querying the GBIF backbone and acquiring observations data on species.
+
+    :ivar data_full: Data frame containing the full data for the species occurrences.
+    :vartype data_full: pandas.DataFrame or geopandas.GeoDataFrame
+
     """
 
     def __init__(self, **kwargs):
-
         Species.__init__(self, **kwargs)
         self.source = Source.GBIF
         self.observations_type = ObservationsType.PRESENCE_ONLY
 
     def find_species_occurrences(self, name_species=None, **kwargs):
         """
-        Finds and loads species occurrence data into pandas DataFrame.
-        Data comes from the GBIF database, based on name or gbif ID
-        the occurrences.search(...) returns a list of json structures
-        which we load into Pandas DataFrame for easier manipulation.
+        Finds and loads species occurrence data into pandas DataFrame. The data comes from GBIF backbone API requests,
+        based on the name of the species (:attr:`name_species`). If the :attr:`name_species` parameter is not provided, it is attempted
+        to query the GBIF backbone using the species object :py:attr:`ID` (if already set) as a taxonomical key.
+        The GBIF API provides services for searching occurrence records that have been indexed by GBIF. The results from the search
+        are paginated, and in order to retrieve them all, individual requests are issued for each page. The returned results are
+        limited to a maximum of 300 records per page, at the time of writing this. The method below will loop until there are
+        no more "next" pages (``endOfRecords`` is reached), and combine all species occurrence (meta-)data in a single data structure.
+        The pygbif.occurrences.search(...) returns a list of json structures which are loaded into ``pandas.DataFrame`` for easier manipulation.
+
+        :param string name_species: The taxonomical name of the species to use for querying the `GBIF <http://www.gbif.org/>`_ backbone.
+
+        :returns: Data frame containing all species occurrences (meta-)data.
+
+        :rtype: pandas.DataFrame
 
         """
         if name_species:
@@ -257,7 +308,7 @@ class GBIFSpecies(Species):
             self.ID = species_result['usageKey']
             first_res = occurrences.search(taxonKey=self.ID, limit=100000, **kwargs)
 
-        except AttributeError:   # name not provided, assume at least ID is provided
+        except AttributeError:   # name not provided, assume at least ID is provided and try querying using the ID as a taxonkey.
             first_res = occurrences.search(taxonKey=self.ID, limit=100000, **kwargs)
 
         full_results = copy.copy(first_res)
@@ -289,13 +340,14 @@ class GBIFSpecies(Species):
         logger.info("Loading species ... ")
         logger.debug(full_results['count'] == len(full_results['results']))   # match?
         logger.debug("Full results: %s , got: %s " % (full_results['count'], len(full_results['results'])))
-        # TODO: do we want a special way of loading? say, suggesting data types in some columns?
 
-        # TODO: should we reformat the dtypes of the columns? at least day/month/year we care?
+        # TODO: should we reformat the dtypes of the columns? at least day/month/year which are by default floats?
+        # But an integer column cannot contain NaN, so we must fill those with some value (0 for example).
         # data_cleaned[['day', 'month', 'year']] = data_cleaned[['day', 'month', 'year']].fillna(0.0).astype(int)
 
         self.data_full = pd.DataFrame(full_results['results'])  # load results in pandas DF
-        # self.data_full.columns = map(str.lower, self.data_full.columns)  # convert all column headers to lowercase
+        # self.data_full.columns = map(str.lower, self.data_full.columns)
+        # convert all column headers to lowercase
         self.data_full.columns = [x.lower() for x in self.data_full.columns]
 
         if self.data_full.empty:
@@ -306,15 +358,33 @@ class GBIFSpecies(Species):
 
     def load_csv(self, file_path):
         """
-        Documentation pending on loading from csv file
+        Load data from a CSV file into a  ``pandas.DataFrame``. The records are expected to contain (meta-)data on individual
+        species occurrences. Examples of expected columns: ``decimallatitude``, ``decimallongitude``, ``specieskey`` etc.
+        If the file contains data on one particular species (all values in the ``specieskey`` column are equal), the :py:attr:`ID`
+        of the GBIFSpecies object is updated to the ``specieskey`` value. The data for the GBIFSpecies object is also
+        updated to contain the CSV file contents, so be careful not to overwrite existing data.
+        All column names are converted to lower-case, for consistency.
+
+        :param string file_path: The full path to the file (including the directory and filename in one string).
+
+        :returns: Data frame loaded with data from the CSV file.
+
+        :rtype: pandas.DataFrame
+
         """
+        if file_path is None:
+            logger.error("Please supply a file_path parameter with the full path to the CSV file.")
+            return
+        if hasattr(self, 'data_full'):
+            logger.warning("Warning! Overwriting existing data for this species.")
 
         logger.info("Loading data from: %s" % file_path)
         f = open(file_path, 'r')
         try:
             dialect = csv.Sniffer().sniff(f.read(10240))
             self.data_full = pd.read_csv(file_path, sep=dialect.delimiter)
-            # self.data_full.columns = map(str.lower, self.data_full.columns)  # convert all column headers to lowercase
+            # self.data_full.columns = map(str.lower, self.data_full.columns)
+            # convert all column headers to lowercase
             self.data_full.columns = [x.lower() for x in self.data_full.columns]
             logger.info("Succesfully loaded previously saved CSV data.")
             if 'specieskey' in self.data_full and self.data_full['specieskey'].unique().size == 1:
@@ -325,12 +395,33 @@ class GBIFSpecies(Species):
         finally:
             f.close()
 
-    # vectorize? better name
     def geometrize(self, dropna=True, longitude_col_name='decimallongitude', latitude_col_name='decimallatitude', crs=None):
         """
-        Converts data to geopandas. The latitude/longitude is converted into shapely Point geometry.
-        Geopandas/GeoSeries data structures have a geometry column.
+        Converts the species data from pandas.DataFrame contents to geopandas.GeoDataFrame format.
+        GeoDataFrames inherit basic DataFrames, and provide more functionality on top of pandas.
+        The biggest difference in terms of the data layout is the addition of a 'geometry' column which contains
+        `Shapely <http://toblerity.org/shapely/shapely.geometry.html>`_ geometries in `geopandas <http://geopandas.org/user.html>`_.
+        The ``decimallatitude`` and ``decimallongitude`` columns are converted into shapely Point geometry, one Point for each latitude/longitude
+        record.
+
+        :param bool dropna: Whether to drop records with NaN values in the decimallatitude or decimallongitude columns in the conversion process.
+
+        :param string longitude_col_name: The name of the column carrying the decimal longitude values. Default is 'decimallongitude'.
+
+        :param string latitude_col_name: The name of the column carrying the decimal latitude values. Default is 'decimallatitude'.
+
+        :param crs: The Coordinate Reference System of the data. Default is "EPSG:4326".
+        :type crs: string or dictionary.
+
+        :returns: None
+
         """
+        if not hasattr(self, 'data_full'):
+            raise AttributeError("You have not loaded the data.")
+
+        if isinstance(self.data_full, GeoDataFrame):
+            logger.info("Data already in geopandas.GeoDataFrame format. Skipping...")
+            return
         try:
             if crs is None:
                 crs = {'init': "EPSG:4326"}
@@ -364,9 +455,30 @@ class GBIFSpecies(Species):
                    preserve_topology=False,
                    with_envelope=False):
         """
-        Expand each sample point into its polygon of influence (buffer).
-        Merge the polygons that overlap into a cascaded union (multipolygon)
-        Return a GeoDataFrame
+        Helper method: expands each `Shapely <http://toblerity.org/shapely/shapely.geometry.html>`_ Point of the ``geopandas.GeoDataFrame``
+        species data into its *"polygon of influence"* (buffer). If the data is not already in a geopandas format,
+        the :func:`geometrize` method is called first. Further merges the polygons that overlap into a *cascaded union* (multipolygon).
+        The polygon is further simplified, also (optionally) by using an envelope around the buffer. An *envelope* is the smallest
+        rectangular polygon (with sides parallel to the coordinate axes) that contains the buffer geometry.
+        The original species data is un-altered.
+
+        :param int buffer_distance: Unitless distance from the Point geometry, specifying the amount of "influence". Default is 1.
+
+        :param int buffer_resolution: The resolution of the buffer around each Point. It is used for approximation of a unit radius circle. \
+        For example, 16-gon approximation, 3 - triangle approximation etc. The higher the resolution, the closer the approximation of \
+        the buffer to a circle shape around the point. Default is 16.
+
+        :param int simplify_tolerance: All points in the simplified geometry will be within the tolerance distance of the original geometry.
+
+        :param bool preserve_topology: If set to False the much quicker Douglas-Peucker algorithm is used in the simplification process. \
+        Note that invalid geometric objects may result from simplification that does not preserve topology. Default is False.
+
+        :param bool with_envelope: Whether to use an envelope in the simplification of the geometry. Default is false.
+
+        :returns: Data frame containing all polygons of the simplified geometries.
+
+        :rtype: geopandas.GeoDataFrame
+
         """
         if not (isinstance(self.data_full, GeoSeries) or isinstance(self.data_full, GeoDataFrame)):
             self.geometrize(dropna=True)
@@ -398,8 +510,19 @@ class GBIFSpecies(Species):
     def overlay(self, species_range_map):
         """
         Overlays the point records with a species range map. The map can be an instance of IUCNSpecies, or directly
-        a GeoSeries datastructure containing geometry data.
-        This overlaying effectively crops the point records to the area within the range map.
+        a GeoSeries datastructure containing `Shapely <http://toblerity.org/shapely/shapely.geometry.html>`_ geometries.
+        This overlaying effectively crops the point records to the area within the range map, i.e., drops those
+        points that fall outside the union of range polygon(s). If the data is not already in a geopandas format,
+        the :func:`geometrize` method is called first.
+        The geometries are first "prepared" (`Prepared Geometries <http://toblerity.org/shapely/manual.html>`_),
+        for faster operations, such as checking if a polygon contains a point.
+        **Careful**, the species data is updated to contain only the filtered-out occurrences. The other records are lost.
+
+        :param species_range_map: The species range-map geometry to crop point-record occurrences to.
+        :type species_range_map: geopandas.GeoSeries or IUCNSpecies
+
+        :returns: None
+
         """
         if not (isinstance(species_range_map, GeoSeries) or isinstance(species_range_map, IUCNSpecies)):
             raise AttributeError("Please provide a correct species rangemap input.")
@@ -425,11 +548,25 @@ class GBIFSpecies(Species):
 
 class IUCNSpecies(Species):
     """
-    The input data is in shapefiles(ESRI native format) and contains the known expert range of each species. Ranges are
-    depicted as polygons. One large shapefile contains all the distribution maps of that group, i.e., all geometries. We
-    will need to rasterize IUCN range polygons to grids with a predefined resolution. "Gridify" the data, and that per
-    species rather than all in one region.
+    IUCNSpecies
+    A class for encapsulating the `IUCN Red List <http://http://www.iucnredlist.org/>`_ of threatened species layer functionality.
+    The data for this layer is expected to be shapefiles (ESRI native format) and contains the known expert ranges of species.
+    Ranges are depicted as polygons. One shapefile can contain distribution maps of an entire species group, i.e., all geometries,
+    or alternatively, contain individual species ranges. The shapefiles can be downloaded from the website, as currently there
+    is no IUCN API to directly query the IUCN backend database for particular taxonomical species.
+    The data is always loaded in ``geopandas.GeoDataFrame`` format, suitable for geometries and operations on them.
 
+    :ivar shape_file: Location of the shapefile from which the data is loaded.
+    :vartype shape_file: string
+
+    :ivar raster_file: Location of the raster file to which the corresponding rasterized data is stored.
+    :vartype raster_file: string
+
+    :ivar raster_affine: Affine translation used in the species raster map.
+    :vartype raster_affine: rasterio.transform.Affine
+
+    :ivar raster_reader: file reader for the corresponding rasterized data.
+    :vartype raster_reader: rasterio._io.RasterReader
     """
 
     def __init__(self, **kwargs):
@@ -439,21 +576,35 @@ class IUCNSpecies(Species):
 
     def load_shapefile(self, file_path):
         """
-        A GeoDataFrame is a tablular data structure that contains a column called geometry which contains a GeoSeries.
-        So data_full will be a geopandas dataframe, you can obtain it by .get_data()
-        Supported input formats: Shapefiles, GeoJSON.
+        Loads the data from the provided :attr:`file_path` shapefile into a geopandas.GeoDataFrame.
+        A GeoDataFrame is a tablular data structure that contains a column called ``geometry`` which contains a ``geopandas.GeoSeries`` of
+        `Shapely <http://toblerity.org/shapely/shapely.geometry.html>`_ geometries. All other meta-data column names are
+        converted to a lower-case, for consistency.
+
+        :param string file_path: The full path to the shapefile file (including the directory and filename in one string).
+
+        :returns: None
+
         """
         logger.info("Loading data from: %s" % file_path)
         self.data_full = GeoDataFrame.from_file(file_path)   # shapely.geometry type of objects are used
         # self.data_full.columns = map(str.lower, self.data_full.columns)   # convert all column headers to lowercase
-        self.data_full.columns = [x.lower() for x in self.data_full.columns]   # python 2
+        self.data_full.columns = [x.lower() for x in self.data_full.columns]   # python 2, backwards compatible
 
         logger.info("The shapefile contains data on %d species areas." % self.data_full.shape[0])
         self.shape_file = file_path
 
     def find_species_occurrences(self, name_species=None, **kwargs):
         """
-        Documentation pending on filtering species data from a shapefile
+        Filters the (previously loaded) ``geopandas.GeoDataFrame`` data to contain only records for a particular species (binomial).
+        **Careful**, other records will be lost from the IUCNSpecies object upon calling this method.
+
+        :param string name_species: The binomial name of the species to use for filtering out records.
+
+        :returns: A data frame with filtered-out species records.
+
+        :rtype: geopandas.GeoDataFrame
+
         """
 
         if not hasattr(self, 'data_full'):
@@ -472,15 +623,26 @@ class IUCNSpecies(Species):
             self.data_full = all_data
             logger.info("Loaded species: %s " % self.data_full['binomial'].unique())
 
-        if self.data_full['id_no'].shape[0] == 1:
+        if self.data_full['id_no'].shape[0] == 1 or self.data_full['id_no'].unique().shape[0] == 1:
             self.ID = int(self.data_full['id_no'].iloc[0])
 
         return self.data_full
 
     def save_shapefile(self, full_name=None, driver='ESRI Shapefile', overwrite=False):
         """
-        Saves the current (geopandas) data as a shapefile.
-        The geopandas data needs to have geometry as a column, besides the metadata.
+        Saves the current geopandas.GeoDataFrame data in a shapefile. The data is expected to have a ``geometry``
+        as a column, besides other (meta-)data. If the full location and name of the file is not provided,
+        then the :attr:`overwrite` should be set to ``True``, to overwrite the existing shapefile from which the
+        data was previously loaded.
+
+        :param string file_path: The full path to the targed shapefile file (including the directory and filename in one string).
+
+        :param string driver: The driver to use for storing the geopandas.GeoDataFrame data into a file. Default is "ESRI Shapefile".
+
+        :param bool overwrite: Whether to overwrite the shapefile from which the data was previously loaded, if a new :attr:`file_path` is not supplied.
+
+        :returns: None
+
         """
 
         if not (isinstance(self.data_full, GeoSeries) or isinstance(self.data_full, GeoDataFrame)):
@@ -498,46 +660,46 @@ class IUCNSpecies(Species):
         except AttributeError as e:
             logger.error("Could not save data! %s " % str(e))
 
-    def rasterize_old(self, raster_file=None, pixel_size=None, x_res=None, y_res=None, *args, **kwargs):
-        # options = ["ALL_TOUCHED=TRUE"]
-        # right now it is pixel_size. But we could complicate further with cell width/height.
-        # TODO: no need for x_res y_res?
+    # def rasterize(self, raster_file=None, pixel_size=None, x_res=None, y_res=None, *args, **kwargs):
+    #     # options = ["ALL_TOUCHED=TRUE"]
+    #     # right now it is pixel_size. But we could complicate further with cell width/height.
+    #     # TODO: no need for x_res y_res?
 
-        if not (pixel_size or raster_file):
-            raise AttributeError("Please provide pixel_size and a target raster_file.")
+    #     if not (pixel_size or raster_file):
+    #         raise AttributeError("Please provide pixel_size and a target raster_file.")
 
-        NoData_value = -9999
+    #     NoData_value = -9999
 
-        # Open the data source and read in the extent
-        # TODO: check shapefile exists
-        source_ds = ogr.Open(self.shape_file)
-        source_layer = source_ds.GetLayer()
-        x_min, x_max, y_min, y_max = source_layer.GetExtent()   # boundaries
+    #     # Open the data source and read in the extent
+    #     # TODO: check shapefile exists
+    #     source_ds = ogr.Open(self.shape_file)
+    #     source_layer = source_ds.GetLayer()
+    #     x_min, x_max, y_min, y_max = source_layer.GetExtent()   # boundaries
 
-        # Create the destination data source
-        x_res = int((x_max - x_min) / pixel_size)
-        y_res = int((y_max - y_min) / pixel_size)
-        target_ds = gdal.GetDriverByName('GTiff').Create(raster_file, x_res, y_res, 1, gdal.GDT_Byte)
-        target_ds.SetGeoTransform((x_min, pixel_size, 0, y_max, 0, -pixel_size))
-        band = target_ds.GetRasterBand(1)
-        band.SetNoDataValue(NoData_value)
-        # Rasterize
-        gdal.RasterizeLayer(target_ds, [1], source_layer, burn_values=[255], *args, **kwargs)
+    #     # Create the destination data source
+    #     x_res = int((x_max - x_min) / pixel_size)
+    #     y_res = int((y_max - y_min) / pixel_size)
+    #     target_ds = gdal.GetDriverByName('GTiff').Create(raster_file, x_res, y_res, 1, gdal.GDT_Byte)
+    #     target_ds.SetGeoTransform((x_min, pixel_size, 0, y_max, 0, -pixel_size))
+    #     band = target_ds.GetRasterBand(1)
+    #     band.SetNoDataValue(NoData_value)
+    #     # Rasterize
+    #     gdal.RasterizeLayer(target_ds, [1], source_layer, burn_values=[255], *args, **kwargs)
 
-        # WOW: https://trac.osgeo.org/gdal/wiki/PythonGotchas "To save and close GDAL raster datasets or OGR vector
-        # datasources, the object needs to be dereferenced, such as setting it to None, a different value, or deleting
-        # the object. "
-        # From the book "Python Geospatial Analysis Essentials":
-        # dstFile.Destroy() This closes the destination file and makes sure everything
-        # has been saved to disk.
-        band = None
-        target_ds = None
-        logger.info("Data rasterized into file %s " % raster_file)
-        logger.info("Resolution: x_res={0} y_res={1}".format(x_res, y_res))
+    #     # WOW: https://trac.osgeo.org/gdal/wiki/PythonGotchas "To save and close GDAL raster datasets or OGR vector
+    #     # datasources, the object needs to be dereferenced, such as setting it to None, a different value, or deleting
+    #     # the object. "
+    #     # From the book "Python Geospatial Analysis Essentials":
+    #     # dstFile.Destroy() This closes the destination file and makes sure everything
+    #     # has been saved to disk.
+    #     band = None
+    #     target_ds = None
+    #     logger.info("Data rasterized into file %s " % raster_file)
+    #     logger.info("Resolution: x_res={0} y_res={1}".format(x_res, y_res))
 
-        self.raster_file = raster_file
-        self.x_res = x_res
-        self.y_res = y_res
+    #     self.raster_file = raster_file
+    #     self.x_res = x_res
+    #     self.y_res = y_res
 
     def rasterize(self, raster_file=None, pixel_size=None, all_touched=False,
                   no_data_value=0,
@@ -546,7 +708,32 @@ class IUCNSpecies(Species):
                   cropped=False,
                   *args, **kwargs):
         """
-        Documentation pending on how to rasterize geometrical shapes
+        Rasterize (burn) the species rangemaps (geometrical shapes) into pixels (cells), i.e., a 2-dimensional image array
+        of type numpy ndarray. Uses the `Rasterio <https://mapbox.github.io/rasterio/_modules/rasterio/features.html>`_ library
+        for this purpose. All the shapes from the ``IUCNSpecies`` object data are burned in a single "band" of the image.
+        Rasterio datasets can generally have one or more bands, or layers. Following the GDAL convention, these are indexed starting with 1.
+
+        :param string raster_file: The full path to the targed GeoTIFF raster file (including the directory and filename in one string).
+
+        :param int pixel_size: The size of the pixel in degrees, i.e., the resolution to use for rasterizing.
+
+        :param bool all_touched: If true, all pixels touched by geometries, will be burned in. If false, only pixels \
+        whose center is within the polygon or that are selected by *Bresenham's line algorithm*, will be burned in.
+
+        :param int no_data_value: Used as value of the pixels which are not burned in. Default is 0.
+
+        :param int default_value: Used as value of the pixels which are burned in. Default is 1.
+
+        :param dict crs: The Coordinate Reference System to use. Default is "ESPG:4326"
+
+        :param bool cropped: If true, the resulting pixel array (image) is cropped to the region borders, which contain \
+        the burned pixels (i.e., an envelope within the range). Otherwise, a "global world map" is used, i.e., the boundaries \
+        are set to (-180, -90, 180, 90) for the resulting array.
+
+        :returns: Rasterio RasterReader file object which can be used to read individual bands from the raster file.
+
+        :rtype: rasterio._io.RasterReader
+
         """
         if not (pixel_size or raster_file):
             raise AttributeError("Please provide pixel_size and a target raster_file.")
@@ -569,13 +756,13 @@ class IUCNSpecies(Species):
         y_res = int((y_max - y_min) / pixel_size)
         # translate
         transform = Affine.translation(x_min, y_max) * Affine.scale(pixel_size, -pixel_size)
-        result = rasterio.features.rasterize(self.data_full.geometry,
-                                             transform=transform,
-                                             out_shape=(y_res, x_res),
-                                             all_touched=all_touched,
-                                             fill=no_data_value,
-                                             default_value=default_value
-                                             )
+        result = features.rasterize(self.data_full.geometry,
+                                    transform=transform,
+                                    out_shape=(y_res, x_res),
+                                    all_touched=all_touched,
+                                    fill=no_data_value,
+                                    default_value=default_value
+                                    )
 
         with rasterio.open(raster_file, 'w', driver='GTiff', width=x_res, height=y_res,
                            count=1,
@@ -613,7 +800,15 @@ class IUCNSpecies(Species):
 
     def load_raster_data(self, raster_file=None):
         """
-        Documentation pending on how to load raster data
+        Loads the raster data from a previously-saved raster file. Provides information about the
+        loaded data, and returns a rasterio file reader.
+
+        :param string raster_file: The full path to the targed GeoTIFF raster file (including the directory and filename in one string).
+
+        :returns: Rasterio RasterReader file object which can be used to read individual bands from the raster file.
+
+        :rtype: rasterio._io.RasterReader
+
         """
         if raster_file:
             self.raster_file = raster_file
@@ -642,17 +837,30 @@ class IUCNSpecies(Species):
                                    filter_no_data_value=True,
                                    band_number=1):
         """
-        Map the pixel coordinates to world coordinates. The affine transformation matrix
-        is used for this purpose. The convention is to reference the pixel corner. To
-        reference the pixel center instead, we translate each pixel by 50%.
+        Map the pixel coordinates to world coordinates. The affine transformation matrix is used for this purpose.
+        The convention is to reference the pixel corner. To reference the pixel center instead, we translate each pixel by 50%.
         The "no value" pixels (cells) can be filtered out.
 
         A dataset's pixel coordinate system has its origin at the "upper left" (imagine it displayed on your screen).
         Column index increases to the right, and row index increases downward. The mapping of these coordinates to
         "world" coordinates in the dataset's reference system is done with an affine transformation matrix.
 
-        :returns: a tuple of arrays. The first array contains the latitude values for each
+        :param string raster_data: the raster data (2-dimensional array) to translate to world coordinates. If not provided, \
+        it tries to load existing rasterized data from the IUCNSpeices object.
+
+        :param int no_data_value: The pixel values depicting non-burned cells. Default is 0.
+
+        :param bool filter_no_data_value: Whether to filter-out the no-data pixel values. Default is true. If set to \
+        false, all pixels in a 2-dimensional array will be converted to world coordinates. Typically this option is used \
+        to get a "base" map of the coordinates of all pixels in an image (map).
+
+        :param int band_number: The index of the band from which to load raster data.
+
+        :returns: A tuple of numpy ndarrays. The first array contains the latitude values for each \
         non-zero cell, the second array contains the longitude values for each non-zero cell.
+
+        :rtype: tuple(np.ndarray, np.ndarray)
+
         """
         if raster_data is None:
             logger.info("No raster data provided, attempting to load default...")
@@ -693,18 +901,20 @@ class IUCNSpecies(Species):
         Draw random pseudo-absence points from within a buffer around the geometry. First it simplifies the geometry
         with a buffer around the original geometry. Then calculates the difference between this one, and the original
         geometry, to determine a geometry from which to sample random points. Finally, generates random points one by
-        one and tests if they fall in that difference-geometry, until a <count> number of points are generated.
+        one and tests if they fall in that difference-geometry, until a :attr:`count` number of points are generated.
         If the "buffered" geometry is invalid (which could happen), it gradually tries to simplify it by applying a
-        bigger value for the simplify_tolerance parameter, until the geometry becomes valid. The reason is that an
+        bigger value for the :attr:`simplify_tolerance` parameter, until the geometry becomes valid. The reason is that an
         operation like difference/intersection is problematic to apply on an invalid geometry.
         The value is increased by maximum of 100.
 
-        A more efficient approach would be to just generate a <count> number of points from the first step, i.e.,
+        A more efficient approach would be to just generate a :attr:`count` number of points from the first step, i.e.,
         from the buffer. Some points will fall within the original shape, and they can be discarded,
-        so the number of pseudo-absence points will not actually be equal to <count>.
-        If precision is not an issue, we could provide a <count> number that is larger but calculated according
-        to the original_area/buffered_convex_hull ratio.
-        update: Maybe not even necessary, given that shapely's prep(..) speeds up a factor of 100 to 1000
+        so the number of pseudo-absence points will not actually be equal to :attr:`count`.
+        If precision is not an issue, we could provide a :attr:`count` number that is larger but calculated according
+        to the ``original_area/buffered_convex_hull`` ratio.
+
+        **Update:** Maybe not even necessary, given that shapely's ``prep(..)`` operation speeds up a factor of 100 to 1000!
+
         """
         # First simplify (necessary) and apply a buffer around the geometry
         simplified_buffer = (self.data_full.geometry.buffer(0)
@@ -746,24 +956,32 @@ class IUCNSpecies(Species):
 
     def drop_extinct_species(self, presence_column_name='presence', discard_bad=False):
         """
-        According to the current IUCN Coded Domain Values for Presence:
-        Code    Presence
-        1       Extant
-        2       Probably Extant (discontinued)
-        3       Possibly Extant
-        4       Possibly Extinct
-        5       Extinct (post 1500)
-        6       Presence Uncertain
+        According to the current IUCN Coded Domain Values for ``Presence``:
 
-        Species can have both areas(polygons) in which they are extinct(5) AND areas in which they are not.
-        We keep such species, and only filter-out species for which all areas are extinct.
+        +------+--------------------------------+
+        | Code |   Presence                     |
+        +======+================================+
+        |  1   | Extant                         |
+        +------+--------------------------------+
+        |  2   | Probably Extant (discontinued) |
+        +------+--------------------------------+
+        |  3   | Possibly Extant                |
+        +------+--------------------------------+
+        |  4   | Possibly Extinct               |
+        +------+--------------------------------+
+        |  5   | Extinct (post 1500)            |
+        +------+--------------------------------+
+        |  6   | Presence Uncertain             |
+        +------+--------------------------------+
 
-        :param str presence_column_name: The column name which contains the presence code values. Default is 'presence'.
+        Species can have both areas (polygons) in which they are extinct (5) AND areas in which they are not.
+        Such species are kept, and only species for which all areas are extinct, are filtered-out.
 
-        :param bool discard_bad: Whether to keep or discard species with "unknown only" areas (code==0). By default they
-        are kept (discard_bad=False).
-        There are currently (july 2016) four such problematic species:
-        Acipenser baerii, Ambassis urotaenia, Microphysogobio tungtingensis, Rhodeus sericeus
+        :param string presence_column_name: The column name which contains the presence code values. Default is 'presence'.
+
+        :param bool discard_bad: Whether to keep or discard species with "unknown only" areas (code==0). By default they \
+        are kept (discard_bad=False). There are currently (july 2016) four such problematic species: \
+        *Acipenser baerii*, *Ambassis urotaenia*, *Microphysogobio tungtingensis*, *Rhodeus sericeus*.
 
         :returns: None
 
