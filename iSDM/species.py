@@ -559,6 +559,8 @@ class IUCNSpecies(Species):
 
         :param string file_path: The full path to the shapefile file (including the directory and filename in one string).
 
+        :returns: None
+
         """
         logger.info("Loading data from: %s" % file_path)
         self.data_full = GeoDataFrame.from_file(file_path)   # shapely.geometry type of objects are used

@@ -11,7 +11,7 @@ from enum import Enum
 import rasterio
 import pprint
 from rasterio.warp import calculate_default_transform, RESAMPLING
-from iSDM.species import IUCNSpecies
+# from iSDM.species import IUCNSpecies
 import numpy as np
 from geopandas import GeoSeries, GeoDataFrame
 from rasterio.transform import Affine
@@ -401,6 +401,7 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
         :returns: A raster file reader, from which any band data can be read using .read(band_number)
 
         :rtype: rasterio._io.RasterReader
+
         """
         if not self.raster_reader or self.raster_reader.closed:
             logger.info("The dataset is closed. Please load it first using .load_data()")
@@ -413,7 +414,7 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
 
         :param int band_number: The index of the band to read.
 
-        :returns: A Numpy 2-dimensional array containing the pixel values of that particular band.
+        :returns: A 2-dimensional Numpy array containing the pixel values of that particular band.
 
         """
         if not self.raster_reader or self.raster_reader.closed:
@@ -423,7 +424,22 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
 
     def reproject(self, source_file=None, destination_file=None, resampling=RESAMPLING.nearest, **kwargs):
         """
-        Documentation pending on how to reproject/resample data
+        Reprojects the pixels of a source raster map to a destination raster, with a different reference coordinate
+        system and Affine transform. It uses `Rasterio <https://github.com/mapbox/rasterio/blob/master/docs/reproject.rst>`_
+        calculate_default_transform() to calculate parameters such as the resolution (if not provided), and the destination
+        transform and dimensions.
+
+        :param str source_file: Full path to the source file containing a raster map
+
+        :param str destination_file: Full path to the destination file containing a raster map
+
+        :param int resampling: Resampling method to use. Can be one of the following: Resampling.nearest, Resampling.bilinear,
+        Resampling.cubic, Resampling.cubic_spline, Resampling.lanczos, Resampling.average, Resampling.mode.
+
+        :param dict kwargs: Optional additional arguments passed to the method, to parametrize the reprojection.
+        For example: :attr:`dst_crs` for the target coordinate reference system, :attr:`resolution` for the arget resolution,
+        in units of target coordinate reference system.
+
         """
         if not source_file:
             if not self.file_path:
@@ -464,55 +480,85 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
                                             )
             logger.info("Reprojected data in %s " % destination_file)
 
-    def overlay(self, range_map, plot=False):
-        """
-        To extract data from a raster only where it intersects with a vector feature.
-        rasterio provides option to "burn" vector shapes into rasters (rasterize the geometry). Then we create
-        a raster mask layer
-        """
-        if not (isinstance(range_map, EnvironmentalLayer) or isinstance(range_map, IUCNSpecies)):
-            raise AttributeError("Please provide a correct rangemap input.")
+    # def overlay(self, range_map):
+    #     """
+    #     Extract mask from a raster map, where it intersects with a vector feature, like a polygon.
+    #     rasterio provides option to "burn" vector shapes into rasters (rasterize the geometry). Then we create
+    #     a raster mask layer
+    #     """
+    #     if not (isinstance(range_map, VectorEnvironmentalLayer) or isinstance(range_map, IUCNSpecies)):
+    #         raise AttributeError("Please provide a correct rangemap input.")
 
-        # TODO: what about if the overlay is just a shape file?
-        # TODO: what if there are multiple geometries in a shapefile? Currently it just returns the last
-        # but could make a list and append
-        masked_data = None
+    #     # TODO: what about if the overlay is just a shape file?
+    #     # TODO: what if there are multiple geometries in a shapefile? Currently it just returns the last
+    #     # but could make a list and append
+    #     masked_data = None
 
-        if isinstance(range_map, EnvironmentalLayer) or isinstance(range_map, IUCNSpecies):
-            for geometry in range_map.get_data()['geometry']:
-                if self.raster_reader.closed:
-                    self.load_data(self.file_path)
-                with self.raster_reader as raster:
-                    # get pixel coordinates of the geometry's bounding box
-                    ul = raster.index(*geometry.bounds[0:2])
-                    lr = raster.index(*geometry.bounds[2:4])
+    #     if isinstance(range_map, VectorEnvironmentalLayer) or isinstance(range_map, IUCNSpecies):
+    #         for geometry in range_map.get_data()['geometry']:
+    #             if self.raster_reader.closed:
+    #                 self.load_data(self.file_path)
+    #             with self.raster_reader as raster:
+    #                 # get pixel coordinates of the geometry's bounding box
+    #                 ul = raster.index(*geometry.bounds[0:2])
+    #                 lr = raster.index(*geometry.bounds[2:4])
 
-                    # read the subset of the data into a numpy array
-                    window = ((lr[0], ul[0] + 1), (ul[1], lr[1] + 1))
-                    data = raster.read(1, window=window)
-                    # create an affine transform for the subset data
-                    t = raster.affine
-                    shifted_affine = Affine(t.a, t.b, t.c + ul[1] * t.a, t.d, t.e, t.f + lr[0] * t.e)
-                    # rasterize the geometry
-                    mask = features.rasterize(
-                        [(geometry, 0)],
-                        out_shape=data.shape,
-                        transform=shifted_affine,
-                        fill=1,
-                        all_touched=True,
-                        dtype=np.uint8)
+    #                 # read the subset of the data into a numpy array
+    #                 window = ((lr[0], ul[0] + 1), (ul[1], lr[1] + 1))
+    #                 data = raster.read(1, window=window)
+    #                 # create an affine transform for the subset data
+    #                 t = raster.affine
+    #                 shifted_affine = Affine(t.a, t.b, t.c + ul[1] * t.a, t.d, t.e, t.f + lr[0] * t.e)
+    #                 # rasterize the geometry
+    #                 mask = features.rasterize(
+    #                     [(geometry, 0)],
+    #                     out_shape=data.shape,
+    #                     transform=shifted_affine,
+    #                     fill=1,
+    #                     all_touched=True,
+    #                     dtype=np.uint8)
 
-                    # create a masked numpy array
-                    masked_data = np.ma.array(data=data, mask=mask.astype(bool))
+    #                 # create a masked numpy array
+    #                 masked_data = np.ma.array(data=data, mask=mask.astype(bool))
 
-        self.masked_data = masked_data
-        logger.info("Overlayed raster climate data with the given range map.")
-        logger.info("Use the .masked_data attribute to access it.")
+    #     self.masked_data = masked_data
+    #     logger.info("Overlayed raster climate data with the given range map.")
+    #     logger.info("Use the .masked_data attribute to access it.")
 
     def sample_pseudo_absences(self,
                                species_raster_data=None,
                                band_number=1,
                                number_of_pseudopoints=1000):
+        """
+        Samples a :attr:`number_of_pseudopoints` points from the RasterEnvironmentalLayer data (raster map),
+        based on a given species raster map which is assumed to contain species presence points.
+        The :attr:`species_raster_data`is used to determine which distinct regions (cell values) from the entire
+        environmental raster map, should be taken into account for potential pseudo-absence sampling regions.
+        Next, all the pixels from the environmental raster map whose values are in the distinct regions are
+        merged on a filtered environmental raster map. Finally, presence pixels are removed from this map, and
+        the resulting pixels are used as a base for sampling pseudo-absences. If the number of such resulting pixels
+        left is smaller than the number of requested pseudo-absence points, all pixels are automatically taken
+        as pseudo-absence points, and no random sampling is done.
+
+        Otherwise, :attr:`number_of_pseudopoints` pixels positions (indices) are randomly chosen at once (for speed),
+        rather than randomly sampling one by one until the desired number of pseudo-absences is reached. Due to this,
+        it could be that some random pixel positions repeat, and the resulting number of unique pixels is slightly smaller
+        than the required one. For instance, experiments show that around 980 unique pixels are drawn when the random
+        samples requested is 1000.
+
+        :param np.ndarray species_raster_data: A raster map containing the species presence pixels. If not provided,
+        by default the one loaded previously (if available, otherwise .load_data() should be used before) is used.
+
+        :param int band_number: The index of the band from the :attr:`species_raster_data` to use as input. Default is 1.
+
+        :param int number_of_pseudopoints: Number of pseudo-absence points to sample from the raster environmental layer data.
+
+        :returns: A tuple containing two raster maps, one with all potential background pixels chosen to sample from,
+        and second with all the actual sampled pixels.
+
+        :rtype: tuple(np.ndarray, np.ndarray)
+
+        """
         if not (isinstance(species_raster_data, np.ndarray)) or not (set(np.unique(species_raster_data)) == set({0, 1})):
             logger.error("Please provide the species raster data as a numpy array with pixel values 1 and 0 (presence/absence).")
             return
@@ -592,14 +638,25 @@ class DEMLayer(RasterEnvironmentalLayer):
 
 class VectorEnvironmentalLayer(EnvironmentalLayer):
     """
-    Some class-level documentation on vector environmental layers here
+    VectorEnvironmentalLayer
+
+    A class for encapsulating the vector environmental layer functionality, with operations such as rasterizing.
+
     """
     def __init__(self, source=None, file_path=None, name_layer=None, **kwargs):
         EnvironmentalLayer.__init__(self, source, file_path, name_layer, **kwargs)
 
     def load_data(self, file_path=None):
         """
-        Documentation on how to load shapefile environmental layer
+        Loads the environmental data from the provided :attr:`file_path` shapefile into a geopandas.GeoDataFrame.
+        A GeoDataFrame is a tablular data structure that contains a column called "geometry" which contains a GeoSeries of
+        `Shapely <http://toblerity.org/shapely/shapely.geometry.html>`_ geometries. all other meta-data column names are
+        converted to a lower-case, for consistency.
+
+        :param string file_path: The full path to the shapefile file (including the directory and filename in one string).
+
+        :returns: None
+
         """
         if file_path:
                 self.file_path = file_path
@@ -615,8 +672,19 @@ class VectorEnvironmentalLayer(EnvironmentalLayer):
 
     def save_data(self, full_name=None, driver='ESRI Shapefile', overwrite=False):
         """
-        Saves the current (geopandas) data as a shapefile.
-        The geopandas data needs to have geometry as a column, besides the metadata.
+        Saves the current geopandas.GeoDataFrame data in a shapefile. The data is expected to have a 'geometry'
+        as a column, besides other metadata metadata. If the full location and name of the file is not provided,
+        then the :attr:`overwrite` should be set to "True" to overwrite the existing shapefile from which the
+        data was previously loaded.
+
+        :param string file_path: The full path to the targed shapefile file (including the directory and filename in one string).
+
+        :param string driver: The driver to use for storing the geopandas.GeoDataFrame data into a file. Default is "ESRI Shapefile".
+
+        :param bool overwrite: Whether to overwrite the shapefile from which the data was previously loaded, if a new :attr:`file_path` is not supplied.
+
+        :returns: None
+
         """
 
         if not (isinstance(self.data_full, GeoSeries) or isinstance(self.data_full, GeoDataFrame)):
@@ -635,13 +703,32 @@ class VectorEnvironmentalLayer(EnvironmentalLayer):
             logger.error("Could not save data! %s " % str(e))
 
     def get_data(self):
+        """
+        Returns the (pre)loaded species data in a (geo)pandas DataFrame.
+
+        :returns: :attr:`self.data_full`
+
+        :rtype: geopandas.GeoDataFrame or pandas.DataFrame
+
+        """
         return self.data_full
 
     def set_data(self, data_frame):
         """
-        Careful, overwrites the existing raw data!. More documentation
+        Set the species data to the contents of :attr:`data_frame`. The data passed must be in a
+        pandas or geopandas DataFrame.
+        Careful, it overwrites the existing data!
+
+        :param pandas.DataFrame data_frame: The new data.
+
+        :returns: None
+
         """
-        self.data_full = data_frame
+
+        if not isinstance(self.data_full, GeoDataFrame) or not isinstance(self.data_full, pd.DataFrame):
+            raise AttributeError("Data is not in a correct format! Please pass pandas or geopandas DataFrame.")
+        else:
+            self.data_full = data_frame
 
     def rasterize(self, raster_file=None, pixel_size=None, all_touched=True,
                   no_data_value=0,
@@ -650,7 +737,32 @@ class VectorEnvironmentalLayer(EnvironmentalLayer):
                   cropped=False,
                   *args, **kwargs):
         """
-        Documentation pending on how to rasterize geometrical shapes
+        Rasterize (burn) the environment rangemaps (geometrical shapes) into pixels (cells), i.e., a 2-dimensional image array
+        of type numpy ndarray. Uses the 'rasterio <https://mapbox.github.io/rasterio/_modules/rasterio/features.html>'_ library
+        for this purpose. All the shapes from the VectorEnvironmentalLayer object data are burned in a single "band" of the image.
+        Rasterio datasets can generally have one or more bands, or layers. Following the GDAL convention, these are indexed starting with 1.
+
+        :param string raster_file: The full path to the targed GeoTIFF raster file (including the directory and filename in one string).
+
+        :param int pixel_size: The size of the pixel in degrees, i.e., the resolution to use for rasterizing.
+
+        :param bool all_touched: If true, all pixels touched by geometries, will be burned in. If false, only pixels
+        whose center is within the polygon or that are selected by Bresenham's line algorithm, will be burned in.
+
+        :param int no_data_value: Used as value of the pixels which are not burned in. Default is 0.
+
+        :param int default_value: Used as value of the pixels which are burned in. Default is 1.
+
+        :param crs: The Coordinate Reference System to use. Default is "ESPG:4326"
+
+        :param bool cropped: If true, the resulting pixel array (image) is cropped to the region borders, which contain
+        the burned pixels (i.e., an envelope within the range). Otherwise, a "global world map" is used, i.e., the boundaries
+        are set to (-180, -90, 180, 90) for the resulting array.
+
+        :returns: Rasterio RasterReader file object which can be used to read individual bands from the raster file.
+
+        :rtype: rasterio._io.RasterReader
+
         """
         if not (pixel_size or raster_file):
             raise AttributeError("Please provide pixel_size and a target raster_file.")
@@ -697,7 +809,15 @@ class VectorEnvironmentalLayer(EnvironmentalLayer):
 
     def load_raster_data(self, raster_file=None):
         """
-        Documentation pending on how to load raster data
+        Loads the raster data from a previously-saved raster file. Provides information about the
+        loaded data, and returns a rasterio file reader.
+
+        :param string raster_file: The full path to the targed GeoTIFF raster file (including the directory and filename in one string).
+
+        :returns: Rasterio RasterReader file object which can be used to read individual bands from the raster file.
+
+        :rtype: rasterio._io.RasterReader
+
         """
         if raster_file:
             self.raster_file = raster_file
@@ -803,39 +923,6 @@ class ContinentsLayer(VectorEnvironmentalLayer):
         self.raster_file = raster_file
         self.raster_affine = transform
         return stacked_layers
-
-    def load_raster_data(self, raster_file=None):
-        """
-        Loads the raster data from a previously-saved raster file. Provides information about the
-        loaded data, and returns a rasterio file reader.
-
-        :param string raster_file: The full path to the targed GeoTIFF raster file (including the directory and filename in one string).
-
-        :returns: Rasterio RasterReader file object which can be used to read individual bands from the raster file.
-
-        :rtype: rasterio._io.RasterReader
-
-        """
-        if raster_file:
-            self.raster_file = raster_file
-        if not self.raster_file:
-            raise AttributeError("Please provide a raster_file to read raster data from.")
-
-        src = rasterio.open(self.raster_file)
-        logger.info("Loaded raster data from %s " % self.raster_file)
-        logger.info("Driver name: %s " % src.driver)
-        pp = pprint.PrettyPrinter(depth=5)
-        self.metadata = src.meta
-        logger.info("Metadata: %s " % pp.pformat(self.metadata))
-        logger.info("Resolution: x_res={0} y_res={1}.".format(src.width, src.height))
-        logger.info("Bounds: %s " % (src.bounds,))
-        logger.info("Coordinate reference system: %s " % src.crs)
-        logger.info("Affine transformation: %s " % (src.affine.to_gdal(),))
-        logger.info("Number of layers: %s " % src.count)
-        logger.info("Dataset loaded. Use .read() or .read_masks() to access the layers.")
-        self.raster_affine = src.affine
-        self.raster_reader = src
-        return self.raster_reader
 
 
 class LandCoverlayer(VectorEnvironmentalLayer):
