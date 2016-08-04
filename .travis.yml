@@ -31,4 +31,5 @@ install:
 
 script:  
   - python tests/test_GBIF.py # for now
+  - python tests/test_IUCN.py
   - flake8 --max-line-length=120 iSDM/

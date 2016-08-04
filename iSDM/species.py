@@ -416,6 +416,9 @@ class GBIFSpecies(Species):
         :returns: None
 
         """
+        if not hasattr(self, 'data_full'):
+            raise AttributeError("You have not loaded the data.")
+
         if isinstance(self.data_full, GeoDataFrame):
             logger.info("Data already in geopandas.GeoDataFrame format. Skipping...")
             return
@@ -620,7 +623,7 @@ class IUCNSpecies(Species):
             self.data_full = all_data
             logger.info("Loaded species: %s " % self.data_full['binomial'].unique())
 
-        if self.data_full['id_no'].shape[0] == 1:
+        if self.data_full['id_no'].shape[0] == 1 or self.data_full['id_no'].unique().shape[0] == 1:
             self.ID = int(self.data_full['id_no'].iloc[0])
 
         return self.data_full
