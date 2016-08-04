@@ -847,11 +847,11 @@ class ContinentsLayer(VectorEnvironmentalLayer):
     Continents Layer has a special treatment as a VectorEnvironmentLayer.
     This is mostly because, when rasterizing the continents shapefile, there are multiple shapes
     which should end up with a different pixel value for each continents. The typical rasterizing
-    operation rather produces a raster with binary values (0s and 1s).
+    operation rather produces a raster with binary values (0s and 1s), on a single band.
 
     For overlaying selected pseudo-absence biomes (pixels) with continents, it is best to
     have one individual (raster band) matrix per continent, each filled with 0s and 1s, and loop through
-    the list of continents (in total 8 layers, should be fast). Then "overlaying" or clipping
+    the list of continents (not many layers, so should be fast). Then "overlaying" or clipping
     with biomes would amount to simple arithmetics, like multiplying the matrices (element by element)
     to filter out anything with 0-valued pixels in any matrix.
 
