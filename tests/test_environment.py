@@ -7,6 +7,12 @@ from shapely.geometry import Polygon
 from rasterio.transform import Affine
 import numpy as np
 import logging
+import sys
+
+logger = logging.getLogger()
+logger.level = logging.DEBUG
+stream_handler = logging.StreamHandler(sys.stdout)
+logger.addHandler(stream_handler)
 
 class TestsEnvironment(unittest.TestCase):
 
@@ -14,8 +20,7 @@ class TestsEnvironment(unittest.TestCase):
         self.climate_layer = ClimateLayer(file_path="./data/watertemp/max_wt_2000.tif")
         self.climate_layer_bad = ClimateLayer()
         self.biomes_layer = ClimateLayer(file_path="./data/rebioms/w001001.adf")
-        logger = logging.getLogger('iSDM.environment')
-        logger.setLevel(logging.DEBUG)
+
 
     def test_RasterEnvironmentalLayer_load_data(self):
         with self.assertRaises(AttributeError):
@@ -70,7 +75,7 @@ class TestsEnvironment(unittest.TestCase):
     def test_RasterEnvironmentalLayer_reproject(self):
         self.climate_layer.load_data()
         original_resolution = self.climate_layer.resolution
-        self.climate_layer.reproject(destination_file="./data/tmp.tif", resolution=original_resolution)
+        self.climate_layer.reproject(destination_file="./data/tmp.tif", resolution=(original_resolution[0] * 2, original_resolution[1] * 2))
         self.climate_layer.load_data("./data/tmp.tif")
         self.assertEqual(original_resolution, (self.climate_layer.resolution[0] / 2, self.climate_layer.resolution[1] / 2))
 
