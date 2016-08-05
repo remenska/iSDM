@@ -196,7 +196,7 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
 
         :param int no_data_value: The pixel values depicting non-burned cells. Default is 0.
 
-        : params bool filter_no_data_value: Whether to filter-out the no-data pixel values. Default is true. If set to \
+        : param bool filter_no_data_value: Whether to filter-out the no-data pixel values. Default is true. If set to \
         false, all pixels in a 2-dimensional array will be converted to world coordinates. Typically this option is used \
         to get a "base" map of the coordinates of all pixels in an image (map).
 

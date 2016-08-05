@@ -6,13 +6,14 @@ import geopandas as gp
 from shapely.geometry import Polygon
 from rasterio.transform import Affine
 import numpy as np
-import logging
-import sys
+# import logging
+# import sys
 
 # logger = logging.getLogger()
 # logger.level = logging.DEBUG
 # stream_handler = logging.StreamHandler(sys.stdout)
 # logger.addHandler(stream_handler)
+
 
 class TestsEnvironment(unittest.TestCase):
 
@@ -20,7 +21,6 @@ class TestsEnvironment(unittest.TestCase):
         self.climate_layer = ClimateLayer(file_path="./data/watertemp/max_wt_2000.tif")
         self.climate_layer_bad = ClimateLayer()
         self.biomes_layer = ClimateLayer(file_path="./data/rebioms/w001001.adf")
-
 
     def test_RasterEnvironmentalLayer_load_data(self):
         with self.assertRaises(AttributeError):
@@ -99,5 +99,5 @@ class TestsEnvironment(unittest.TestCase):
         del self.climate_layer
 
 if __name__ == '__main__':
-    logging.getLogger( "iSDM.environment" ).setLevel( logging.DEBUG )
+    # logging.getLogger( "iSDM.environment" ).setLevel( logging.DEBUG )
     unittest.main()

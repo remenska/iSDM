@@ -539,7 +539,7 @@ class GBIFSpecies(Species):
             elif isinstance(species_range_map, IUCNSpecies):
                 prepped_range_map_union = prep(species_range_map.data_full.geometry.unary_union)
             # self.data_full = self.data_full[self.data_full.geometry.intersects(range_map_union)]
-            self.data_full = self.data_full[self.data_full.geometry.apply(lambda x: prepped_range_map_union.contains(x))]
+            self.data_full = self.data_full[self.data_full.geometry.apply(prepped_range_map_union.contains)]
 
             logger.info("Overlayed species occurrence data with the given range map.")
         except ValueError as e:
