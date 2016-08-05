@@ -564,6 +564,7 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
 
     def sample_pseudo_absences(self,
                                species_raster_data,
+                               continents_raster_data=None,
                                band_number=1,
                                number_of_pseudopoints=1000):
         """
@@ -611,6 +612,18 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
             logger.error("Environment data has the following shape %s " % (env_raster_data.shape, ))
             return
 
+        if continents_raster_data is not None:
+            logger.info("Will use the continents/biogeographic raster data for further clipping of the pseudo-absence regions. ")
+            if continents_raster_data.shape[1:] != env_raster_data.shape:
+                logger.error("Please provide (global) biogeographic raster data at the same resolution as the environment")
+                logger.error("Environment data has the following shape %s " % (env_raster_data.shape, ))
+                return
+            if not (isinstance(continents_raster_data, np.ndarray)) or not (set(np.unique(continents_raster_data)) == set({0, 1})):
+                logger.error("Please provide the biogeographic raster data as a numpy array with pixel values 1 and 0 (presence/absence).")
+                return
+        else:
+            logger.warning("You have not provided continents raster layer. Will sample pseudo-absences with no further narrowing/clipping.")
+
         logger.info("Sampling %s pseudo-absence points from environmental layer." % number_of_pseudopoints)
         # first set to zero all pixels that have "nodata" values
         env_raster_data[env_raster_data == self.raster_reader.nodata] = 0
@@ -637,6 +650,21 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
 
         # sample from those pixels which are in the selected raster regions, minus those of the species presences
         pixels_to_sample_from = selected_pixels - presences_pixels
+
+        # Next: narrow the pixels to sample from, to the continents area,, if the continents raster is present.
+        if continents_raster_data is not None:
+            overlayed_continents_species = continents_raster_data * species_raster_data
+            selected_continents = np.zeros_like(species_raster_data)
+
+            for idx, band in enumerate(overlayed_continents_species):
+                if band.max() == 1:  # species data overlaps at some pixels with the current continent band
+                    selected_continents += continents_raster_data[idx]
+
+            # for cases of overlaop between continents, where the sum would be > 1
+            selected_continents[selected_continents > 1] = 1
+            # finally, clip the pixels_to_sample_from, to the selected continents
+            pixels_to_sample_from = pixels_to_sample_from * selected_continents
+
         # These are x/y positions of pixels to sample from. Tuple of arrays.
         (x, y) = np.where(pixels_to_sample_from > 0)
         number_pixels_to_sample_from = x.shape[0]  # == y.shape[0] since every pixel has (x,y) position.
