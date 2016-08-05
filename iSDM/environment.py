@@ -200,8 +200,10 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
         false, all pixels in a 2-dimensional array will be converted to world coordinates. Typically this option is used \
         to get a "base" map of the coordinates of all pixels in an image (map).
 
-        :returns: a tuple of numpy ndarrays. The first array contains the latitude values for each \
+        :returns: A tuple of numpy ndarrays. The first array contains the latitude values for each \
         non-zero cell, the second array contains the longitude values for each non-zero cell.
+
+        :rtype: tuple(np.ndarray, np.ndarray)
 
         """
         if raster_data is None:
