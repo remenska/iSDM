@@ -10,6 +10,7 @@ import logging
 import pandas as pd
 import numpy as np
 from iSDM.environment import RasterEnvironmentalLayer
+# import argparse
 
 # 0. logging
 logger = logging.getLogger()
@@ -76,10 +77,10 @@ all_coordinates = biomes_adf.pixel_to_world_coordinates(raster_data=np.zeros_lik
 base_dataframe = pd.DataFrame([all_coordinates[0], all_coordinates[1]]).T
 base_dataframe.columns = ['decimallatitude', 'decimallongitude']
 base_dataframe.set_index(['decimallatitude', 'decimallongitude'], inplace=True, drop=True)
-merged = base_dataframe.combine_first(mintemp_dataframe)
-merged = merged.combine_first(maxtemp_dataframe)
-merged = merged.combine_first(meantemp_dataframe)
-merged.to_msgpack(open("./data/fish/full_merged.msg", "wb"), append=True)
+base_merged = base_dataframe.combine_first(mintemp_dataframe)
+base_merged = base_merged.combine_first(maxtemp_dataframe)
+base_merged = base_merged.combine_first(meantemp_dataframe)
+base_merged.to_msgpack(open("./data/fish/dataframes/full_merged.msg", "wb"))
 
 # release individual frames memory
 del maxtemp_dataframe
@@ -96,6 +97,8 @@ fish_data = fish.get_data()
 fish.drop_extinct_species()
 non_extinct_fish = fish.get_data()
 non_extinct_binomials = non_extinct_fish.binomial.unique().tolist()
+
+# merged.to_csv(open("./data/fish/full_merged.csv", 'w'))
 
 # 4.2 LOOP/RASTERIZE/STORE_RASTER/MERGE_WITH_BASE_DATAFRAME
 logger.info(">>>>>>>>>>>>>>>>>Looping through species!<<<<<<<<<<<<<<<<")
@@ -128,9 +131,9 @@ for name_species in non_extinct_binomials:
     presences_dataframe.columns = ['decimallatitude', 'decimallongitude']
     presences_dataframe[fish.name_species] = 1   # fill presences with 1's
     presences_dataframe.set_index(['decimallatitude', 'decimallongitude'], inplace=True, drop=True)
-    merged = base_dataframe.combine_first(presences_dataframe)    # del presences_dataframe
+    merged = base_merged.combine_first(presences_dataframe)    # del presences_dataframe
     del presences_dataframe
-    logger.info("Finished constructing a data frame for presences and merging with main data frame.")
+    logger.info("Finished constructing a data frame for presences and merging with base data frame.")
 
     if pseudo_absences is not None:
         logger.info("Pixel-to-world coordinates transformation of pseudo-absences for species: %s " % name_species)
@@ -143,14 +146,14 @@ for name_species in non_extinct_binomials:
         pseudo_absences_dataframe.set_index(['decimallatitude', 'decimallongitude'], inplace=True, drop=True)
         merged = merged.combine_first(pseudo_absences_dataframe)
         del pseudo_absences_dataframe
-        logger.info("Finished constructing a data frame for pseudo-absences and merging with main data frame.")
+        logger.info("Finished constructing a data frame for pseudo-absences and merging with base data frame.")
     else:
         logger.warning("No pseudo absences sampled for species %s " % name_species)
 
     logger.info("Finished processing species: %s " % name_species)
     logger.info("Serializing to storage.")
-    merged.to_msgpack(open("./data/fish/full_merged.msg", "wb"), append=True)
+    merged[name_species].to_msgpack(open("./data/fish/dataframes/" + name_species + "_merged.msg", "wb"))
     logger.info("Finished serializing to storage.")
-
-merged.to_csv("./data/fish/full_merged.csv")
+    del merged
+# merged.to_csv(open("./data/fish/full_merged.csv", 'a'))
 logger.info("DONE!")
