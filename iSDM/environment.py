@@ -625,7 +625,7 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
             logger.warning("You have not provided continents raster layer. Will sample pseudo-absences with no further narrowing/clipping.")
 
         logger.info("Sampling %s pseudo-absence points from environmental layer." % number_of_pseudopoints)
-        # first set to zero all pixels that have "nodata" values
+        # first set to zero all pixels that have "nodata" values in the environmental raster
         env_raster_data[env_raster_data == self.raster_reader.nodata] = 0
         # next get all the overlapping pixels between the species raster and the environment data
         presences_pixels = env_raster_data * species_raster_data
@@ -634,7 +634,7 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
         unique_regions = np.unique(presences_pixels[presences_pixels != 0])
         if len(unique_regions) == 0:
             logger.info("There are no environmental layers to sample pseudo-absences from. ")
-            return
+            return (None, None)
         logger.debug("The following unique (pixel) values will be taken into account for sampling pseudo-absences")
         logger.debug(unique_regions)
         # add the pixels of all these regions to a layer array
@@ -653,6 +653,7 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
 
         # Next: narrow the pixels to sample from, to the continents area,, if the continents raster is present.
         if continents_raster_data is not None:
+            logger.info("Overlaying with continents data.")
             overlayed_continents_species = continents_raster_data * species_raster_data
             selected_continents = np.zeros_like(species_raster_data)
 
@@ -673,7 +674,7 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
         if number_pixels_to_sample_from == 0:
             logger.error("There are no pixels left to sample from. Perhaps the species raster data")
             logger.error("covers the entire range from which it was intended to sample.")
-            return None
+            return (pixels_to_sample_from, None)
         sampled_pixels = np.zeros_like(selected_pixels)
 
         if number_pixels_to_sample_from < number_of_pseudopoints:

@@ -89,21 +89,21 @@ class Species(object):
         Serializes the loaded species dataset (`pandas <http://pandas.pydata.org/pandas-docs/stable/dsintro.html>`_ or `geopandas <http://geopandas.org/user.html>`_ DataFrame)
         into a binary `pickle <https://en.wikipedia.org/wiki/Pickle_%28Python%29>`_  (or `msgpack <http://msgpack.org/index.html>`_) file.
 
-       :param string full_name: The full path of the file (including the directory and filename in one string),
+        :param string full_name: The full path of the file (including the directory and filename in one string),
         where the data will be saved.
 
-       :param string dir_name: The directory where the file will be stored.
-       If :attr:`file_name` is not specified, the default one :attr:`name_species` + ``.pkl`` (or ``.msg``) is given by default.
+        :param string dir_name: The directory where the file will be stored. \
+        If :attr:`file_name` is not specified, the default one :attr:`name_species` + ``.pkl`` (or ``.msg``) is given by default.
 
-       :param string file_name: The name of the file where the data will be saved. \
-       If :attr:`dir_name` is not specified, the current working directory is taken by default.
+        :param string file_name: The name of the file where the data will be saved. \
+        If :attr:`dir_name` is not specified, the current working directory is taken by default.
 
-       :param string method: The type of serialization to use for the data frame. Default is "pickle". Another possibility is "msgpack", as it has shown as 10% more efficient \
-       in terms of time and memory, for the type of data we are dealing with.
+        :param string method: The type of serialization to use for the data frame. Default is `pickle`. Another possibility is `msgpack`, as it has shown as 10% more efficient \
+        in terms of time and memory, for the type of data we are dealing with.
 
-       :raises: AttributeError: if the data has not been loaded in the object before. See :func:`load_data` and :func:`find_species_occurrences`
+        :raises: AttributeError: if the data has not been loaded in the object before. See :func:`load_data` and :func:`find_species_occurrences`
 
-       :returns: None
+        :returns: None
 
         """
         if full_name is None:
@@ -130,25 +130,36 @@ class Species(object):
         except AttributeError as e:
             logger.error("No data to save. Please load it first. %s " % str(e))
 
-    def load_data(self, file_path=None):
+    def load_data(self, file_path=None, method='pickle'):
         """
         Loads the data from the serialized species file into a pandas DataFrame. If the :attr:`file_path` parameter is not supplied,
         it will try to deduce the file name from the name of the species by default.
 
         :param string file_path: The full path to the file (including the directory and filename in one string), where the data is serialized to.
 
+        :param string method: The type of serialization that was used to serialize the data in the data frame. \
+        Default is `pickle`. Another possibility is "msgpack", as it has shown as 10% more efficient in terms of time and memory, \
+        for the type of data we are dealing with.
+
         :returns: Data loaded into (geo)pandas Dataframe.
 
         :rtype: geopandas.GeoDataFrame
+
         """
         if file_path is None:
-            filename = str(self.name_species) + ".pkl"
+            filename = str(self.name_species) + (".pkl" if method == "pickle" else ".msg")
             file_path = os.path.join(os.getcwd(), filename)
 
         logger.info("Loading data from: %s" % file_path)
 
         try:
-            self.data_full = pd.read_pickle(file_path)
+            if method == "msgpack":
+                self.data_full = pd.read_msgpack(file_path)
+            elif method == "pickle":
+                self.data_full = pd. read_pickle(file_path)
+            else:
+                logger.error("Unknown method of serializing: %s " % method)
+                return
             logger.info("Succesfully loaded previously saved data.")
             return self.data_full
         except IOError as e:
@@ -888,7 +899,7 @@ class IUCNSpecies(Species):
         else:
             logger.info("Not filtering any no_data pixels.")
             coordinates = (T1 * np.where(np.ones_like(raster_data)))
-
+        logger.info("Transformation to world coordinates completed.")
         return coordinates
 
     def random_pseudo_absence_points(self,
