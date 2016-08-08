@@ -79,7 +79,7 @@ base_dataframe.set_index(['decimallatitude', 'decimallongitude'], inplace=True, 
 merged = base_dataframe.combine_first(mintemp_dataframe)
 merged = merged.combine_first(maxtemp_dataframe)
 merged = merged.combine_first(meantemp_dataframe)
-merged.to_msgpack(open( "./data/fish/full_merged.msg", "wb"), append=True)
+merged.to_msgpack(open("./data/fish/full_merged.msg", "wb"), append=True)
 
 # release individual frames memory
 del maxtemp_dataframe
@@ -132,7 +132,6 @@ for name_species in non_extinct_binomials:
     del presences_dataframe
     logger.info("Finished constructing a data frame for presences and merging with main data frame.")
 
-    
     if pseudo_absences is not None:
         logger.info("Pixel-to-world coordinates transformation of pseudo-absences for species: %s " % name_species)
         pseudo_absence_coordinates = biomes_adf.pixel_to_world_coordinates(raster_data=pseudo_absences)
@@ -150,7 +149,7 @@ for name_species in non_extinct_binomials:
 
     logger.info("Finished processing species: %s " % name_species)
     logger.info("Serializing to storage.")
-    merged.to_msgpack(open( "./data/fish/full_merged.msg", "wb"), append=True)
+    merged.to_msgpack(open("./data/fish/full_merged.msg", "wb"), append=True)
     logger.info("Finished serializing to storage.")
 
 merged.to_csv("./data/fish/full_merged.csv")

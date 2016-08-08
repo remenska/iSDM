@@ -108,7 +108,7 @@ class TestsEnvironment(unittest.TestCase):
                                                                                              continents_raster_data=self.continents_rasters)
         self.assertIsNotNone(sampled_pixels_1)
         self.assertIsInstance(pixels_to_sample_from_1, np.ndarray)
-        self.assertIsInstance(sampled_pixels_1, np.ndarray)       
+        self.assertIsInstance(sampled_pixels_1, np.ndarray)
         self.assertGreater(np.sum(pixels_to_sample_from), np.sum(pixels_to_sample_from_1))
 
     def tearDown(self):
