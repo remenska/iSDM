@@ -226,7 +226,7 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
         # apply the shift, filtering out no_data_value values
         logger.debug("Raster data shape: %s " % (raster_data.shape,))
         logger.debug("Affine transformation T1:\n %s " % (T1,))
-        raster_data[raster_data == no_data_value] = 0  # reset the nodata values to 0, easier to manipulate
+        # raster_data[raster_data == no_data_value] = 0  # reset the nodata values to 0, easier to manipulate
         if filter_no_data_value:
             logger.info("Filtering out no_data pixels.")
             coordinates = (T1 * np.where(raster_data != no_data_value))
@@ -683,7 +683,14 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
             random_indices = np.arange(0, number_pixels_to_sample_from)
         else:
             # now randomly choose <number_of_pseudopoints> indices to fill in with pseudo absences
-            random_indices = np.random.randint(0, number_pixels_to_sample_from, number_of_pseudopoints)
+            # random_indices = np.random.randint(0, number_pixels_to_sample_from, number_of_pseudopoints)
+            # Changed the above method with a different one that guarantees unique positions.
+            # With on average 6000 (guesstimate) pixels to sample from, the method below
+            # is a factor of 50 slower, but guarantees no repetitions,
+            # (20 microseconds vs 100 microseconds) compared to the one above.
+            random_indices = np.random.choice(number_pixels_to_sample_from,
+                                              number_of_pseudopoints,
+                                              replace=False)
             logger.info("Filling %s random pixel positions..." % (len(random_indices)))
 
             # fill in those indices with the pixel values of the environment layer

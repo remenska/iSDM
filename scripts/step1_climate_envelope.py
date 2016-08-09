@@ -10,6 +10,11 @@ import logging
 import pandas as pd
 import numpy as np
 from iSDM.environment import RasterEnvironmentalLayer
+from iSDM.environment import ContinentsLayer
+from iSDM.environment import Source
+from iSDM.environment import ClimateLayer
+from iSDM.species import IUCNSpecies
+
 # import argparse
 
 # 0. logging
@@ -31,57 +36,76 @@ biomes_adf.load_data()
 
 # 2. Continents layer (vector layer originally)
 logger.info("LOADING Continents layer")
-from iSDM.environment import ContinentsLayer
-from iSDM.environment import Source
 continents = ContinentsLayer(file_path="./data/continents/continent.shp", source=Source.ARCGIS)
 continents.load_data()
-continents_rasters = continents.rasterize(raster_file="./data/continents/continents_raster.tif", pixel_size=0.5)
+continents_rasters = continents.rasterize(raster_file="./data/continents/continents_raster.tif", pixel_size=0.5, all_touched=True)
 continents_rasters[0] = continents_rasters[0] + continents_rasters[2]   # combine Europe and Asia
 continents_rasters[0][continents_rasters[0] > 1] = 1
 continents_rasters = np.delete(continents_rasters, 2, 0)
 logger.info("Continents rasters shape: %s " % (continents_rasters.shape,))
 
+# 2. 1
+# merge continents on a single band, so oceans pixels can be discarded
+# immediately in the "base" data frame
+continents_flattened = np.zeros_like(continents_rasters[0])
+for continent in continents_rasters:
+    continents_flattened += continent
+
 # 3. Temperature layers
 logger.info("LOADING Temperature layers.")
-from iSDM.environment import ClimateLayer
 water_min_layer = ClimateLayer(file_path="./data/watertemp/min_wt_2000.tif")
 water_min_reader = water_min_layer.load_data()
-water_min_coordinates = water_min_layer.pixel_to_world_coordinates(filter_no_data_value=False)
+water_min_data = water_min_reader.read(1)
+# cut out anything below 0 Kelvins.
+water_min_data[water_min_data < 0] = 0
+water_min_coordinates = water_min_layer.pixel_to_world_coordinates(raster_data=water_min_data,
+                                                                   filter_no_data_value=True)
 mintemp_dataframe = pd.DataFrame([water_min_coordinates[0], water_min_coordinates[1]]).T
 mintemp_dataframe.columns = ['decimallatitude', 'decimallongitude']
-water_min_matrix = water_min_reader.read(1)
-mintemp_dataframe['MinT'] = water_min_matrix.reshape(np.product(water_min_matrix.shape))
+flattened_watermin_data = water_min_data.reshape(np.product(water_min_data.shape))
+mintemp_dataframe['MinT'] = flattened_watermin_data[flattened_watermin_data != 0]
 mintemp_dataframe.set_index(['decimallatitude', 'decimallongitude'], inplace=True, drop=True)
+logger.info("!!! Shape mintemp_dataframe: % s " % (mintemp_dataframe.shape, ))
 
 water_max_layer = ClimateLayer(file_path="./data/watertemp/max_wt_2000.tif")
 water_max_reader = water_max_layer.load_data()
-water_max_coordinates = water_max_layer.pixel_to_world_coordinates(filter_no_data_value=False)
+water_max_data = water_max_reader.read(1)
+# cut out anything below 0 Kelvins.
+water_max_data[water_max_data < 0] = 0
+water_max_coordinates = water_max_layer.pixel_to_world_coordinates(raster_data=water_max_data,
+                                                                   filter_no_data_value=True)
 maxtemp_dataframe = pd.DataFrame([water_max_coordinates[0], water_max_coordinates[1]]).T
 maxtemp_dataframe.columns = ['decimallatitude', 'decimallongitude']
-water_max_matrix = water_max_reader.read(1)
-maxtemp_dataframe['MaxT'] = water_max_matrix.reshape(np.product(water_max_matrix.shape))
+flattened_watermax_data = water_max_data.reshape(np.product(water_max_data.shape))
+maxtemp_dataframe['MaxT'] = flattened_watermax_data[flattened_watermax_data != 0]
 maxtemp_dataframe.set_index(['decimallatitude', 'decimallongitude'], inplace=True, drop=True)
+logger.info("!!! Shape maxtemp_dataframe: % s " % (maxtemp_dataframe.shape, ))
 
 water_mean_layer = ClimateLayer(file_path="./data/watertemp/mean_wt_2000.tif")
 water_mean_reader = water_mean_layer.load_data()
-water_mean_coordinates = water_mean_layer.pixel_to_world_coordinates(filter_no_data_value=False)
+water_mean_data = water_mean_reader.read(1)
+# cut out anything below 0 Kelvins.
+water_mean_data[water_mean_data < 0] = 0
+water_mean_coordinates = water_mean_layer.pixel_to_world_coordinates(raster_data=water_mean_data,
+                                                                     filter_no_data_value=True)
 meantemp_dataframe = pd.DataFrame([water_mean_coordinates[0], water_mean_coordinates[1]]).T
 meantemp_dataframe.columns = ['decimallatitude', 'decimallongitude']
-water_mean_matrix = water_mean_reader.read(1)
-meantemp_dataframe['MeanT'] = water_mean_matrix.reshape(np.product(water_mean_matrix.shape))
+flattened_watermean_data = water_mean_data.reshape(np.product(water_mean_data.shape))
+meantemp_dataframe['MeanT'] = flattened_watermean_data[flattened_watermean_data != 0]
 meantemp_dataframe.set_index(['decimallatitude', 'decimallongitude'], inplace=True, drop=True)
+logger.info("!!! Shape meantemp_dataframe: % s " % (meantemp_dataframe.shape, ))
 
 # 4. Base data frame to merge all data into
 logger.info("Creating a base dataframe.")
-all_coordinates = biomes_adf.pixel_to_world_coordinates(raster_data=np.zeros_like(water_min_matrix), filter_no_data_value=False)
-base_dataframe = pd.DataFrame([all_coordinates[0], all_coordinates[1]]).T
+all_non_ocean_coordinates = biomes_adf.pixel_to_world_coordinates(raster_data=continents_flattened, filter_no_data_value=True)
+base_dataframe = pd.DataFrame([all_non_ocean_coordinates[0], all_non_ocean_coordinates[1]]).T
 base_dataframe.columns = ['decimallatitude', 'decimallongitude']
 base_dataframe.set_index(['decimallatitude', 'decimallongitude'], inplace=True, drop=True)
 base_merged = base_dataframe.combine_first(mintemp_dataframe)
 base_merged = base_merged.combine_first(maxtemp_dataframe)
 base_merged = base_merged.combine_first(meantemp_dataframe)
-base_merged.to_msgpack(open("./data/fish/dataframes/full_merged.msg", "wb"))
-
+base_merged.to_csv(open("./data/fish/dataframes/base.csv", "w"))
+logger.info("!!! Shape of base_merged: %s " % (base_merged.shape, ))
 # release individual frames memory
 del maxtemp_dataframe
 del mintemp_dataframe
@@ -89,7 +113,6 @@ del meantemp_dataframe
 # 5. Load entire fish IUCN data. (TODO: maybe we can load one by one, if the data grows beyond RAM)
 # download from Google Drive: https://drive.google.com/open?id=0B9cazFzBtPuCSFp3YWE1V2JGdnc
 logger.info("LOADING all species rangemaps.")
-from iSDM.species import IUCNSpecies
 fish = IUCNSpecies(name_species='All')
 fish.load_shapefile('./data/fish/FW_FISH.shp')   # warning, 2GB of data will be loaded, may take a while!!
 # 4.1 Get the list of non-extinct binomials, for looping through individual species
@@ -102,10 +125,10 @@ non_extinct_binomials = non_extinct_fish.binomial.unique().tolist()
 
 # 4.2 LOOP/RASTERIZE/STORE_RASTER/MERGE_WITH_BASE_DATAFRAME
 logger.info(">>>>>>>>>>>>>>>>>Looping through species!<<<<<<<<<<<<<<<<")
-for name_species in non_extinct_binomials:
+for idx, name_species in enumerate(non_extinct_binomials):
     fish.set_data(fish_data[fish_data.binomial == name_species])
     fish.name_species = name_species
-    logger.info("Processing species: %s " % name_species)
+    logger.info("ID=%s Processing species: %s " % (idx, name_species))
     logger.info("Rasterizing species: %s " % name_species)
     rasterized = fish.rasterize(raster_file="./data/fish/rasterized/" + name_species + ".tif", pixel_size=0.5)
     # special case with blank map
@@ -131,7 +154,7 @@ for name_species in non_extinct_binomials:
     presences_dataframe.columns = ['decimallatitude', 'decimallongitude']
     presences_dataframe[fish.name_species] = 1   # fill presences with 1's
     presences_dataframe.set_index(['decimallatitude', 'decimallongitude'], inplace=True, drop=True)
-    merged = base_merged.combine_first(presences_dataframe)    # del presences_dataframe
+    merged = base_dataframe.combine_first(presences_dataframe)    # del presences_dataframe
     del presences_dataframe
     logger.info("Finished constructing a data frame for presences and merging with base data frame.")
 
@@ -152,8 +175,9 @@ for name_species in non_extinct_binomials:
 
     logger.info("Finished processing species: %s " % name_species)
     logger.info("Serializing to storage.")
-    merged[name_species].to_msgpack(open("./data/fish/dataframes/" + name_species + "_merged.msg", "wb"))
+    merged.to_csv(open("./data/fish/dataframes/csv/" + name_species + ".csv", "w"))
     logger.info("Finished serializing to storage.")
+    logger.info("Shape of dataframe: %s " % (merged.shape,))
     del merged
 # merged.to_csv(open("./data/fish/full_merged.csv", 'a'))
 logger.info("DONE!")
