@@ -11,8 +11,8 @@ Input:
 This script does the following:
 
 Output:
-- base_dataframe location
-- individual csv files location
+- base_dataframe
+- individual csv files
 """
 import logging
 # import timeit
@@ -32,6 +32,8 @@ parser.add_argument('-c', '--continents-location', default="./data/continents/",
 parser.add_argument('-t', '--temperature-location', default="./data/watertemp/", help="The folder where the temperature raster files are.")
 parser.add_argument('-s', '--species-location', default='./data/fish/', help="The folder where the species shapefiles are located.")
 parser.add_argument('-o', '--output-location', default="./data/fish/", help="Output location (folder) for storing the output of the processing.")
+parser.add_argument('--reprocess', action='store_true', help="Reprocess the data, using the already-rasterized individual species rangemaps. Assumes these files are all available.")
+parser.set_defaults(reprocess=False)
 args = parser.parse_args()
 
 # 0. logging
@@ -170,14 +172,26 @@ non_extinct_binomials = non_extinct_fish.binomial.unique().tolist()
 os.makedirs(args.output_location + "/rasterized/", exist_ok=True)
 os.makedirs(args.output_location + "/csv/", exist_ok=True)
 
+# rasterized_species = IUCNSpecies(name_species="Temporary name")
+
 # 4.2 LOOP/RASTERIZE/STORE_RASTER/MERGE_WITH_BASE_DATAFRAME
 logger.info(">>>>>>>>>>>>>>>>>Looping through species!<<<<<<<<<<<<<<<<")
 for idx, name_species in enumerate(non_extinct_binomials):
     fish.set_data(fish_data[fish_data.binomial == name_species])
     fish.name_species = name_species
     logger.info("ID=%s Processing species: %s " % (idx, name_species))
-    logger.info("Rasterizing species: %s " % name_species)
-    rasterized = fish.rasterize(raster_file=args.output_location + "/rasterized/" + name_species + ".tif", pixel_size=0.5)
+
+    if args.reprocess:
+        logger.info("Reprocessing individual species data, will use existing raster file for species: %s" % name_species)
+        full_location_raster_file = args.output_location + "/rasterized/" + name_species + ".tif"
+        if not os.path.exists(full_location_raster_file):
+            logger.error("Raster file does NOT exist for species: %s " % name_species)
+            continue
+        raster_reader = fish.load_raster_data(raster_file=full_location_raster_file)
+        rasterized = fish.raster_reader.read(1)
+    else:
+        logger.info("Rasterizing species: %s " % name_species)
+        rasterized = fish.rasterize(raster_file=args.output_location + "/rasterized/" + name_species + ".tif", pixel_size=0.5)
     # special case with blank map
     if not (isinstance(rasterized, np.ndarray)) or not (set(np.unique(rasterized)) == set({0, 1})):
         logger.warning("Rasterizing very small area, will use all_touched=True to avoid blank raster for species %s " % name_species)
