@@ -556,6 +556,90 @@ class GBIFSpecies(Species):
         except ValueError as e:
             logger.error("The rangemap geometries seem to be invalid (possible self-intersections). %s " % str(e))
 
+    def rasterize(self, raster_file=None, pixel_size=None, all_touched=False,
+                  no_data_value=0,
+                  default_value=1,
+                  crs=None,
+                  cropped=False,
+                  *args, **kwargs):
+        """
+        Rasterize (burn) the species point-record occurrences into pixels (cells), i.e., a 2-dimensional image array
+        of type numpy ndarray. Uses the `Rasterio <https://mapbox.github.io/rasterio/_modules/rasterio/features.html>`_ library
+        for this purpose. If the dataframe does not contain a `geometry` column (GeoDataFrame), :func:`geometrize` is called, to
+        convert the decimallatitude/decimallongitude columns into a geometry column containing Point geometrical shapes.
+        All the point-records are burned in a single "band" of the image. (point to grid)
+        Rasterio datasets can generally have one or more bands, or layers. Following the GDAL convention, these are indexed starting with 1.
+
+        :param string raster_file: The full path to the targed GeoTIFF raster file (including the directory and filename in one string).
+
+        :param int pixel_size: The size of the pixel in degrees, i.e., the resolution to use for rasterizing.
+
+        :param bool all_touched: If true, all pixels touched by geometries, will be burned in. If false, only pixels \
+        whose center is within the polygon or that are selected by *Bresenham's line algorithm*, will be burned in.
+
+        :param int no_data_value: Used as value of the pixels which are not burned in. Default is 0.
+
+        :param int default_value: Used as value of the pixels which are burned in. Default is 1.
+
+        :param dict crs: The Coordinate Reference System to use. Default is "ESPG:4326"
+
+        :param bool cropped: If true, the resulting pixel array (image) is cropped to the region borders, which contain \
+        the burned pixels (i.e., an envelope within the range). Otherwise, a "global world map" is used, i.e., the boundaries \
+        are set to (-180, -90, 180, 90) for the resulting array.
+
+        :returns: Rasterio RasterReader file object which can be used to read individual bands from the raster file.
+
+        :rtype: rasterio._io.RasterReader
+
+        """
+        if not pixel_size:
+            raise AttributeError("Please provide pixel_size")
+
+        if not hasattr(self, 'data_full'):
+            raise AttributeError("You have not loaded the data.")
+
+        if crs is None:
+            crs = {'init': "EPSG:4326"}
+
+        if not isinstance(self.data_full, GeoDataFrame):
+            logger.info("Will convert the latitude/longitude into a GeoDataFrame (with geometry column)")
+            self.geometrize()
+
+        # crop to the boundaries of the shape?
+        if cropped:
+            # cascaded_union_geometry = shapely.ops.cascaded_union(self.data_full.geometry)
+            x_min, y_min, x_max, y_max = self.data_full.geometry.total_bounds
+        # else global map
+        else:
+            x_min, y_min, x_max, y_max = -180, -90, 180, 90
+
+        x_res = int((x_max - x_min) / pixel_size)
+        y_res = int((y_max - y_min) / pixel_size)
+        # translate
+        transform = Affine.translation(x_min, y_max) * Affine.scale(pixel_size, -pixel_size)
+        result = features.rasterize(self.data_full.geometry,
+                                    transform=transform,
+                                    out_shape=(y_res, x_res),
+                                    all_touched=all_touched,
+                                    fill=no_data_value,
+                                    default_value=default_value
+                                    )
+
+        if raster_file:
+            with rasterio.open(raster_file, 'w', driver='GTiff', width=x_res, height=y_res,
+                               count=1,
+                               dtype=np.uint8,
+                               nodata=no_data_value,
+                               transform=transform,
+                               crs=crs) as out:
+                out.write(result.astype(np.uint8), indexes=1)
+                out.close()
+            logger.info("RASTERIO: Data rasterized into file %s " % raster_file)
+            self.raster_file = raster_file
+        logger.info("RASTERIO: Resolution: x_res={0} y_res={1}".format(x_res, y_res))
+        self.raster_affine = transform
+        return result
+
 
 class IUCNSpecies(Species):
     """
@@ -746,8 +830,8 @@ class IUCNSpecies(Species):
         :rtype: rasterio._io.RasterReader
 
         """
-        if not (pixel_size or raster_file):
-            raise AttributeError("Please provide pixel_size and a target raster_file.")
+        if not pixel_size:
+            raise AttributeError("Please provide pixel_size.")
 
         if not hasattr(self, 'data_full'):
             raise AttributeError("You have not loaded the data.")
@@ -775,17 +859,18 @@ class IUCNSpecies(Species):
                                     default_value=default_value
                                     )
 
-        with rasterio.open(raster_file, 'w', driver='GTiff', width=x_res, height=y_res,
-                           count=1,
-                           dtype=np.uint8,
-                           nodata=no_data_value,
-                           transform=transform,
-                           crs=crs) as out:
-            out.write(result.astype(np.uint8), indexes=1)
-            out.close()
-        logger.info("RASTERIO: Data rasterized into file %s " % raster_file)
+        if raster_file:
+            with rasterio.open(raster_file, 'w', driver='GTiff', width=x_res, height=y_res,
+                               count=1,
+                               dtype=np.uint8,
+                               nodata=no_data_value,
+                               transform=transform,
+                               crs=crs) as out:
+                out.write(result.astype(np.uint8), indexes=1)
+                out.close()
+            logger.info("RASTERIO: Data rasterized into file %s " % raster_file)
+            self.raster_file = raster_file
         logger.info("RASTERIO: Resolution: x_res={0} y_res={1}".format(x_res, y_res))
-        self.raster_file = raster_file
         self.raster_affine = transform
         return result
 
