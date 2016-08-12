@@ -47,14 +47,14 @@ class TestGBIF(unittest.TestCase):
     def test_GBIF_rasterize(self):
         # with self.assertRaises(AttributeError):
             # self.test_species.rasterize()
-        # self.test_species2.load_csv("./data/GBIF.csv")
-        self.test_species2.find_species_occurrences()
-        pixel_size = 0.2
+        self.test_species2.load_csv("./data/GBIF.csv")
+        # self.test_species2.find_species_occurrences()
+        pixel_size = 1   # 0.008333333 # = 0.5/60
         number_point_records = self.test_species2.data_full.shape[0]
         # self.test_species.load_shapefile("./data/fish/selection/acrocheilus_alutaceus/acrocheilus_alutaceus.shp")
         result = self.test_species2.rasterize(pixel_size=pixel_size, raster_file="./data/fish/tmp.tif", all_touched=True)
         transform = self.test_species2.raster_affine
-        self.assertEqual(result.shape, (np.abs(transform.yoff) * (2 / pixel_size), np.abs(transform.xoff) * (2 / pixel_size)))
+        self.assertEqual(result.shape, (int(np.abs(transform.yoff) * (2 / pixel_size)), int(np.abs(transform.xoff) * (2 / pixel_size))))
         self.assertIsInstance(result, np.ndarray)
         self.assertEqual(set(np.unique(result)), {0, 1})
         self.assertGreater(number_point_records, np.sum(result))

@@ -46,7 +46,7 @@ class TestIUCN(unittest.TestCase):
         self.test_species.load_shapefile("./data/fish/selection/acrocheilus_alutaceus/acrocheilus_alutaceus.shp")
         result = self.test_species.rasterize(pixel_size=pixel_size, raster_file="./data/fish/tmp.tif")
         transform = self.test_species.raster_affine
-        self.assertEqual(result.shape, (np.abs(transform.yoff) * (2 / pixel_size), np.abs(transform.xoff) * (2 / pixel_size)))
+        self.assertEqual(result.shape, (int(np.abs(transform.yoff) * (2 / pixel_size)), int(np.abs(transform.xoff) * (2 / pixel_size))))
         self.assertIsNotNone(self.test_species.raster_file)
         self.assertIsInstance(self.test_species.raster_affine, Affine)
         self.assertIsInstance(result, np.ndarray)
@@ -61,7 +61,7 @@ class TestIUCN(unittest.TestCase):
         pixel_size = 1
         result = self.test_species.rasterize(pixel_size=pixel_size, raster_file="./data/fish/tmp.tif")
         transform = self.test_species.raster_affine
-        self.assertEqual(result.shape, (np.abs(transform.yoff) * (2 / pixel_size), np.abs(transform.xoff) * (2 / pixel_size)))
+        self.assertEqual(result.shape, (int(np.abs(transform.yoff) * (2 / pixel_size)), int(np.abs(transform.xoff) * (2 / pixel_size))))
         coordinates = self.test_species.pixel_to_world_coordinates(filter_no_data_value=False)
         self.assertIsInstance(coordinates, tuple)
         self.assertIsInstance(coordinates[0], np.ndarray)
