@@ -103,12 +103,15 @@ class TestsEnvironment(unittest.TestCase):
         self.assertIsInstance(sampled_pixels, np.ndarray)
         self.assertEqual(pixels_to_sample_from.shape, self.biomes_layer.read(1).shape)
         self.assertEqual(sampled_pixels.shape, self.biomes_layer.read(1).shape)
+        self.assertEqual(sampled_pixels.nonzero()[0].shape[0], 1000)
 
+        # adding continents should further reduce the sampling area
         pixels_to_sample_from_1, sampled_pixels_1 = self.biomes_layer.sample_pseudo_absences(species_raster_data=some_species,
                                                                                              continents_raster_data=self.continents_rasters)
         self.assertIsNotNone(sampled_pixels_1)
         self.assertIsInstance(pixels_to_sample_from_1, np.ndarray)
         self.assertIsInstance(sampled_pixels_1, np.ndarray)
+        self.assertEqual(sampled_pixels_1.nonzero()[0].shape[0], 1000)
         self.assertGreater(np.sum(pixels_to_sample_from), np.sum(pixels_to_sample_from_1))
 
     def tearDown(self):
