@@ -182,64 +182,64 @@ for idx, name_species in enumerate(non_extinct_binomials):
     logger.info("ID=%s Processing species: %s " % (idx, name_species))
 
     if args.reprocess:
-        logger.info("Reprocessing individual species data, will use existing raster file for species: %s" % name_species)
+        logger.info("%s Reprocessing individual species data, will use existing raster file for species: %s" % (idx, name_species))
         full_location_raster_file = args.output_location + "/rasterized/" + name_species + ".tif"
         if not os.path.exists(full_location_raster_file):
-            logger.error("Raster file does NOT exist for species: %s " % name_species)
+            logger.error("%s Raster file does NOT exist for species: %s " % (idx, name_species))
             continue
         raster_reader = fish.load_raster_data(raster_file=full_location_raster_file)
         rasterized = fish.raster_reader.read(1)
     else:
-        logger.info("Rasterizing species: %s " % name_species)
+        logger.info("%s Rasterizing species: %s " % (idx, name_species))
         rasterized = fish.rasterize(raster_file=args.output_location + "/rasterized/" + name_species + ".tif", pixel_size=0.5)
     # special case with blank map
     if not (isinstance(rasterized, np.ndarray)) or not (set(np.unique(rasterized)) == set({0, 1})):
-        logger.warning("Rasterizing very small area, will use all_touched=True to avoid blank raster for species %s " % name_species)
+        logger.warning("%s Rasterizing very small area, will use all_touched=True to avoid blank raster for species %s " % (idx, name_species))
         rasterized = fish.rasterize(raster_file=args.output_location + "/rasterized/" + name_species + ".tif", pixel_size=0.5, all_touched=True)
         if not (isinstance(rasterized, np.ndarray)) or not (set(np.unique(rasterized)) == set({0, 1})):
-            logger.error("Rasterizing did not succeed for species %s , (raster is empty)    " % name_species)
+            logger.error("%s Rasterizing did not succeed for species %s , (raster is empty)    " % (idx, name_species))
             continue
-    logger.info("Finished rasterizing species: %s " % name_species)
+    logger.info("%s Finished rasterizing species: %s " % (idx, name_species))
 
-    logger.info("Selecting pseudo-absences for species: %s " % name_species)
+    logger.info("%s Selecting pseudo-absences for species: %s " % (idx, name_species))
     selected_layers, pseudo_absences = biomes_adf.sample_pseudo_absences(species_raster_data=rasterized,
                                                                          continents_raster_data=continents_rasters,
                                                                          number_of_pseudopoints=1000)
-    logger.info("Finished selecting pseudo-absences for species: %s " % name_species)
+    logger.info("%s Finished selecting pseudo-absences for species: %s " % (idx, name_species))
 
-    logger.info("Pixel-to-world coordinates transformation of presences for species: %s " % name_species)
+    logger.info("%s Pixel-to-world coordinates transformation of presences for species: %s " % (idx, name_species))
     presence_coordinates = fish.pixel_to_world_coordinates(raster_data=rasterized)
-    logger.info("Finished pixel-to-world coordinates transformation of presences for species: %s " % name_species)
-    logger.info("Constructing a data frame for presences and merging with base data frame.")
+    logger.info("%s Finished pixel-to-world coordinates transformation of presences for species: %s " % (idx, name_species))
+    logger.info("%s Constructing a data frame for presences and merging with base data frame." % idx)
     presences_dataframe = pd.DataFrame([presence_coordinates[0], presence_coordinates[1]]).T
     presences_dataframe.columns = ['decimallatitude', 'decimallongitude']
     presences_dataframe[fish.name_species] = 1   # fill presences with 1's
     presences_dataframe.set_index(['decimallatitude', 'decimallongitude'], inplace=True, drop=True)
     merged = base_dataframe.combine_first(presences_dataframe)
     del presences_dataframe
-    logger.info("Finished constructing a data frame for presences and merging with base data frame.")
+    logger.info("%s Finished constructing a data frame for presences and merging with base data frame." % idx)
 
     if pseudo_absences is not None:
-        logger.info("Pixel-to-world coordinates transformation of pseudo-absences for species: %s " % name_species)
+        logger.info("%s Pixel-to-world coordinates transformation of pseudo-absences for species: %s " % (idx, name_species))
         pseudo_absence_coordinates = biomes_adf.pixel_to_world_coordinates(raster_data=pseudo_absences)
-        logger.info("Finished pixel-to-world coordinates transformation of pseudo-absences for species: %s " % name_species)
-        logger.info("Constructing a data frame for presences and merging with base data frame.")
+        logger.info("%s Finished pixel-to-world coordinates transformation of pseudo-absences for species: %s " % (idx, name_species))
+        logger.info("%s Constructing a data frame for presences and merging with base data frame." % idx)
         pseudo_absences_dataframe = pd.DataFrame([pseudo_absence_coordinates[0], pseudo_absence_coordinates[1]]).T
         pseudo_absences_dataframe.columns = ['decimallatitude', 'decimallongitude']
         pseudo_absences_dataframe[fish.name_species] = 0   # fill pseudo-absences with 0
         pseudo_absences_dataframe.set_index(['decimallatitude', 'decimallongitude'], inplace=True, drop=True)
         merged = merged.combine_first(pseudo_absences_dataframe)
         del pseudo_absences_dataframe
-        logger.info("Finished constructing a data frame for pseudo-absences and merging with base data frame.")
+        logger.info("%s Finished constructing a data frame for pseudo-absences and merging with base data frame." % idx)
     else:
-        logger.warning("No pseudo absences sampled for species %s " % name_species)
+        logger.warning("%s No pseudo absences sampled for species %s " % (idx, name_species))
 
-    logger.info("Finished processing species: %s " % name_species)
+    logger.info("%s Finished processing species: %s " % (idx, name_species))
     if base_dataframe.shape[0] < merged.shape[0]:
-        logger.warning("Something is fishy with species %s : merged.shape = %s " % (name_species, merged.shape[0]))
-    logger.info("Serializing to storage.")
+        logger.warning("%s Something is fishy with species %s : merged.shape = %s " % (idx, name_species, merged.shape[0]))
+    logger.info("%s Serializing to storage." % idx)
     merged.to_csv(open(args.output_location + "/csv/" + name_species + ".csv", "w"))
-    logger.info("Finished serializing to storage.")
-    logger.info("Shape of dataframe: %s " % (merged.shape,))
+    logger.info("%s Finished serializing to storage." % idx)
+    logger.info("%s Shape of dataframe: %s " % (idx, merged.shape,))
     del merged
 logger.info("DONE!")
