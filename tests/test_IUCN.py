@@ -58,8 +58,8 @@ class TestIUCN(unittest.TestCase):
         with self.assertRaises(AttributeError):
             self.test_species.pixel_to_world_coordinates()
         self.test_species.load_shapefile("./data/fish/selection/acrocheilus_alutaceus/acrocheilus_alutaceus.shp")
-        pixel_size = 1
-        result = self.test_species.rasterize(pixel_size=pixel_size, raster_file="./data/fish/tmp.tif")
+        pixel_size = 0.5
+        result = self.test_species.rasterize(pixel_size=pixel_size)
         transform = self.test_species.raster_affine
         self.assertEqual(result.shape, (int(np.abs(transform.yoff) * (2 / pixel_size)), int(np.abs(transform.xoff) * (2 / pixel_size))))
         coordinates = self.test_species.pixel_to_world_coordinates(filter_no_data_value=False)
