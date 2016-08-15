@@ -1,18 +1,35 @@
 #!/usr/bin/env python
 """
 script: step1_climate_envelope.py
-Description:
+Description: Creates a species-by-species dataframe to be used as input for step 1 of the 3-step approach to modeling species distributions.
+             For this step, all non-extinct binomials from IUCN, are taken into account. Rangemaps are rasterized for each species,
+             and 1000 random pseudo-absences are selected according to the following criteria: first, all biomes regions (types) covered by
+             the species rangemaps are taken into account for sampling pseudo-absences. The sampling area is further reduced by taking into account
+             only biogeographic (continents) regions which are covered by the species rangemaps.
+             All the layers should be at the same resolution (30 arcmin).
+             Water temperature layers (min/max/mean) are also added in the dataframe. Each row of the dataframe corresponds to one cell in the global
+             raster layer. Three columns correspond to the temperature layers; for convenience one column identifies the continent to which each cell
+             belongs. And finally, one column contains the individual species presences/absences.
+             The index of the dataframe is (decimallatitude, decimallongitude)
+
 Input:
-- Biomes raster folder/file
-- Continents shapefile
+ - Full location of the biomes raster layer (file).
+ - Full location of the folder where the continents shapefiles are stored.
+ - Full location of the folder where the temperature raster layers (files) are location.
+ - Full location of the folder where the IUCN species shapefiles are located.
+ - Output location (folder) for storing the individual dataframes (csv output of the processing)
 
-- temperature(/min/max/mean) folder/file
-- log file location?
 This script does the following:
+ 1. Loads the environment layers (biomes, continents, temperature). In case of shapefile input, it is rasterized at the same fixed resolution as
+    the other layers. Pixels from each layer are converted to world coordinates (middle of pixel location), and each layer is merged into a "base"
+    dataframe as one separate column of that datafframe. Each row then represents one cell.
+ 2. Loads the IUCN species shapefile containing rangemaps of individual binomials in a group (such as, freshwater species, or mammals).
+ 3. Loops through the individual (non-extinct) binomials, rasterizing all the rangemaps that belong to each individual binomial. Selects an area
+    outside the raster pixels, and samples 1000 pseudo-absence pixels (using the criteria as described above). Both the presences and pseudo-absences
+    raster layers' pixels are converted to world coordinates (middle of pixel location) and merged with the "base" dataframe that contains only
+    latitude/longitude as index.
+ 4. Serializes the constructed dataframe into a csv format.
 
-Output:
-- base_dataframe
-- individual csv files
 """
 import logging
 # import timeit
@@ -30,7 +47,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-b', '--biomes-location', default="./data/rebioms/w001001.adf", help='The full location of the folder and biomes raster file.')
 parser.add_argument('-c', '--continents-location', default="./data/continents/", help='The full path to the folder where the continents shapefiles are located.')
 parser.add_argument('-t', '--temperature-location', default="./data/watertemp/", help="The folder where the temperature raster files are.")
-parser.add_argument('-s', '--species-location', default='./data/fish/', help="The folder where the species shapefiles are located.")
+parser.add_argument('-s', '--species-location', default='./data/fish/', help="The folder where the IUCN species shapefiles are located.")
 parser.add_argument('-o', '--output-location', default="./data/fish/", help="Output location (folder) for storing the output of the processing.")
 parser.add_argument('--reprocess', action='store_true', help="Reprocess the data, using the already-rasterized individual species rangemaps. Assumes these files are all available.")
 parser.set_defaults(reprocess=False)

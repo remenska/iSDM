@@ -9,6 +9,7 @@ Input:
  - method of deserialization (msgpack or pickle, same as the one used for serializing the individual files)
  - folder where the separate files are stored
  - a list of important columns (loaded from a file)
+ - output location (folder) for storing the merged species dataframe file.
 
 This script does the following:
  1. Loops through all files in the folder where occurrences for each individual species are stored, and deserializes (reads)
