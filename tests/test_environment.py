@@ -17,7 +17,7 @@ import numpy as np
 # logger.addHandler(stream_handler)
 
 
-class TestsEnvironment(unittest.TestCase):
+class TestEnvironment(unittest.TestCase):
 
     def setUp(self):
         self.climate_layer = ClimateLayer(file_path="./data/watertemp/max_wt_2000.tif")
