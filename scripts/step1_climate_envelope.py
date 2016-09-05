@@ -36,7 +36,7 @@ import logging
 import pandas as pd
 import numpy as np
 from iSDM.environment import RasterEnvironmentalLayer
-from iSDM.environment import ContinentsLayer
+from iSDM.environment import RealmsLayer
 from iSDM.environment import Source
 from iSDM.environment import ClimateLayer
 from iSDM.species import IUCNSpecies
@@ -45,7 +45,7 @@ import argparse
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-b', '--biomes-location', default="./data/rebioms/w001001.adf", help='The full location of the folder and biomes raster file.')
-parser.add_argument('-c', '--continents-location', default="./data/continents/", help='The full path to the folder where the continents shapefiles are located.')
+parser.add_argument('-r', '--realms-location', default="./data/terrestrial_ecoregions/", help='The full path to the folder where the biogeographic realms shapefiles are located.')
 parser.add_argument('-t', '--temperature-location', default="./data/watertemp/", help="The folder where the temperature raster files are.")
 parser.add_argument('-s', '--species-location', default='./data/fish/', help="The folder where the IUCN species shapefiles are located.")
 parser.add_argument('-o', '--output-location', default="./data/fish/", help="Output location (folder) for storing the output of the processing.")
@@ -70,22 +70,20 @@ logger.info("LOADING Biomes layer.")
 biomes_adf = RasterEnvironmentalLayer(file_path=args.biomes_location, name_layer="Biomes")
 biomes_adf.load_data()
 
-# 2. Continents layer (vector layer originally)
-logger.info("LOADING Continents layer")
-continents = ContinentsLayer(file_path=args.continents_location, source=Source.ARCGIS)
-continents.load_data()
-continents_rasters = continents.rasterize(raster_file=args.continents_location + "/continents_raster.tif", pixel_size=0.5, all_touched=True)
-continents_rasters[0] = continents_rasters[0] + continents_rasters[2]   # combine Europe and Asia
-continents_rasters[0][continents_rasters[0] > 1] = 1
-continents_rasters = np.delete(continents_rasters, 2, 0)
-logger.info("Continents rasters shape: %s " % (continents_rasters.shape,))
+# 2. Realms layer (vector layer originally)
+logger.info("LOADING Biogeographical realms layer")
+
+realms_layer = RealmsLayer(file_path=args.realms_location, source=Source.WWL)
+realms_layer.load_data()
+realms_rasters = realms_layer.rasterize(raster_file=args.realms_location + "/realms_raster.tif", pixel_size=0.5, classifier_column='realm')
+logger.info("Realms rasters shape: %s " % (realms_rasters.shape,))
 
 # 2. 1
 # merge continents on a single band, so oceans pixels can be discarded
 # immediately in the "base" data frame
-continents_flattened = np.zeros_like(continents_rasters[0])
-for continent in continents_rasters:
-    continents_flattened += continent
+realms_flattened = np.zeros_like(realms_rasters[0])
+for realm in realms_rasters:
+    realms_flattened += realm
 
 # 3. Temperature layers
 logger.info("LOADING Temperature layers.")
@@ -156,14 +154,14 @@ base_merged = base_dataframe.combine_first(mintemp_dataframe)
 base_merged = base_merged.combine_first(maxtemp_dataframe)
 base_merged = base_merged.combine_first(meantemp_dataframe)
 
-# 5. Add continent column, with an ID of the continent
-for idx, band in enumerate(continents_rasters):
-    continents_coordinates = biomes_adf.pixel_to_world_coordinates(raster_data=band)
-    continent_dataframe = pd.DataFrame([continents_coordinates[0], continents_coordinates[1]]).T
-    continent_dataframe.columns = ['decimallatitude', 'decimallongitude']
-    continent_dataframe['Continent'] = idx
-    continent_dataframe.set_index(['decimallatitude', 'decimallongitude'], inplace=True, drop=True)
-    base_merged = base_merged.combine_first(continent_dataframe)
+# 5. Add realm column, with an ID of the realm
+for idx, band in enumerate(realms_rasters):
+    realms_coordinates = biomes_adf.pixel_to_world_coordinates(raster_data=band)
+    realms_dataframe = pd.DataFrame([realms_coordinates[0], realms_coordinates[1]]).T
+    realms_dataframe.columns = ['decimallatitude', 'decimallongitude']
+    realms_dataframe['Realm'] = idx
+    realms_dataframe.set_index(['decimallatitude', 'decimallongitude'], inplace=True, drop=True)
+    base_merged = base_merged.combine_first(realms_dataframe)
 
 base_merged.to_csv(open(args.output_location + "/base_merged.csv", "w"))
 logger.info("!!! Shape of base_merged: %s " % (base_merged.shape, ))
@@ -171,7 +169,7 @@ logger.info("!!! Shape of base_merged: %s " % (base_merged.shape, ))
 del maxtemp_dataframe
 del mintemp_dataframe
 del meantemp_dataframe
-del continent_dataframe
+del realms_dataframe
 
 # 6. Load entire fish IUCN data. (TODO: maybe we can load one by one, if the data grows beyond RAM)
 # download from Google Drive: https://drive.google.com/open?id=0B9cazFzBtPuCSFp3YWE1V2JGdnc
@@ -220,7 +218,7 @@ for idx, name_species in enumerate(non_extinct_binomials):
 
     logger.info("%s Selecting pseudo-absences for species: %s " % (idx, name_species))
     selected_layers, pseudo_absences = biomes_adf.sample_pseudo_absences(species_raster_data=rasterized,
-                                                                         continents_raster_data=continents_rasters,
+                                                                         realms_raster_data=realms_rasters,
                                                                          number_of_pseudopoints=1000)
     logger.info("%s Finished selecting pseudo-absences for species: %s " % (idx, name_species))
 
