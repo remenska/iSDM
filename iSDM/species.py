@@ -191,7 +191,7 @@ class Species(object):
 
         """
 
-        if not isinstance(data_frame, GeoDataFrame) or not isinstance(data_frame, pd.DataFrame):
+        if not isinstance(data_frame, GeoDataFrame) and not isinstance(data_frame, pd.DataFrame):
             raise AttributeError("Data is not in a correct format! Please pass pandas or geopandas DataFrame.")
         else:
             self.data_full = data_frame

@@ -38,6 +38,7 @@ class Source(Enum):
     UNKNOWN = 3
     TNC = 4
     ARCGIS = 5
+    WWL = 6
 
 
 class EnvironmentalLayer(object):
@@ -181,7 +182,8 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
                                    raster_data=None,
                                    no_data_value=0,
                                    filter_no_data_value=True,
-                                   band_number=1):
+                                   band_number=1,
+                                   raster_affine=Affine(0.5, 0.0, -180.0, 0.0, -0.5, 90)):
         """
         Map the pixel coordinates to world coordinates. The affine transformation matrix is used for this purpose.
         The convention is to reference the pixel corner. To reference the pixel center instead, we translate each pixel by 50%.
@@ -203,6 +205,8 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
         :returns: A tuple of numpy ndarrays. The first array contains the latitude values for each \
         non-zero cell, the second array contains the longitude values for each non-zero cell.
 
+        TODO: document raster-affine
+
         :rtype: tuple(np.ndarray, np.ndarray)
 
         """
@@ -217,7 +221,10 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
 
         logger.info("Transforming to world coordinates...")
         # first get the original Affine transformation matrix
-        T0 = self.raster_affine
+        if hasattr(self, "raster_affine"):
+            T0 = self.raster_affine
+        else:   # default from arguments
+            T0 = raster_affine
         # convert it to gdal format (it is otherwise flipped)
         T0 = Affine(*reversed(T0.to_gdal()))
         logger.debug("Affine transformation T0:\n %s " % (T0,))
@@ -564,7 +571,7 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
 
     def sample_pseudo_absences(self,
                                species_raster_data,
-                               continents_raster_data=None,
+                               realms_raster_data=None,
                                band_number=1,
                                number_of_pseudopoints=1000):
         """
@@ -612,17 +619,17 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
             logger.error("Environment data has the following shape %s " % (env_raster_data.shape, ))
             return
 
-        if continents_raster_data is not None:
-            logger.info("Will use the continents/biogeographic raster data for further clipping of the pseudo-absence regions. ")
-            if continents_raster_data.shape[1:] != env_raster_data.shape:
+        if realms_raster_data is not None:
+            logger.info("Will use the realms/biogeographic raster data for further clipping of the pseudo-absence regions. ")
+            if realms_raster_data.shape[1:] != env_raster_data.shape:
                 logger.error("Please provide (global) biogeographic raster data at the same resolution as the environment")
                 logger.error("Environment data has the following shape %s " % (env_raster_data.shape, ))
                 return
-            if not (isinstance(continents_raster_data, np.ndarray)) or not (set(np.unique(continents_raster_data)) == set({0, 1})):
+            if not (isinstance(realms_raster_data, np.ndarray)) or not (set(np.unique(realms_raster_data)) == set({0, 1})):
                 logger.error("Please provide the biogeographic raster data as a numpy array with pixel values 1 and 0 (presence/absence).")
                 return
         else:
-            logger.warning("You have not provided continents raster layer. Will sample pseudo-absences with no further narrowing/clipping.")
+            logger.warning("You have not provided realms/biogeographical regions raster layer. Will sample pseudo-absences with no further narrowing/clipping.")
 
         logger.info("Sampling %s pseudo-absence points from environmental layer." % number_of_pseudopoints)
         # first set to zero all pixels that have "nodata" values in the environmental raster
@@ -651,20 +658,20 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
         # sample from those pixels which are in the selected raster regions, minus those of the species presences
         pixels_to_sample_from = selected_pixels - presences_pixels
 
-        # Next: narrow the pixels to sample from, to the continents area,, if the continents raster is present.
-        if continents_raster_data is not None:
-            logger.info("Overlaying with continents data.")
-            overlayed_continents_species = continents_raster_data * species_raster_data
-            selected_continents = np.zeros_like(species_raster_data)
+        # Next: narrow the pixels to sample from, to the realms area,, if the realms/biogeographic regions raster is present.
+        if realms_raster_data is not None:
+            logger.info("Overlaying with realms data.")
+            overlayed_realms_species = realms_raster_data * species_raster_data
+            selected_realms = np.zeros_like(species_raster_data)
 
-            for idx, band in enumerate(overlayed_continents_species):
-                if band.max() == 1:  # species data overlaps at some pixels with the current continent band
-                    selected_continents += continents_raster_data[idx]
+            for idx, band in enumerate(overlayed_realms_species):
+                if band.max() == 1:  # species data overlaps at some pixels with the current realm band
+                    selected_realms += realms_raster_data[idx]
 
-            # for cases of overlaop between continents, where the sum would be > 1
-            selected_continents[selected_continents > 1] = 1
-            # finally, clip the pixels_to_sample_from, to the selected continents
-            pixels_to_sample_from = pixels_to_sample_from * selected_continents
+            # for cases of overlap between realms, where the sum would be > 1
+            selected_realms[selected_realms > 1] = 1
+            # finally, clip the pixels_to_sample_from, to the selected realms
+            pixels_to_sample_from = pixels_to_sample_from * selected_realms
 
         # These are x/y positions of pixels to sample from. Tuple of arrays.
         (x, y) = np.where(pixels_to_sample_from > 0)
@@ -929,17 +936,17 @@ class VectorEnvironmentalLayer(EnvironmentalLayer):
         return self.raster_reader
 
 
-class ContinentsLayer(VectorEnvironmentalLayer):
+class RealmsLayer(VectorEnvironmentalLayer):
     """
-    ContinentsLayer
-    Continents Layer has a special treatment as a ``VectorEnvironmentLayer``.
-    This is mostly because, when rasterizing the continents shapefile, there are multiple shapes
-    which should end up with a different pixel value for each continents. The typical rasterizing
-    operation rather produces a raster with binary values (0s and 1s), on a single band.
+    RealmsLayer
+    Realms Layer has a special treatment as a ``VectorEnvironmentLayer``.
+    This is mostly because, when rasterizing the biogeographical realms' shapefile, there are multiple shapes
+    which should end up with a different pixel value for each realm, otherwise realms cannot be distinguished.
+    The typical rasterizing operation rather produces a raster with binary values (0s and 1s), on a single band.
 
-    For overlaying selected pseudo-absence biomes (pixels) with continents, it is best to
-    have one individual (raster band) matrix per continent, each filled with 0s and 1s, and loop through
-    the list of continents (not many layers, so should be fast). Then "overlaying" or clipping
+    For overlaying selected pseudo-absence biomes (pixels) with the realms, it is best to
+    have one individual (raster band) matrix per realm, each filled with 0s and 1s, and loop through
+    the list of realms (not many layers, so should be fast). Then "overlaying" or clipping
     with biomes would amount to simple arithmetics, like multiplying the matrices (element by element)
     to filter out anything with 0-valued pixels in any matrix.
 
@@ -954,9 +961,10 @@ class ContinentsLayer(VectorEnvironmentalLayer):
                   default_value=1,
                   crs=None,
                   cropped=False,
+                  classifier_column='continent',
                   *args, **kwargs):
         """
-        Documentation pending on how to rasterize continents
+        Documentation pending on how to rasterize realms
         """
         if not (pixel_size or raster_file):
             raise AttributeError("Please provide pixel_size and a target raster_file.")
@@ -978,21 +986,22 @@ class ContinentsLayer(VectorEnvironmentalLayer):
         x_res = int((x_max - x_min) / pixel_size)
         y_res = int((y_max - y_min) / pixel_size)
 
-        continents_list = self.data_full.continent.unique()
-        logger.info("Will rasterize continent-by-continent.")
+        realms_list = self.data_full[classifier_column].unique()
+        logger.info("Will rasterize using clssifier: %s." % classifier_column)
         # translate
         stacked_layers = []
-        for continent_name in continents_list:
-            logger.info("Rasterizing continent %s " % continent_name)
-            transform = Affine.translation(x_min, y_max) * Affine.scale(pixel_size, -pixel_size)
-            result = features.rasterize(self.data_full.geometry[self.data_full.continent == continent_name],
-                                        transform=transform,
-                                        out_shape=(y_res, x_res),
-                                        all_touched=all_touched,
-                                        fill=no_data_value,
-                                        default_value=default_value
-                                        )
-            stacked_layers.append(result)
+        for realm_name in realms_list:
+            if realm_name:
+                logger.info("Rasterizing realm %s " % realm_name)
+                transform = Affine.translation(x_min, y_max) * Affine.scale(pixel_size, -pixel_size)
+                result = features.rasterize(self.data_full.geometry[self.data_full[classifier_column] == realm_name],
+                                            transform=transform,
+                                            out_shape=(y_res, x_res),
+                                            all_touched=all_touched,
+                                            fill=no_data_value,
+                                            default_value=default_value
+                                            )
+                stacked_layers.append(result)
 
         stacked_layers = np.stack(stacked_layers)
 
@@ -1010,7 +1019,112 @@ class ContinentsLayer(VectorEnvironmentalLayer):
         logger.info("RASTERIO: Resolution: x_res={0} y_res={1}".format(x_res, y_res))
         self.raster_file = raster_file
         self.raster_affine = transform
+        self.stacked_layers = stacked_layers
         return stacked_layers
+
+    def sample_pseudo_absences(self,
+                               species_raster_data,
+                               number_of_pseudopoints=1000):
+        """
+        Samples a :attr:`number_of_pseudopoints` points from the ``RasterEnvironmentalLayer`` data (raster map),
+        based on a given species raster map which is assumed to contain species presence points.
+        The :attr:`species_raster_data` is used to determine which distinct regions (cell values) from the entire
+        environmental raster map, should be taken into account for potential pseudo-absence sampling regions.
+        Next, all the pixels from the environmental raster map whose values are in the distinct regions are
+        merged on a filtered environmental raster map. Finally, presence pixels are removed from this map, and
+        the resulting pixels are used as a base for sampling pseudo-absences. If the number of such resulting pixels
+        left is smaller than the number of requested pseudo-absence points, all pixels are automatically taken
+        as pseudo-absence points, and no random sampling is done.
+
+        Otherwise, :attr:`number_of_pseudopoints` pixels positions (indices) are randomly chosen at once (for speed),
+        rather than randomly sampling one by one until the desired number of pseudo-absences is reached. Due to this,
+        it could be that some random pixel positions repeat, and the resulting number of unique pixels is slightly smaller
+        than the required one.
+        *For instance, experiments show that around 980 unique pixels are drawn when the random
+        samples requested is 1000.*
+
+        :param np.ndarray species_raster_data: A raster map containing the species presence pixels. If not provided,
+        by default the one loaded previously (if available, otherwise .load_data() should be used before) is used.
+
+        :param int band_number: The index of the band from the :attr:`species_raster_data` to use as input. Default is 1.
+
+        :param int number_of_pseudopoints: Number of pseudo-absence points to sample from the raster environmental layer data.
+
+        :returns: A tuple containing two raster maps, one with all potential background pixels chosen to sample from, \
+        and second with all the actual sampled pixels.
+
+        # TODO: change description here
+
+        :rtype: tuple(np.ndarray, np.ndarray)
+
+        """
+        if not (isinstance(species_raster_data, np.ndarray)) or not (set(np.unique(species_raster_data)) == set({0, 1})):
+            logger.error("Please provide the species raster data as a numpy array with pixel values 1 and 0 (presence/absence).")
+            return
+
+        if not hasattr(self, "stacked_layers"):
+            logger.error("You need to rasterize the layer first. Please use rasterize(..) for this.")
+            return
+        else:
+            if species_raster_data.shape != self.stacked_layers.shape[-2:]:
+                logger.error("Please provide (global) species raster data at the same resolution as the environment")
+                logger.error("Environment data has the following shape %s " % (self.stacked_layers.shape[-2:], ))
+                return
+            if not (isinstance(self.stacked_layers, np.ndarray)) or not (set(np.unique(self.stacked_layers)) == set({0, 1})):
+                logger.error("Please provide the biogeographic raster data as a numpy array with pixel values 1 and 0 (presence/absence).")
+                return
+
+            logger.info("Will use the realms/biogeographic raster data for further clipping of the pseudo-absence regions. ")
+            logger.info("Sampling %s pseudo-absence points from environmental layer." % number_of_pseudopoints)
+            logger.info("Overlaying with realms data.")
+
+            overlayed_realms_species = self.stacked_layers * species_raster_data
+            selected_realms = np.zeros_like(species_raster_data)
+            for idx, band in enumerate(overlayed_realms_species):
+                if band.max() == 1:  # species data overlaps at some pixels with the current realm band
+                    selected_realms += self.stacked_layers[idx]
+
+            # for cases of overlap between realms, where the sum would be > 1
+            selected_realms[selected_realms > 1] = 1
+
+            # remove pixel positions with the species data
+            pixels_to_sample_from = selected_realms - (selected_realms * species_raster_data)
+
+            # These are x/y positions of pixels to sample from. Tuple of arrays.
+            (x, y) = np.where(pixels_to_sample_from == 1)
+            number_pixels_to_sample_from = x.shape[0]  # == y.shape[0] since every pixel has (x,y) position.
+            logger.info("There are %s pixels to sample from..." % (number_pixels_to_sample_from))
+
+            if number_pixels_to_sample_from == 0:
+                logger.error("There are no pixels left to sample from. Perhaps the species raster data")
+                logger.error("covers the entire range from which it was intended to sample.")
+                return (pixels_to_sample_from, None)
+
+            sampled_pixels = np.zeros_like(pixels_to_sample_from)
+
+            if number_pixels_to_sample_from < number_of_pseudopoints:
+                logger.warning("There are less pixels to sample from, than the desired number of pseudo-absences")
+                logger.warning("Will select all pixels as psedudo-absences.")
+                random_indices = np.arange(0, number_pixels_to_sample_from)
+            else:
+                # now randomly choose <number_of_pseudopoints> indices to fill in with pseudo absences
+                # random_indices = np.random.randint(0, number_pixels_to_sample_from, number_of_pseudopoints)
+                # Changed the above method with a different one that guarantees unique positions.
+                # With on average 6000 (guesstimate) pixels to sample from, the method below
+                # is a factor of 50 slower, but guarantees no repetitions,
+                # (20 microseconds vs 100 microseconds) compared to the one above.
+                random_indices = np.random.choice(number_pixels_to_sample_from,
+                                                  number_of_pseudopoints,
+                                                  replace=False)
+                logger.info("Filling %s random pixel positions..." % (len(random_indices)))
+
+                # fill in those indices with the pixel values of the environment layer
+            for position in random_indices:
+                sampled_pixels[x[position]][y[position]] = pixels_to_sample_from[x[position], y[position]]
+
+            logger.info("Sampled %s unique pixels as pseudo-absences." % sampled_pixels.nonzero()[0].shape[0])
+
+            return (pixels_to_sample_from, sampled_pixels)
 
 
 class LandCoverlayer(VectorEnvironmentalLayer):
