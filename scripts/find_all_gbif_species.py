@@ -24,29 +24,40 @@ import timeit
 import pickle
 import os
 
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument('-m', '--method-serialization', default="pickle", help='Method of serialization used for the individual GBIF occurrence files. Can be pickle or msgpack.')
+# parser.add_argument('-s', '--species-location', default='./data/fish/', help="The folder where the species individual GBIF files are located.")
+parser.add_argument('-b', '--binomials-location', default='./data/fish/selection/non_extinct_binomials.pkl', help="Full location of the file containing the non-extinct binomials list.")
+parser.add_argument('-o', '--output-location', default="./data/fish/selection/", help="Output location (folder) for storing the serialized individual species GBIF data.")
+args = parser.parse_args()
+
 # input
-method = "msgpack"  # could also be set to "pickle", which was default but msgpack is slightly better in speed/memory.
-non_extinct_binomials_file_path = "./data/fish/selection/non_extinct_binomials.pkl"
+method = args.method_serialization  # could also be set to "pickle", which was default but msgpack is slightly better in speed/memory.
+# non_extinct_binomials_file_path = "./data/fish/selection/non_extinct_binomials.pkl"
 save_data_path = "./data/fish/selection"
 
 # logging
 logger = logging.getLogger('iSDM.species')
 logger.setLevel(logging.DEBUG)
-fh = logging.FileHandler('./data/fish/selection/' + '/to_' + method + '.log')
+fh = logging.FileHandler(args.output_location + '/to_' + method + '.log')
 fh.setLevel(logging.DEBUG)
 ch = logging.StreamHandler()
 ch.setLevel(logging.DEBUG)
-formatter = logging.Formatter('%(asctime)s %(message)s')
+formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 fh.setFormatter(formatter)
 ch.setFormatter(formatter)
 logger.addHandler(fh)
 logger.addHandler(ch)
 
 # Load the list of non-extinct binomials that is previously filtered from the IUCN expert range data.
-non_extinct_binomials = pickle.load(open(non_extinct_binomials_file_path, "rb"))
+non_extinct_binomials = pickle.load(open(args.binomials_location, "rb"))
 
 total_time = 0
-save_data_path = os.path.join(save_data_path, method)
+# save_data_path = os.path.join(save_data_path, method)
+
+os.makedirs(os.path.join(args.output_location, args.method_serialization), exist_ok=True)
 
 logger.info("size = %s species." % len(non_extinct_binomials))
 # Loop through the list of non-extinct binomials
@@ -65,7 +76,7 @@ for idx, name in enumerate(non_extinct_binomials):
         logger.info("Done with GBIF API query, now saving.")
         start_time = timeit.default_timer()
         # 3. Save the data
-        next_species.save_data(dir_name=save_data_path, method=method)
+        next_species.save_data(dir_name=os.path.join(args.output_location, args.method_serialization), method=method)
         stop_time = timeit.default_timer()
         logger.info("Serializing with %s took %s seconds." % (method, stop_time - start_time))
         total_time += stop_time - start_time

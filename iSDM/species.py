@@ -89,21 +89,21 @@ class Species(object):
         Serializes the loaded species dataset (`pandas <http://pandas.pydata.org/pandas-docs/stable/dsintro.html>`_ or `geopandas <http://geopandas.org/user.html>`_ DataFrame)
         into a binary `pickle <https://en.wikipedia.org/wiki/Pickle_%28Python%29>`_  (or `msgpack <http://msgpack.org/index.html>`_) file.
 
-       :param string full_name: The full path of the file (including the directory and filename in one string),
+        :param string full_name: The full path of the file (including the directory and filename in one string),
         where the data will be saved.
 
-       :param string dir_name: The directory where the file will be stored.
-       If :attr:`file_name` is not specified, the default one :attr:`name_species` + ``.pkl`` (or ``.msg``) is given by default.
+        :param string dir_name: The directory where the file will be stored. \
+        If :attr:`file_name` is not specified, the default one :attr:`name_species` + ``.pkl`` (or ``.msg``) is given by default.
 
-       :param string file_name: The name of the file where the data will be saved. \
-       If :attr:`dir_name` is not specified, the current working directory is taken by default.
+        :param string file_name: The name of the file where the data will be saved. \
+        If :attr:`dir_name` is not specified, the current working directory is taken by default.
 
-       :param string method: The type of serialization to use for the data frame. Default is "pickle". Another possibility is "msgpack", as it has shown as 10% more efficient \
-       in terms of time and memory, for the type of data we are dealing with.
+        :param string method: The type of serialization to use for the data frame. Default is `pickle`. Another possibility is `msgpack`, as it has shown as 10% more efficient \
+        in terms of time and memory, for the type of data we are dealing with.
 
-       :raises: AttributeError: if the data has not been loaded in the object before. See :func:`load_data` and :func:`find_species_occurrences`
+        :raises: AttributeError: if the data has not been loaded in the object before. See :func:`load_data` and :func:`find_species_occurrences`
 
-       :returns: None
+        :returns: None
 
         """
         if full_name is None:
@@ -130,25 +130,36 @@ class Species(object):
         except AttributeError as e:
             logger.error("No data to save. Please load it first. %s " % str(e))
 
-    def load_data(self, file_path=None):
+    def load_data(self, file_path=None, method='pickle'):
         """
         Loads the data from the serialized species file into a pandas DataFrame. If the :attr:`file_path` parameter is not supplied,
         it will try to deduce the file name from the name of the species by default.
 
         :param string file_path: The full path to the file (including the directory and filename in one string), where the data is serialized to.
 
+        :param string method: The type of serialization that was used to serialize the data in the data frame. \
+        Default is `pickle`. Another possibility is "msgpack", as it has shown as 10% more efficient in terms of time and memory, \
+        for the type of data we are dealing with.
+
         :returns: Data loaded into (geo)pandas Dataframe.
 
         :rtype: geopandas.GeoDataFrame
+
         """
         if file_path is None:
-            filename = str(self.name_species) + ".pkl"
+            filename = str(self.name_species) + (".pkl" if method == "pickle" else ".msg")
             file_path = os.path.join(os.getcwd(), filename)
 
         logger.info("Loading data from: %s" % file_path)
 
         try:
-            self.data_full = pd.read_pickle(file_path)
+            if method == "msgpack":
+                self.data_full = pd.read_msgpack(file_path)
+            elif method == "pickle":
+                self.data_full = pd. read_pickle(file_path)
+            else:
+                logger.error("Unknown method of serializing: %s " % method)
+                return
             logger.info("Succesfully loaded previously saved data.")
             return self.data_full
         except IOError as e:
@@ -180,7 +191,7 @@ class Species(object):
 
         """
 
-        if not isinstance(self.data_full, GeoDataFrame) or not isinstance(self.data_full, pd.DataFrame):
+        if not isinstance(data_frame, GeoDataFrame) and not isinstance(data_frame, pd.DataFrame):
             raise AttributeError("Data is not in a correct format! Please pass pandas or geopandas DataFrame.")
         else:
             self.data_full = data_frame
@@ -545,6 +556,90 @@ class GBIFSpecies(Species):
         except ValueError as e:
             logger.error("The rangemap geometries seem to be invalid (possible self-intersections). %s " % str(e))
 
+    def rasterize(self, raster_file=None, pixel_size=None, all_touched=False,
+                  no_data_value=0,
+                  default_value=1,
+                  crs=None,
+                  cropped=False,
+                  *args, **kwargs):
+        """
+        Rasterize (burn) the species point-record occurrences into pixels (cells), i.e., a 2-dimensional image array
+        of type numpy ndarray. Uses the `Rasterio <https://mapbox.github.io/rasterio/_modules/rasterio/features.html>`_ library
+        for this purpose. If the dataframe does not contain a `geometry` column (GeoDataFrame), :func:`geometrize` is called, to
+        convert the decimallatitude/decimallongitude columns into a geometry column containing Point geometrical shapes.
+        All the point-records are burned in a single "band" of the image. (point to grid)
+        Rasterio datasets can generally have one or more bands, or layers. Following the GDAL convention, these are indexed starting with 1.
+
+        :param string raster_file: The full path to the targed GeoTIFF raster file (including the directory and filename in one string).
+
+        :param int pixel_size: The size of the pixel in degrees, i.e., the resolution to use for rasterizing.
+
+        :param bool all_touched: If true, all pixels touched by geometries, will be burned in. If false, only pixels \
+        whose center is within the polygon or that are selected by *Bresenham's line algorithm*, will be burned in.
+
+        :param int no_data_value: Used as value of the pixels which are not burned in. Default is 0.
+
+        :param int default_value: Used as value of the pixels which are burned in. Default is 1.
+
+        :param dict crs: The Coordinate Reference System to use. Default is "ESPG:4326"
+
+        :param bool cropped: If true, the resulting pixel array (image) is cropped to the region borders, which contain \
+        the burned pixels (i.e., an envelope within the range). Otherwise, a "global world map" is used, i.e., the boundaries \
+        are set to (-180, -90, 180, 90) for the resulting array.
+
+        :returns: Rasterio RasterReader file object which can be used to read individual bands from the raster file.
+
+        :rtype: rasterio._io.RasterReader
+
+        """
+        if not pixel_size:
+            raise AttributeError("Please provide pixel_size")
+
+        if not hasattr(self, 'data_full'):
+            raise AttributeError("You have not loaded the data.")
+
+        if crs is None:
+            crs = {'init': "EPSG:4326"}
+
+        if not isinstance(self.data_full, GeoDataFrame):
+            logger.info("Will convert the latitude/longitude into a GeoDataFrame (with geometry column)")
+            self.geometrize()
+
+        # crop to the boundaries of the shape?
+        if cropped:
+            # cascaded_union_geometry = shapely.ops.cascaded_union(self.data_full.geometry)
+            x_min, y_min, x_max, y_max = self.data_full.geometry.total_bounds
+        # else global map
+        else:
+            x_min, y_min, x_max, y_max = -180, -90, 180, 90
+
+        x_res = int((x_max - x_min) / pixel_size)
+        y_res = int((y_max - y_min) / pixel_size)
+        # translate
+        transform = Affine.translation(x_min, y_max) * Affine.scale(pixel_size, -pixel_size)
+        result = features.rasterize(self.data_full.geometry,
+                                    transform=transform,
+                                    out_shape=(y_res, x_res),
+                                    all_touched=all_touched,
+                                    fill=no_data_value,
+                                    default_value=default_value
+                                    )
+
+        if raster_file:
+            with rasterio.open(raster_file, 'w', driver='GTiff', width=x_res, height=y_res,
+                               count=1,
+                               dtype=np.uint8,
+                               nodata=no_data_value,
+                               transform=transform,
+                               crs=crs) as out:
+                out.write(result.astype(np.uint8), indexes=1)
+                out.close()
+            logger.info("RASTERIO: Data rasterized into file %s " % raster_file)
+            self.raster_file = raster_file
+        logger.info("RASTERIO: Resolution: x_res={0} y_res={1}".format(x_res, y_res))
+        self.raster_affine = transform
+        return result
+
 
 class IUCNSpecies(Species):
     """
@@ -735,8 +830,8 @@ class IUCNSpecies(Species):
         :rtype: rasterio._io.RasterReader
 
         """
-        if not (pixel_size or raster_file):
-            raise AttributeError("Please provide pixel_size and a target raster_file.")
+        if not pixel_size:
+            raise AttributeError("Please provide pixel_size.")
 
         if not hasattr(self, 'data_full'):
             raise AttributeError("You have not loaded the data.")
@@ -764,17 +859,18 @@ class IUCNSpecies(Species):
                                     default_value=default_value
                                     )
 
-        with rasterio.open(raster_file, 'w', driver='GTiff', width=x_res, height=y_res,
-                           count=1,
-                           dtype=np.uint8,
-                           nodata=no_data_value,
-                           transform=transform,
-                           crs=crs) as out:
-            out.write(result.astype(np.uint8), indexes=1)
-            out.close()
-        logger.info("RASTERIO: Data rasterized into file %s " % raster_file)
+        if raster_file:
+            with rasterio.open(raster_file, 'w', driver='GTiff', width=x_res, height=y_res,
+                               count=1,
+                               dtype=np.uint8,
+                               nodata=no_data_value,
+                               transform=transform,
+                               crs=crs) as out:
+                out.write(result.astype(np.uint8), indexes=1)
+                out.close()
+            logger.info("RASTERIO: Data rasterized into file %s " % raster_file)
+            self.raster_file = raster_file
         logger.info("RASTERIO: Resolution: x_res={0} y_res={1}".format(x_res, y_res))
-        self.raster_file = raster_file
         self.raster_affine = transform
         return result
 
@@ -881,14 +977,14 @@ class IUCNSpecies(Species):
         # apply the shift, filtering out no_data_value values
         logger.debug("Raster data shape: %s " % (raster_data.shape,))
         logger.debug("Affine transformation T1:\n %s " % (T1,))
-        raster_data[raster_data == no_data_value] = 0  # reset the nodata values to 0, easier to manipulate
+        # raster_data[raster_data == no_data_value] = 0  # reset the nodata values to 0, easier to manipulate
         if filter_no_data_value:
             logger.info("Filtering out no_data pixels.")
-            coordinates = (T1 * np.where(raster_data > no_data_value))
+            coordinates = (T1 * np.where(raster_data != no_data_value))
         else:
             logger.info("Not filtering any no_data pixels.")
             coordinates = (T1 * np.where(np.ones_like(raster_data)))
-
+        logger.info("Transformation to world coordinates completed.")
         return coordinates
 
     def random_pseudo_absence_points(self,

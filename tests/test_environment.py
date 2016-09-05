@@ -1,5 +1,7 @@
 import unittest
 from iSDM.environment import ClimateLayer
+from iSDM.environment import RealmsLayer
+from iSDM.environment import Source
 # from iSDM.species import IUCNSpecies
 # import pandas as pd
 import geopandas as gp
@@ -15,12 +17,18 @@ import numpy as np
 # logger.addHandler(stream_handler)
 
 
-class TestsEnvironment(unittest.TestCase):
+class TestEnvironment(unittest.TestCase):
 
     def setUp(self):
         self.climate_layer = ClimateLayer(file_path="./data/watertemp/max_wt_2000.tif")
         self.climate_layer_bad = ClimateLayer()
         self.biomes_layer = ClimateLayer(file_path="./data/rebioms/w001001.adf")
+        realms = RealmsLayer(file_path="./data/terrestrial_ecoregions/", source=Source.WWL)
+        realms.load_data()
+        realms_rasters = realms.rasterize(raster_file="./data/terrestrial_ecoregions/realms_raster.tif", pixel_size=0.5, classifier_column="realm")
+        realms_rasters[0] = realms_rasters[0] + realms_rasters[2]   # combine Europe and Asia
+        realms_rasters[0][realms_rasters[0] > 1] = 1
+        self.realms_rasters = np.delete(realms_rasters, 2, 0)
 
     def test_RasterEnvironmentalLayer_load_data(self):
         with self.assertRaises(AttributeError):
@@ -82,18 +90,29 @@ class TestsEnvironment(unittest.TestCase):
     def test_RasterEnvironmentalLayer_sample_pseudo_absences(self):
         self.biomes_layer.load_data()
         some_species = np.ones_like(self.biomes_layer.read(1))
-        some_species[0][0] = 0  # only one pixel
-        result = self.biomes_layer.sample_pseudo_absences(species_raster_data=some_species)
-        self.assertIsNone(result)
+        some_species[0][0] = 0  # only one pixel set to zero, species covers entire range
+        pixels_to_sample_from, sampled_pixels = self.biomes_layer.sample_pseudo_absences(species_raster_data=some_species)
+        self.assertIsNone(sampled_pixels)
 
-        # set half of the pixels to 0
+        # set half of the pixels to 0, now the species covers about half of the map
         for index in range(int(some_species.shape[0] / 2)):
             some_species[index] = 0
-        result = self.biomes_layer.sample_pseudo_absences(species_raster_data=some_species)
-        self.assertIsNotNone(result)
-        self.assertIsInstance(result, tuple)
-        self.assertEqual(result[0].shape, self.biomes_layer.read(1).shape)
-        self.assertEqual(result[1].shape, self.biomes_layer.read(1).shape)
+        pixels_to_sample_from, sampled_pixels = self.biomes_layer.sample_pseudo_absences(species_raster_data=some_species)
+        self.assertIsNotNone(sampled_pixels)
+        self.assertIsInstance(pixels_to_sample_from, np.ndarray)
+        self.assertIsInstance(sampled_pixels, np.ndarray)
+        self.assertEqual(pixels_to_sample_from.shape, self.biomes_layer.read(1).shape)
+        self.assertEqual(sampled_pixels.shape, self.biomes_layer.read(1).shape)
+        self.assertEqual(sampled_pixels.nonzero()[0].shape[0], 1000)
+
+        # adding realms should further reduce the sampling area
+        pixels_to_sample_from_1, sampled_pixels_1 = self.biomes_layer.sample_pseudo_absences(species_raster_data=some_species,
+                                                                                             realms_raster_data=self.realms_rasters)
+        self.assertIsNotNone(sampled_pixels_1)
+        self.assertIsInstance(pixels_to_sample_from_1, np.ndarray)
+        self.assertIsInstance(sampled_pixels_1, np.ndarray)
+        self.assertEqual(sampled_pixels_1.nonzero()[0].shape[0], 1000)
+        self.assertGreater(np.sum(pixels_to_sample_from), np.sum(pixels_to_sample_from_1))
 
     def tearDown(self):
         del self.climate_layer
