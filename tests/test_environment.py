@@ -1,6 +1,6 @@
 import unittest
 from iSDM.environment import ClimateLayer
-from iSDM.environment import ContinentsLayer
+from iSDM.environment import RealmsLayer
 from iSDM.environment import Source
 # from iSDM.species import IUCNSpecies
 # import pandas as pd
@@ -23,12 +23,12 @@ class TestEnvironment(unittest.TestCase):
         self.climate_layer = ClimateLayer(file_path="./data/watertemp/max_wt_2000.tif")
         self.climate_layer_bad = ClimateLayer()
         self.biomes_layer = ClimateLayer(file_path="./data/rebioms/w001001.adf")
-        continents = ContinentsLayer(file_path="./data/continents/continent.shp", source=Source.ARCGIS)
-        continents.load_data()
-        continents_rasters = continents.rasterize(raster_file="./data/continents/continents_raster.tif", pixel_size=0.5)
-        continents_rasters[0] = continents_rasters[0] + continents_rasters[2]   # combine Europe and Asia
-        continents_rasters[0][continents_rasters[0] > 1] = 1
-        self.continents_rasters = np.delete(continents_rasters, 2, 0)
+        realms = RealmsLayer(file_path="./data/terrestrial_ecoregions/", source=Source.WWL)
+        realms.load_data()
+        realms_rasters = realms.rasterize(raster_file="./data/terrestrial_ecoregions/realms_raster.tif", pixel_size=0.5, classifier_column="realm")
+        realms_rasters[0] = realms_rasters[0] + realms_rasters[2]   # combine Europe and Asia
+        realms_rasters[0][realms_rasters[0] > 1] = 1
+        self.realms_rasters = np.delete(realms_rasters, 2, 0)
 
     def test_RasterEnvironmentalLayer_load_data(self):
         with self.assertRaises(AttributeError):
@@ -105,9 +105,9 @@ class TestEnvironment(unittest.TestCase):
         self.assertEqual(sampled_pixels.shape, self.biomes_layer.read(1).shape)
         self.assertEqual(sampled_pixels.nonzero()[0].shape[0], 1000)
 
-        # adding continents should further reduce the sampling area
+        # adding realms should further reduce the sampling area
         pixels_to_sample_from_1, sampled_pixels_1 = self.biomes_layer.sample_pseudo_absences(species_raster_data=some_species,
-                                                                                             continents_raster_data=self.continents_rasters)
+                                                                                             realms_raster_data=self.realms_rasters)
         self.assertIsNotNone(sampled_pixels_1)
         self.assertIsInstance(pixels_to_sample_from_1, np.ndarray)
         self.assertIsInstance(sampled_pixels_1, np.ndarray)
