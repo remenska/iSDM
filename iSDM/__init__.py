@@ -6,4 +6,4 @@ Interacting Species Distribution Models framework.
 
 __author__ = 'Daniela Remenska'
 __email__ = 'remenska@gmail.com'
-__version__ = '0.0.1'
+__version__ = '0.0.2'
