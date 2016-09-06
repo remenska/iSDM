@@ -6,7 +6,8 @@ Description: Creates a species-by-species dataframe to be used as input for step
              and 1000 random pseudo-absences are selected according to the following criteria:  all biogeographical realms covered by
              the species rangemaps are taken into account for sampling pseudo-absences.
              All the layers should be at the same resolution (30 arcmin).
-             Water temperature layers (min/max/mean) are also added in the dataframe. Each row of the dataframe corresponds to one cell in the global
+             Water temperature layers (min/max/mean) are also added in the dataframe.
+             Each row of the dataframe corresponds to one cell in the global
              raster layer. Each column corresponds to an environmental layer; for convenience one column identifies the realm to which each cell
              belongs. And finally, one column contains the individual species presences/absences.
              The index of the dataframe is (decimallatitude, decimallongitude)
@@ -42,10 +43,10 @@ import os
 import argparse
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-r', '--realms-location', default="./data/terrestrial_ecoregions/", help='The full path to the folder where the biogeographic realms shapefiles are located.')
-parser.add_argument('-t', '--temperature-location', default="./data/watertemp/", help="The folder where the temperature raster files are.")
-parser.add_argument('-s', '--species-location', default='./data/fish/', help="The folder where the IUCN species shapefiles are located.")
-parser.add_argument('-o', '--output-location', default="./data/fish/", help="Output location (folder) for storing the output of the processing.")
+parser.add_argument('-r', '--realms-location', default=os.path.join("data", "terrestrial_ecoregions"), help='The full path to the folder where the biogeographic realms shapefiles are located.')
+parser.add_argument('-t', '--temperature-location', default=os.path.join("data", "watertemp"), help="The folder where the temperature raster files are.")
+parser.add_argument('-s', '--species-location', default=os.path.join("data", "fish"), help="The folder where the IUCN species shapefiles are located.")
+parser.add_argument('-o', '--output-location', default=os.path.join("data", "fish"), help="Output location (folder) for storing the output of the processing.")
 parser.add_argument('--reprocess', action='store_true', help="Reprocess the data, using the already-rasterized individual species rangemaps. Assumes these files are all available.")
 parser.set_defaults(reprocess=False)
 args = parser.parse_args()
@@ -57,7 +58,7 @@ formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(messag
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
-fh = logging.FileHandler(args.output_location + '/step1_climate_envelope.log')
+fh = logging.FileHandler(os.path.join(args.output_location, "step1_climate_envelope.log"))
 fh.setLevel(logging.DEBUG)
 fh.setFormatter(formatter)
 logger.addHandler(fh)
@@ -71,13 +72,15 @@ logger.addHandler(fh)
 logger.info("STEP 1: LOADING Biogeographical realms layer")
 realms_layer = RealmsLayer(file_path=args.realms_location, source=Source.WWL)
 realms_layer.load_data()
-realms_rasters = realms_layer.rasterize(raster_file=args.realms_location + "/realms_raster.tif", pixel_size=0.5, classifier_column='realm')
+realms_rasters = realms_layer.rasterize(raster_file=os.path.join(args.realms_location, "realms_raster.tif"), pixel_size=0.5, classifier_column='realm')
 logger.info("Realms rasters shape: %s " % (realms_rasters.shape,))
 
 
 # 2. Temperature layers
+# TODO: Maybe generalize this so all .tif files in a folder are read as a layer.
+
 logger.info("STEP 2: LOADING Temperature layers.")
-water_min_layer = ClimateLayer(file_path=args.temperature_location + "/min_wt_2000.tif")
+water_min_layer = ClimateLayer(file_path=os.path.join(args.temperature_location, "min_wt_2000.tif"))
 water_min_reader = water_min_layer.load_data()
 water_min_data = water_min_reader.read(1)
 # cut out anything below 0 Kelvins, absolute zero.
@@ -94,7 +97,7 @@ logger.info("Shape mintemp_dataframe: % s " % (mintemp_dataframe.shape, ))
 logger.info("Finished constructing dataframe for minimum water temperature...")
 
 logger.info("Constructing dataframe for maximum water temperature...")
-water_max_layer = ClimateLayer(file_path=args.temperature_location + "/max_wt_2000.tif")
+water_max_layer = ClimateLayer(file_path=os.path.join(args.temperature_location, "max_wt_2000.tif"))
 water_max_reader = water_max_layer.load_data()
 water_max_data = water_max_reader.read(1)
 # cut out anything below 0 Kelvins, absolute zero.
@@ -110,7 +113,7 @@ logger.info("Shape maxtemp_dataframe: % s " % (maxtemp_dataframe.shape, ))
 logger.info("Finished constructing dataframe for maximum temperature...")
 
 logger.info("Constructing dataframe for mean water temperature...")
-water_mean_layer = ClimateLayer(file_path=args.temperature_location + "/mean_wt_2000.tif")
+water_mean_layer = ClimateLayer(file_path=os.path.join(args.temperature_location, "mean_wt_2000.tif"))
 water_mean_reader = water_mean_layer.load_data()
 water_mean_data = water_mean_reader.read(1)
 # cut out anything below 0 Kelvins, absolute zero.
@@ -141,7 +144,7 @@ base_dataframe = pd.DataFrame([all_coordinates[0], all_coordinates[1]]).T
 base_dataframe.columns = ['decimallatitude', 'decimallongitude']
 base_dataframe.set_index(['decimallatitude', 'decimallongitude'], inplace=True, drop=True)
 
-base_dataframe.to_csv(args.output_location + "/base.csv")
+base_dataframe.to_csv(os.path.join(args.output_location, "base.csv"))
 logger.info("Shape of base: %s " % (base_dataframe.shape, ))
 # base_merged contains the columns on min/max/mean temperature and realm ID
 # this dataframe can be used to reconstruct the full data about a particular species, as input for modeling
@@ -166,7 +169,7 @@ for idx, band in enumerate(realms_rasters):
     logger.info("Finished processing realm number %s " % (idx + 1))
 
 logger.info("Saving base_merged to a csv dataframe...")
-base_merged.to_csv(open(args.output_location + "/base_merged.csv", "w"))
+base_merged.to_csv(open(os.path.join(args.output_location, "base_merged.csv"), "w"))
 logger.info("Shape of base_merged: %s " % (base_merged.shape, ))
 # release individual frames memory
 del maxtemp_dataframe
@@ -185,8 +188,8 @@ fish.drop_extinct_species()
 non_extinct_fish = fish.get_data()
 non_extinct_binomials = non_extinct_fish.binomial.unique().tolist()
 
-os.makedirs(args.output_location + "/rasterized/", exist_ok=True)
-os.makedirs(args.output_location + "/csv/", exist_ok=True)
+os.makedirs(os.path.join(args.output_location, "rasterized"), exist_ok=True)
+os.makedirs(os.path.join(args.output_location, "csv"), exist_ok=True)
 
 # rasterized_species = IUCNSpecies(name_species="Temporary name")
 
@@ -199,7 +202,7 @@ for idx, name_species in enumerate(non_extinct_binomials):
 
     if args.reprocess:
         logger.info("%s Reprocessing individual species data, will use existing raster file for species: %s" % (idx, name_species))
-        full_location_raster_file = args.output_location + "/rasterized/" + name_species + ".tif"
+        full_location_raster_file = os.path.join(args.output_location, "rasterized", name_species + ".tif")
         if not os.path.exists(full_location_raster_file):
             logger.error("%s Raster file does NOT exist for species: %s " % (idx, name_species))
             continue
@@ -207,11 +210,11 @@ for idx, name_species in enumerate(non_extinct_binomials):
         rasterized = fish.raster_reader.read(1)
     else:
         logger.info("%s Rasterizing species: %s " % (idx, name_species))
-        rasterized = fish.rasterize(raster_file=args.output_location + "/rasterized/" + name_species + ".tif", pixel_size=0.5)
+        rasterized = fish.rasterize(raster_file=os.path.join(args.output_location, "rasterized", name_species + ".tif"), pixel_size=0.5)
     # special case with blank map
     if not (isinstance(rasterized, np.ndarray)) or not (set(np.unique(rasterized)) == set({0, 1})):
         logger.warning("%s Rasterizing very small area, will use all_touched=True to avoid blank raster for species %s " % (idx, name_species))
-        rasterized = fish.rasterize(raster_file=args.output_location + "/rasterized/" + name_species + ".tif", pixel_size=0.5, all_touched=True)
+        rasterized = fish.rasterize(raster_file=os.path.join(args.output_location, "rasterized", name_species + ".tif"), pixel_size=0.5, all_touched=True)
         if not (isinstance(rasterized, np.ndarray)) or not (set(np.unique(rasterized)) == set({0, 1})):
             logger.error("%s Rasterizing did not succeed for species %s , (raster is empty)    " % (idx, name_species))
             continue
@@ -253,7 +256,7 @@ for idx, name_species in enumerate(non_extinct_binomials):
     if base_dataframe.shape[0] < merged.shape[0]:
         logger.warning("%s Something is fishy with species %s : merged.shape = %s " % (idx, name_species, merged.shape[0]))
     logger.info("%s Serializing to storage." % idx)
-    merged.to_csv(open(args.output_location + "/csv/" + name_species + ".csv", "w"))
+    merged.to_csv(open(os.path.join(args.output_location, "csv", name_species + ".csv"), "w"))
     logger.info("%s Finished serializing to storage." % idx)
     logger.info("%s Shape of dataframe: %s " % (idx, merged.shape,))
     del merged
