@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 script: find_all_gbif_species.py
 Description: Scrap all GBIF backend occurrence records, for a (filtered) list of species from the IUCN dataset,
@@ -29,19 +28,19 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('-m', '--method-serialization', default="pickle", help='Method of serialization used for the individual GBIF occurrence files. Can be pickle or msgpack.')
 # parser.add_argument('-s', '--species-location', default='./data/fish/', help="The folder where the species individual GBIF files are located.")
-parser.add_argument('-b', '--binomials-location', default='./data/fish/selection/non_extinct_binomials.pkl', help="Full location of the file containing the non-extinct binomials list.")
-parser.add_argument('-o', '--output-location', default="./data/fish/selection/", help="Output location (folder) for storing the serialized individual species GBIF data.")
+parser.add_argument('-b', '--binomials-location', default=os.path.join(os.getcwd(), "data", "fish", "non_extinct_binomials.pkl"), help="Full location of the file containing the non-extinct binomials list.")
+parser.add_argument('-o', '--output-location', default=os.path.join(os.getcwd(), "data", "fish"), help="Output location (folder) for storing the serialized individual species GBIF data.")
 args = parser.parse_args()
 
 # input
 method = args.method_serialization  # could also be set to "pickle", which was default but msgpack is slightly better in speed/memory.
 # non_extinct_binomials_file_path = "./data/fish/selection/non_extinct_binomials.pkl"
-save_data_path = "./data/fish/selection"
+# save_data_path = os.path.join(os.getcwd(), "data", "fish")
 
 # logging
 logger = logging.getLogger('iSDM.species')
 logger.setLevel(logging.DEBUG)
-fh = logging.FileHandler(args.output_location + '/to_' + method + '.log')
+fh = logging.FileHandler(os.path.join(args.output_location, "to_' + method + '.log"))
 fh.setLevel(logging.DEBUG)
 ch = logging.StreamHandler()
 ch.setLevel(logging.DEBUG)

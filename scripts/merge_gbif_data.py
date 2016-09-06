@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 script: merge_gbif_data.py
 Description: Merge all individual files containing occurrence records per species (obtained with the script find_all_gbif_species.py)
@@ -26,9 +25,9 @@ import argparse
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-m', '--method-serialization', default="pickle", help='Method of serialization used for the individual GBIF occurrence files. Can be pickle or msgpack.')
-parser.add_argument('-s', '--species-location', default='./data/fish/', help="The folder where the species individual GBIF files are located.")
-parser.add_argument('-i', '--important-columns', default='./data/fish/selection/important_columns.pkl', help="Full location of the file containing the important columns list.")
-parser.add_argument('-o', '--output-location', default="./data/fish/selection/", help="Output location (folder) for storing the merged species dataframe file.")
+parser.add_argument('-s', '--species-location', default=os.path.join(os.getcwd(), "data", "fish"), help="The folder where the species individual GBIF files are located.")
+parser.add_argument('-i', '--important-columns', default=os.path.join(os.getcwd(), "data", "fish", "important_columns.pkl"), help="Full location of the file containing the important columns list.")
+parser.add_argument('-o', '--output-location', default=os.path.join(os.getcwd(), "data", "fish"), help="Output location (folder) for storing the merged species dataframe file.")
 args = parser.parse_args()
 
 # input
@@ -43,7 +42,7 @@ formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(messag
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
-fh = logging.FileHandler(args.output_location + '/read_' + method + '.log')
+fh = logging.FileHandler(os.path.join(args.output_location, "read_' + method + '.log"))
 fh.setLevel(logging.DEBUG)
 fh.setFormatter(formatter)
 logger.addHandler(fh)
