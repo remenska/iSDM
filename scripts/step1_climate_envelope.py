@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 script: step1_climate_envelope.py
 Description: Creates a species-by-species dataframe to be used as input for step 1 of the 3-step approach to modeling species distributions.
