@@ -40,6 +40,7 @@ from iSDM.environment import ClimateLayer
 from iSDM.species import IUCNSpecies
 import os
 import argparse
+import errno
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-r', '--realms-location', default=os.path.join(os.getcwd(), "data", "terrestrial_ecoregions"), help='The full path to the folder where the biogeographic realms shapefiles are located.')
@@ -187,8 +188,16 @@ fish.drop_extinct_species()
 non_extinct_fish = fish.get_data()
 non_extinct_binomials = non_extinct_fish.binomial.unique().tolist()
 
-os.makedirs(os.path.join(args.output_location, "rasterized"), exist_ok=True)
-os.makedirs(os.path.join(args.output_location, "csv"), exist_ok=True)
+try:
+    os.makedirs(os.path.join(args.output_location, "rasterized"))
+except OSError as e:
+    if e.errno != errno.EEXIST:
+        raise
+try:
+    os.makedirs(os.path.join(args.output_location, "csv"))
+except OSError as e:
+    if e.errno != errno.EEXIST:
+        raise
 
 # rasterized_species = IUCNSpecies(name_species="Temporary name")
 
