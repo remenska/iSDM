@@ -38,6 +38,8 @@ from iSDM.environment import RealmsLayer
 from iSDM.environment import Source
 from iSDM.environment import ClimateLayer
 from iSDM.species import IUCNSpecies
+from iSDM.model import Model
+# from iSDM.model import Algorithm
 import os
 import argparse
 import errno
@@ -73,128 +75,50 @@ logger.addHandler(fh)
 # logger.info("LOADING Biomes layer.")
 # biomes_adf = RasterEnvironmentalLayer(file_path=args.biomes_location, name_layer="Biomes")
 # biomes_adf.load_data()
+logger.info("Preparing a Model base dataframe")
+climate_envelope_model = Model()
+base_dataframe = climate_envelope_model.get_base_dataframe()
+logger.info("Saving base dataframe to csv")
+base_dataframe.to_csv(os.path.join(args.output_location, "base.csv"))
+# 1. Temperature layers
+logger.info("STEP 1: LOADING Temperature layers.")
+water_min_layer = ClimateLayer(file_path=os.path.join(args.temperature_location, "min_wt_2000.tif"), name_layer="MinT")
+climate_envelope_model.add_layer(water_min_layer, discard_threshold=0)
+water_max_layer = ClimateLayer(file_path=os.path.join(args.temperature_location, "max_wt_2000.tif"), name_layer="MaxT")
+climate_envelope_model.add_layer(water_max_layer, discard_threshold=0)
+water_mean_layer = ClimateLayer(file_path=os.path.join(args.temperature_location, "mean_wt_2000.tif"), name_layer="MeanT")
+climate_envelope_model.add_layer(water_mean_layer, discard_threshold=0)
 
-# 1. Realms layer (vector layer originally)
-logger.info("STEP 1: LOADING Biogeographical realms layer")
+logger.info("STEP 4: LOADING Biogeographical realms layer")
 realms_layer = RealmsLayer(file_path=args.realms_location, source=Source.WWL)
 realms_layer.load_data()
 realms_rasters = realms_layer.rasterize(raster_file=os.path.join(args.realms_location, "realms_raster.tif"), pixel_size=0.5, classifier_column='realm')
 logger.info("Realms rasters shape: %s " % (realms_rasters.shape,))
 
+# base_merged['Realm'] = np.nan
+# logger.info("STEP 4: Constructing a realms dataframe.")
+# for idx, band in enumerate(realms_rasters):
+#     logger.info("Processing realm number: %s " % (idx + 1))
+#     realms_coordinates = base_layer.pixel_to_world_coordinates(raster_data=band)
+#     realms_dataframe = pd.DataFrame([realms_coordinates[0], realms_coordinates[1]]).T
+#     realms_dataframe.columns = ['decimallatitude', 'decimallongitude']
+#     realms_dataframe['Realm'] = idx + 1
+#     realms_dataframe.set_index(['decimallatitude', 'decimallongitude'], inplace=True, drop=True)
+#     # base_merged = base_merged.combine_first(realms_dataframe)
+#     base_merged.update(realms_dataframe)  # much faster
+#     logger.info("Finished processing realm number %s " % (idx + 1))
 
-# 2. Temperature layers
-# TODO: Maybe generalize this so all .tif files in a folder are read as a layer.
-
-logger.info("STEP 2: LOADING Temperature layers.")
-water_min_layer = ClimateLayer(file_path=os.path.join(args.temperature_location, "min_wt_2000.tif"))
-water_min_reader = water_min_layer.load_data()
-water_min_data = water_min_reader.read(1)
-# cut out anything below 0 Kelvins, absolute zero.
-water_min_data[water_min_data < 0] = 0
-water_min_coordinates = water_min_layer.pixel_to_world_coordinates(raster_data=water_min_data,
-                                                                   filter_no_data_value=True)
-logger.info("Constructing dataframe for minimum water temperature...")
-mintemp_dataframe = pd.DataFrame([water_min_coordinates[0], water_min_coordinates[1]]).T
-mintemp_dataframe.columns = ['decimallatitude', 'decimallongitude']
-flattened_watermin_data = water_min_data.reshape(np.product(water_min_data.shape))
-mintemp_dataframe['MinT'] = flattened_watermin_data[flattened_watermin_data != 0]
-mintemp_dataframe.set_index(['decimallatitude', 'decimallongitude'], inplace=True, drop=True)
-logger.info("Shape mintemp_dataframe: % s " % (mintemp_dataframe.shape, ))
-logger.info("Finished constructing dataframe for minimum water temperature...")
-
-logger.info("Constructing dataframe for maximum water temperature...")
-water_max_layer = ClimateLayer(file_path=os.path.join(args.temperature_location, "max_wt_2000.tif"))
-water_max_reader = water_max_layer.load_data()
-water_max_data = water_max_reader.read(1)
-# cut out anything below 0 Kelvins, absolute zero.
-water_max_data[water_max_data < 0] = 0
-water_max_coordinates = water_max_layer.pixel_to_world_coordinates(raster_data=water_max_data,
-                                                                   filter_no_data_value=True)
-maxtemp_dataframe = pd.DataFrame([water_max_coordinates[0], water_max_coordinates[1]]).T
-maxtemp_dataframe.columns = ['decimallatitude', 'decimallongitude']
-flattened_watermax_data = water_max_data.reshape(np.product(water_max_data.shape))
-maxtemp_dataframe['MaxT'] = flattened_watermax_data[flattened_watermax_data != 0]
-maxtemp_dataframe.set_index(['decimallatitude', 'decimallongitude'], inplace=True, drop=True)
-logger.info("Shape maxtemp_dataframe: % s " % (maxtemp_dataframe.shape, ))
-logger.info("Finished constructing dataframe for maximum temperature...")
-
-logger.info("Constructing dataframe for mean water temperature...")
-water_mean_layer = ClimateLayer(file_path=os.path.join(args.temperature_location, "mean_wt_2000.tif"))
-water_mean_reader = water_mean_layer.load_data()
-water_mean_data = water_mean_reader.read(1)
-# cut out anything below 0 Kelvins, absolute zero.
-water_mean_data[water_mean_data < 0] = 0
-water_mean_coordinates = water_mean_layer.pixel_to_world_coordinates(raster_data=water_mean_data,
-                                                                     filter_no_data_value=True)
-meantemp_dataframe = pd.DataFrame([water_mean_coordinates[0], water_mean_coordinates[1]]).T
-meantemp_dataframe.columns = ['decimallatitude', 'decimallongitude']
-flattened_watermean_data = water_mean_data.reshape(np.product(water_mean_data.shape))
-meantemp_dataframe['MeanT'] = flattened_watermean_data[flattened_watermean_data != 0]
-meantemp_dataframe.set_index(['decimallatitude', 'decimallongitude'], inplace=True, drop=True)
-logger.info("Shape meantemp_dataframe: % s " % (meantemp_dataframe.shape, ))
-logger.info("Finished constructing dataframe for mean water temperature...")
-
-# 3. Construct a base and a merged dataframe
-logger.info("STEP 3: Creating a base dataframe.")
-base_layer = RasterEnvironmentalLayer()
-
-# Right now the base dataframe contains all cells (360x720); the advantage of this is that some operations may be a lot
-# simpler if all dataframes contain the same number of rows (the index being latitude/longitude)
-all_coordinates = base_layer.pixel_to_world_coordinates(raster_data=np.zeros_like(water_mean_data), filter_no_data_value=False)
-base_dataframe = pd.DataFrame([all_coordinates[0], all_coordinates[1]]).T
-# Alternatively, the non-realm (typically ocean) coordinates can be discarded like the commented code below
-# all_non_ocean_coordinates = biomes_adf.pixel_to_world_coordinates(raster_data=continents_flattened, filter_no_data_value=True)
-# base_dataframe = pd.DataFrame([all_non_ocean_coordinates[0], all_non_ocean_coordinates[1]]).T
-# base_dataframe contains only the index, i.e., latitude/longitude of the data
-# we will use this dataframe to combine with the individual species presences/absences. Combine with matching on the index.
-base_dataframe.columns = ['decimallatitude', 'decimallongitude']
-base_dataframe.set_index(['decimallatitude', 'decimallongitude'], inplace=True, drop=True)
-
-base_dataframe.to_csv(os.path.join(args.output_location, "base.csv"))
-logger.info("Shape of base: %s " % (base_dataframe.shape, ))
-# base_merged contains the columns on min/max/mean temperature and realm ID
-# this dataframe can be used to reconstruct the full data about a particular species, as input for modeling
-# we don't want to keep duplicate data in each individual species data frame.
-
-# base_merged = base_dataframe.combine_first(mintemp_dataframe)
-# base_merged = base_merged.combine_first(maxtemp_dataframe)
-# base_merged = base_merged.combine_first(meantemp_dataframe)
-
-# MUCH faster
-logger.info("Merging temperature layers")
-base_merged = pd.merge(base_dataframe, mintemp_dataframe, how='left', left_index=True, right_index=True)
-base_merged = pd.merge(base_merged, maxtemp_dataframe, how='left', left_index=True, right_index=True)
-base_merged = pd.merge(base_merged, meantemp_dataframe, how='left', left_index=True, right_index=True)
-
-base_merged.MinT = base_merged.MinT.astype('float64')
-base_merged.MaxT = base_merged.MaxT.astype('float64')
-base_merged.MeanT = base_merged.MeanT.astype('float64')
-
-# 4. Add realm column, with an ID of the realm
-# NOTE that there will be some cells without a realm value
-# (Caspian sea, Antarctica..some other unclassified regions, we need to figure out why)
-base_merged['Realm'] = np.nan
-logger.info("STEP 4: Constructing a realms dataframe.")
-for idx, band in enumerate(realms_rasters):
-    logger.info("Processing realm number: %s " % (idx + 1))
-    realms_coordinates = base_layer.pixel_to_world_coordinates(raster_data=band)
-    realms_dataframe = pd.DataFrame([realms_coordinates[0], realms_coordinates[1]]).T
-    realms_dataframe.columns = ['decimallatitude', 'decimallongitude']
-    realms_dataframe['Realm'] = idx + 1
-    realms_dataframe.set_index(['decimallatitude', 'decimallongitude'], inplace=True, drop=True)
-    # base_merged = base_merged.combine_first(realms_dataframe)
-    base_merged.update(realms_dataframe)  # much faster
-    logger.info("Finished processing realm number %s " % (idx + 1))
-
-logger.info("Saving base_merged to a csv dataframe...")
-base_merged.to_csv(open(os.path.join(args.output_location, "base_merged.csv"), "w"))
-logger.info("Shape of base_merged: %s " % (base_merged.shape, ))
+# logger.info("Saving base_merged to a csv dataframe...")
+# base_merged.to_csv(open(os.path.join(args.output_location, "base_merged.csv"), "w"))
+# logger.info("Shape of base_merged: %s " % (base_merged.shape, ))
 # release individual frames memory
-del maxtemp_dataframe
-del mintemp_dataframe
-del meantemp_dataframe
-del realms_dataframe
-
+# del maxtemp_dataframe
+# del mintemp_dataframe
+# del meantemp_dataframe
+# del realms_dataframe
+logger.info("Saving base_merged to a csv dataframe...")
+base_merged = climate_envelope_model.get_base_dataframe()
+base_merged.to_csv(open(os.path.join(args.output_location, "base_merged.csv"), "w"))
 # 5. Load entire fish IUCN data. (TODO: maybe we can load one by one, if the data grows beyond RAM)
 # download from Google Drive: https://drive.google.com/open?id=0B9cazFzBtPuCSFp3YWE1V2JGdnc
 logger.info("STEP 5: LOADING all species rangemaps.")
