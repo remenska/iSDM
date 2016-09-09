@@ -52,6 +52,12 @@ parser.set_defaults(reprocess=False)
 args = parser.parse_args()
 
 # 0. logging
+try:
+    os.makedirs(args.output_location)
+except OSError as e:
+    if e.errno != errno.EEXIST:
+        raise
+
 logger = logging.getLogger()
 handler = logging.StreamHandler()
 formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
@@ -150,13 +156,24 @@ logger.info("Shape of base: %s " % (base_dataframe.shape, ))
 # this dataframe can be used to reconstruct the full data about a particular species, as input for modeling
 # we don't want to keep duplicate data in each individual species data frame.
 
-base_merged = base_dataframe.combine_first(mintemp_dataframe)
-base_merged = base_merged.combine_first(maxtemp_dataframe)
-base_merged = base_merged.combine_first(meantemp_dataframe)
+# base_merged = base_dataframe.combine_first(mintemp_dataframe)
+# base_merged = base_merged.combine_first(maxtemp_dataframe)
+# base_merged = base_merged.combine_first(meantemp_dataframe)
+
+# MUCH faster
+logger.info("Merging temperature layers")
+base_merged = pd.merge(base_dataframe, mintemp_dataframe, how='left', left_index=True, right_index=True)
+base_merged = pd.merge(base_merged, maxtemp_dataframe, how='left', left_index=True, right_index=True)
+base_merged = pd.merge(base_merged, meantemp_dataframe, how='left', left_index=True, right_index=True)
+
+base_merged.MinT = base_merged.MinT.astype('float64')
+base_merged.MaxT = base_merged.MaxT.astype('float64')
+base_merged.MeanT = base_merged.MeanT.astype('float64')
 
 # 4. Add realm column, with an ID of the realm
 # NOTE that there will be some cells without a realm value
 # (Caspian sea, Antarctica..some other unclassified regions, we need to figure out why)
+base_merged['Realm'] = np.nan
 logger.info("STEP 4: Constructing a realms dataframe.")
 for idx, band in enumerate(realms_rasters):
     logger.info("Processing realm number: %s " % (idx + 1))
@@ -165,7 +182,8 @@ for idx, band in enumerate(realms_rasters):
     realms_dataframe.columns = ['decimallatitude', 'decimallongitude']
     realms_dataframe['Realm'] = idx + 1
     realms_dataframe.set_index(['decimallatitude', 'decimallongitude'], inplace=True, drop=True)
-    base_merged = base_merged.combine_first(realms_dataframe)
+    # base_merged = base_merged.combine_first(realms_dataframe)
+    base_merged.update(realms_dataframe)  # much faster
     logger.info("Finished processing realm number %s " % (idx + 1))
 
 logger.info("Saving base_merged to a csv dataframe...")
@@ -241,7 +259,8 @@ for idx, name_species in enumerate(non_extinct_binomials):
     presences_dataframe.columns = ['decimallatitude', 'decimallongitude']
     presences_dataframe[fish.name_species] = 1   # fill presences with 1's
     presences_dataframe.set_index(['decimallatitude', 'decimallongitude'], inplace=True, drop=True)
-    merged = base_dataframe.combine_first(presences_dataframe)
+    # merged = base_dataframe.combine_first(presences_dataframe)
+    merged = pd.merge(base_dataframe, presences_dataframe, how='left', left_index=True, right_index=True)
     del presences_dataframe
     logger.info("%s Finished constructing a data frame for presences and merging with base data frame." % idx)
 
@@ -254,7 +273,8 @@ for idx, name_species in enumerate(non_extinct_binomials):
         pseudo_absences_dataframe.columns = ['decimallatitude', 'decimallongitude']
         pseudo_absences_dataframe[fish.name_species] = 0   # fill pseudo-absences with 0
         pseudo_absences_dataframe.set_index(['decimallatitude', 'decimallongitude'], inplace=True, drop=True)
-        merged = merged.combine_first(pseudo_absences_dataframe)
+        # merged = merged.combine_first(pseudo_absences_dataframe)
+        merged.update(pseudo_absences_dataframe, overwrite=False)
         del pseudo_absences_dataframe
         logger.info("%s Finished constructing a data frame for pseudo-absences and merging with base data frame." % idx)
     else:

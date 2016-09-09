@@ -43,4 +43,5 @@ script:
   - python -m unittest tests/test_GBIF.py -v
   - python -m unittest tests/test_IUCN.py -v
   - python -m unittest tests/test_environment.py -v
+  - python tests/step1_climate_envelope.py --species-location=data/fish/selection/astatotilapia_burtoni --output-location=data/step1
   - flake8 --max-line-length=120 iSDM/
