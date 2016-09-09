@@ -36,6 +36,12 @@ method = args.method_serialization  # this method should be the same as the one 
 # important_columns_file_path = "./data/fish/selection/important_columns.pkl"
 
 # logging
+try:
+    os.makedirs(args.output_location)
+except OSError as e:
+    if e.errno != errno.EEXIST:
+        raise
+
 logger = logging.getLogger()
 handler = logging.StreamHandler()
 formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")

@@ -10,8 +10,8 @@ matrix:
           env: PYTHON=2.7
         - python: 3.4
           env: PYTHON=3.4
-    allow_failures:
-        - python: 2.7 # for now
+    # allow_failures:
+        # - python: 2.7 # for now
   #- sudo apt-get -y install r-base
 
 before_install:
@@ -40,7 +40,6 @@ install:
   #- python tests/test_GBIF.py
 
 script:  
-  - python -m unittest tests/test_GBIF.py -v
-  - python -m unittest tests/test_IUCN.py -v
-  - python -m unittest tests/test_environment.py -v
+  - python -m unittest discover -s tests -v
+  - python scripts/step1_climate_envelope.py --species-location=data/fish/selection/astatotilapia_burtoni --output-location=data/step1
   - flake8 --max-line-length=120 iSDM/

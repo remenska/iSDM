@@ -38,6 +38,12 @@ method = args.method_serialization  # could also be set to "pickle", which was d
 # save_data_path = os.path.join(os.getcwd(), "data", "fish")
 
 # logging
+try:
+    os.makedirs(args.output_location)
+except OSError as e:
+    if e.errno != errno.EEXIST:
+        raise
+
 logger = logging.getLogger('iSDM.species')
 logger.setLevel(logging.DEBUG)
 fh = logging.FileHandler(os.path.join(args.output_location, "to_' + method + '.log"))
