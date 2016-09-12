@@ -33,7 +33,7 @@ import logging
 # import timeit
 import pandas as pd
 import numpy as np
-from iSDM.environment import RasterEnvironmentalLayer
+# from iSDM.environment import RasterEnvironmentalLayer
 from iSDM.environment import RealmsLayer
 from iSDM.environment import Source
 from iSDM.environment import ClimateLayer
@@ -71,10 +71,6 @@ fh.setLevel(logging.DEBUG)
 fh.setFormatter(formatter)
 logger.addHandler(fh)
 
-# 1. Biomes layer <-- NOT used anymore, sampling done directly on the biogeographical regions
-# logger.info("LOADING Biomes layer.")
-# biomes_adf = RasterEnvironmentalLayer(file_path=args.biomes_location, name_layer="Biomes")
-# biomes_adf.load_data()
 logger.info("Preparing a Model base dataframe")
 climate_envelope_model = Model()
 base_dataframe = climate_envelope_model.get_base_dataframe()
@@ -90,32 +86,12 @@ water_mean_layer = ClimateLayer(file_path=os.path.join(args.temperature_location
 climate_envelope_model.add_layer(water_mean_layer, discard_threshold=0)
 
 logger.info("STEP 4: LOADING Biogeographical realms layer")
-realms_layer = RealmsLayer(file_path=args.realms_location, source=Source.WWL)
-realms_layer.load_data()
-realms_rasters = realms_layer.rasterize(raster_file=os.path.join(args.realms_location, "realms_raster.tif"), pixel_size=0.5, classifier_column='realm')
-logger.info("Realms rasters shape: %s " % (realms_rasters.shape,))
+realms_layer = RealmsLayer(file_path=args.realms_location, source=Source.WWL, name_layer='Realm')
+realms_layer.set_classifier('realm')  # which category (column) to use for grouping the polygons
+realms_layer.set_raster_file(raster_file=os.path.join(args.realms_location, "realms_raster.tif"))  # destination raster file
+realms_layer.set_pixel_size(pixel_size=0.5)
+climate_envelope_model.add_layer(realms_layer)
 
-# base_merged['Realm'] = np.nan
-# logger.info("STEP 4: Constructing a realms dataframe.")
-# for idx, band in enumerate(realms_rasters):
-#     logger.info("Processing realm number: %s " % (idx + 1))
-#     realms_coordinates = base_layer.pixel_to_world_coordinates(raster_data=band)
-#     realms_dataframe = pd.DataFrame([realms_coordinates[0], realms_coordinates[1]]).T
-#     realms_dataframe.columns = ['decimallatitude', 'decimallongitude']
-#     realms_dataframe['Realm'] = idx + 1
-#     realms_dataframe.set_index(['decimallatitude', 'decimallongitude'], inplace=True, drop=True)
-#     # base_merged = base_merged.combine_first(realms_dataframe)
-#     base_merged.update(realms_dataframe)  # much faster
-#     logger.info("Finished processing realm number %s " % (idx + 1))
-
-# logger.info("Saving base_merged to a csv dataframe...")
-# base_merged.to_csv(open(os.path.join(args.output_location, "base_merged.csv"), "w"))
-# logger.info("Shape of base_merged: %s " % (base_merged.shape, ))
-# release individual frames memory
-# del maxtemp_dataframe
-# del mintemp_dataframe
-# del meantemp_dataframe
-# del realms_dataframe
 logger.info("Saving base_merged to a csv dataframe...")
 base_merged = climate_envelope_model.get_base_dataframe()
 base_merged.to_csv(open(os.path.join(args.output_location, "base_merged.csv"), "w"))

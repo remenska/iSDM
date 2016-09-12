@@ -22,6 +22,7 @@ import logging
 import timeit
 import pickle
 import os
+import errno
 
 import argparse
 

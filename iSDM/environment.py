@@ -880,6 +880,8 @@ class VectorEnvironmentalLayer(EnvironmentalLayer):
         y_res = int((y_max - y_min) / pixel_size)
         # translate
         transform = Affine.translation(x_min, y_max) * Affine.scale(pixel_size, -pixel_size)
+        logger.info("Will rasterize using pixel_size=%s, all_touched=%s, no_data_value=%s, fill_value=%s "
+                    % (pixel_size, all_touched, no_data_value, default_value))
         result = features.rasterize(self.data_full.geometry,
                                     transform=transform,
                                     out_shape=(y_res, x_res),
@@ -935,6 +937,24 @@ class VectorEnvironmentalLayer(EnvironmentalLayer):
         self.raster_reader = src
         return self.raster_reader
 
+    def set_classifier(self, classifier_column):
+        self.classifier_column = classifier_column
+
+    def get_classifier(self):
+        return self.classifier_column
+
+    def set_raster_file(self, raster_file):
+        self.raster_file = raster_file
+
+    def get_raster_file(self):
+        return self.raster_file
+
+    def set_pixel_size(self, pixel_size):
+        self.pixel_size = pixel_size
+
+    def get_pixel_size(self):
+        return self.pixel_size
+
 
 class RealmsLayer(VectorEnvironmentalLayer):
     """
@@ -987,7 +1007,7 @@ class RealmsLayer(VectorEnvironmentalLayer):
         y_res = int((y_max - y_min) / pixel_size)
 
         realms_list = self.data_full[classifier_column].unique()
-        logger.info("Will rasterize using clssifier: %s." % classifier_column)
+        logger.info("Will rasterize using classifier: %s." % classifier_column)
         # translate
         stacked_layers = []
         for realm_name in realms_list:
