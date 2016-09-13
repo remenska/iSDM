@@ -914,12 +914,12 @@ class VectorEnvironmentalLayer(EnvironmentalLayer):
         else:
             logger.info("Will rasterize everything on a single band.")
             result_final = features.rasterize(self.data_full.geometry,
-                                        transform=transform,
-                                        out_shape=(y_res, x_res),
-                                        all_touched=all_touched,
-                                        fill=no_data_value,
-                                        default_value=default_value
-                                        )
+                                              transform=transform,
+                                              out_shape=(y_res, x_res),
+                                              all_touched=all_touched,
+                                              fill=no_data_value,
+                                              default_value=default_value
+                                              )
 
             with rasterio.open(raster_file, 'w', driver='GTiff', width=x_res, height=y_res,
                                count=1,
