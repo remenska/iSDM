@@ -19,6 +19,7 @@ This script does the following:
 import logging
 import pickle
 import os
+import errno
 import pandas as pd
 import timeit
 import argparse

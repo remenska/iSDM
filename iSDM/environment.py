@@ -8,12 +8,12 @@ A module for all environmental layers functionality.
 
 import logging
 from enum import Enum
-import rasterio
 import pprint
 from rasterio.warp import calculate_default_transform, RESAMPLING
 # from iSDM.species import IUCNSpecies
 import numpy as np
 from geopandas import GeoSeries, GeoDataFrame
+import rasterio
 from rasterio.transform import Affine
 import matplotlib.pyplot as plt
 from mpl_toolkits.basemap import Basemap
@@ -825,11 +825,14 @@ class VectorEnvironmentalLayer(EnvironmentalLayer):
         else:
             self.data_full = data_frame
 
-    def rasterize(self, raster_file=None, pixel_size=None, all_touched=True,
+    def rasterize(self, raster_file=None,
+                  pixel_size=None,
+                  all_touched=False,
                   no_data_value=0,
                   default_value=1,
                   crs=None,
                   cropped=False,
+                  classifier_column=None,
                   *args, **kwargs):
         """
         Rasterize (burn) the environment rangemaps (geometrical shapes) into pixels (cells), i.e., a 2-dimensional image array
@@ -878,29 +881,60 @@ class VectorEnvironmentalLayer(EnvironmentalLayer):
 
         x_res = int((x_max - x_min) / pixel_size)
         y_res = int((y_max - y_min) / pixel_size)
-        # translate
+        logger.info("Will rasterize using pixel_size=%s, all_touched=%s, no_data_value=%s, fill_value=%s "
+                    % (pixel_size, all_touched, no_data_value, default_value))
         transform = Affine.translation(x_min, y_max) * Affine.scale(pixel_size, -pixel_size)
-        result = features.rasterize(self.data_full.geometry,
-                                    transform=transform,
-                                    out_shape=(y_res, x_res),
-                                    all_touched=all_touched,
-                                    fill=no_data_value,
-                                    default_value=default_value
-                                    )
+        if classifier_column:
+            logger.info("Will rasterize using classifier: %s." % classifier_column)
+            classifier_categories = self.data_full[classifier_column].unique()
+            stacked_layers = []
+            for category_name in classifier_categories:
+                if category_name:
+                    logger.info("Rasterizing category %s " % category_name)
+                    result = features.rasterize(self.data_full.geometry[self.data_full[classifier_column] == category_name],
+                                                transform=transform,
+                                                out_shape=(y_res, x_res),
+                                                all_touched=all_touched,
+                                                fill=no_data_value,
+                                                default_value=default_value
+                                                )
+                    stacked_layers.append(result)
 
-        with rasterio.open(raster_file, 'w', driver='GTiff', width=x_res, height=y_res,
-                           count=1,
-                           dtype=np.uint8,
-                           nodata=no_data_value,
-                           transform=transform,
-                           crs=crs) as out:
-            out.write(result.astype(np.uint8), indexes=1)
-            out.close()
+            stacked_layers = np.stack(stacked_layers)
+
+            for i, band in enumerate(stacked_layers, 1):
+                with rasterio.open(raster_file, 'w', driver='GTiff', width=x_res, height=y_res,
+                                   count=stacked_layers.shape[0],
+                                   dtype=np.uint8,
+                                   nodata=no_data_value,
+                                   transform=transform,
+                                   crs=crs) as out:
+                    out.write(band.astype(np.uint8), indexes=i)
+            result_final = stacked_layers
+        else:
+            logger.info("Will rasterize everything on a single band.")
+            result_final = features.rasterize(self.data_full.geometry,
+                                              transform=transform,
+                                              out_shape=(y_res, x_res),
+                                              all_touched=all_touched,
+                                              fill=no_data_value,
+                                              default_value=default_value
+                                              )
+
+            with rasterio.open(raster_file, 'w', driver='GTiff', width=x_res, height=y_res,
+                               count=1,
+                               dtype=np.uint8,
+                               nodata=no_data_value,
+                               transform=transform,
+                               crs=crs) as out:
+                out.write(result_final.astype(np.uint8), indexes=1)
+        out.close()
         logger.info("RASTERIO: Data rasterized into file %s " % raster_file)
         logger.info("RASTERIO: Resolution: x_res={0} y_res={1}".format(x_res, y_res))
         self.raster_file = raster_file
         self.raster_affine = transform
-        return result
+        self.stacked_layers = stacked_layers
+        return result_final
 
     def load_raster_data(self, raster_file=None):
         """
@@ -935,6 +969,24 @@ class VectorEnvironmentalLayer(EnvironmentalLayer):
         self.raster_reader = src
         return self.raster_reader
 
+    def set_classifier(self, classifier_column):
+        self.classifier_column = classifier_column
+
+    def get_classifier(self):
+        return self.classifier_column
+
+    def set_raster_file(self, raster_file):
+        self.raster_file = raster_file
+
+    def get_raster_file(self):
+        return self.raster_file
+
+    def set_pixel_size(self, pixel_size):
+        self.pixel_size = pixel_size
+
+    def get_pixel_size(self):
+        return self.pixel_size
+
 
 class RealmsLayer(VectorEnvironmentalLayer):
     """
@@ -954,73 +1006,73 @@ class RealmsLayer(VectorEnvironmentalLayer):
     def __init__(self, source=None, file_path=None, name_layer=None, **kwargs):
         VectorEnvironmentalLayer.__init__(self, source, file_path, name_layer, **kwargs)
 
-    def rasterize(self, raster_file=None,
-                  pixel_size=None,
-                  all_touched=False,
-                  no_data_value=0,
-                  default_value=1,
-                  crs=None,
-                  cropped=False,
-                  classifier_column='continent',
-                  *args, **kwargs):
-        """
-        Documentation pending on how to rasterize realms
-        """
-        if not (pixel_size or raster_file):
-            raise AttributeError("Please provide pixel_size and a target raster_file.")
+    # def rasterize(self, raster_file=None,
+    #               pixel_size=None,
+    #               all_touched=False,
+    #               no_data_value=0,
+    #               default_value=1,
+    #               crs=None,
+    #               cropped=False,
+    #               classifier_column='continent',
+    #               *args, **kwargs):
+    #     """
+    #     Documentation pending on how to rasterize realms
+    #     """
+    #     if not (pixel_size or raster_file):
+    #         raise AttributeError("Please provide pixel_size and a target raster_file.")
 
-        if not hasattr(self, 'data_full'):
-            raise AttributeError("You have not loaded the data.")
+    #     if not hasattr(self, 'data_full'):
+    #         raise AttributeError("You have not loaded the data.")
 
-        if crs is None:
-            crs = {'init': "EPSG:4326"}
+    #     if crs is None:
+    #         crs = {'init': "EPSG:4326"}
 
-        # crop to the boundaries of the shape?
-        if cropped:
-            # cascaded_union_geometry = shapely.ops.cascaded_union(self.data_full.geometry)
-            x_min, y_min, x_max, y_max = self.data_full.geometry.total_bounds
-        # else global map
-        else:
-            x_min, y_min, x_max, y_max = -180, -90, 180, 90
+    #     # crop to the boundaries of the shape?
+    #     if cropped:
+    #         # cascaded_union_geometry = shapely.ops.cascaded_union(self.data_full.geometry)
+    #         x_min, y_min, x_max, y_max = self.data_full.geometry.total_bounds
+    #     # else global map
+    #     else:
+    #         x_min, y_min, x_max, y_max = -180, -90, 180, 90
 
-        x_res = int((x_max - x_min) / pixel_size)
-        y_res = int((y_max - y_min) / pixel_size)
+    #     x_res = int((x_max - x_min) / pixel_size)
+    #     y_res = int((y_max - y_min) / pixel_size)
 
-        realms_list = self.data_full[classifier_column].unique()
-        logger.info("Will rasterize using clssifier: %s." % classifier_column)
-        # translate
-        stacked_layers = []
-        for realm_name in realms_list:
-            if realm_name:
-                logger.info("Rasterizing realm %s " % realm_name)
-                transform = Affine.translation(x_min, y_max) * Affine.scale(pixel_size, -pixel_size)
-                result = features.rasterize(self.data_full.geometry[self.data_full[classifier_column] == realm_name],
-                                            transform=transform,
-                                            out_shape=(y_res, x_res),
-                                            all_touched=all_touched,
-                                            fill=no_data_value,
-                                            default_value=default_value
-                                            )
-                stacked_layers.append(result)
+    #     realms_list = self.data_full[classifier_column].unique()
+    #     logger.info("Will rasterize using classifier: %s." % classifier_column)
+    #     # translate
+    #     stacked_layers = []
+    #     for realm_name in realms_list:
+    #         if realm_name:
+    #             logger.info("Rasterizing realm %s " % realm_name)
+    #             transform = Affine.translation(x_min, y_max) * Affine.scale(pixel_size, -pixel_size)
+    #             result = features.rasterize(self.data_full.geometry[self.data_full[classifier_column] == realm_name],
+    #                                         transform=transform,
+    #                                         out_shape=(y_res, x_res),
+    #                                         all_touched=all_touched,
+    #                                         fill=no_data_value,
+    #                                         default_value=default_value
+    #                                         )
+    #             stacked_layers.append(result)
 
-        stacked_layers = np.stack(stacked_layers)
+    #     stacked_layers = np.stack(stacked_layers)
 
-        for i, band in enumerate(stacked_layers, 1):
-            with rasterio.open(raster_file, 'w', driver='GTiff', width=x_res, height=y_res,
-                               count=stacked_layers.shape[0],
-                               dtype=np.uint8,
-                               nodata=no_data_value,
-                               transform=transform,
-                               crs=crs) as out:
-                out.write(band.astype(np.uint8), indexes=i)
+    #     for i, band in enumerate(stacked_layers, 1):
+    #         with rasterio.open(raster_file, 'w', driver='GTiff', width=x_res, height=y_res,
+    #                            count=stacked_layers.shape[0],
+    #                            dtype=np.uint8,
+    #                            nodata=no_data_value,
+    #                            transform=transform,
+    #                            crs=crs) as out:
+    #             out.write(band.astype(np.uint8), indexes=i)
 
-        out.close()
-        logger.info("RASTERIO: Data rasterized into file %s " % raster_file)
-        logger.info("RASTERIO: Resolution: x_res={0} y_res={1}".format(x_res, y_res))
-        self.raster_file = raster_file
-        self.raster_affine = transform
-        self.stacked_layers = stacked_layers
-        return stacked_layers
+    #     out.close()
+    #     logger.info("RASTERIO: Data rasterized into file %s " % raster_file)
+    #     logger.info("RASTERIO: Resolution: x_res={0} y_res={1}".format(x_res, y_res))
+    #     self.raster_file = raster_file
+    #     self.raster_affine = transform
+    #     self.stacked_layers = stacked_layers
+    #     return stacked_layers
 
     def sample_pseudo_absences(self,
                                species_raster_data,
