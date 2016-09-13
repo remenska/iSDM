@@ -61,11 +61,11 @@ except OSError as e:
         raise
 
 logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
 handler = logging.StreamHandler()
 formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 handler.setFormatter(formatter)
 logger.addHandler(handler)
-logger.setLevel(logging.DEBUG)
 fh = logging.FileHandler(os.path.join(args.output_location, "step1_climate_envelope.log"))
 fh.setLevel(logging.DEBUG)
 fh.setFormatter(formatter)
@@ -79,28 +79,54 @@ base_dataframe.to_csv(os.path.join(args.output_location, "base.csv"))
 # 1. Temperature layers
 logger.info("STEP 1: LOADING Temperature layers.")
 water_min_layer = ClimateLayer(file_path=os.path.join(args.temperature_location, "min_wt_2000.tif"), name_layer="MinT")
-climate_envelope_model.add_layer(water_min_layer, discard_threshold=0)
+climate_envelope_model.add_environmental_layer(water_min_layer, discard_threshold=0)
 water_max_layer = ClimateLayer(file_path=os.path.join(args.temperature_location, "max_wt_2000.tif"), name_layer="MaxT")
-climate_envelope_model.add_layer(water_max_layer, discard_threshold=0)
+climate_envelope_model.add_environmental_layer(water_max_layer, discard_threshold=0)
 water_mean_layer = ClimateLayer(file_path=os.path.join(args.temperature_location, "mean_wt_2000.tif"), name_layer="MeanT")
-climate_envelope_model.add_layer(water_mean_layer, discard_threshold=0)
+climate_envelope_model.add_environmental_layer(water_mean_layer, discard_threshold=0)
+# 1.2 Monthly temperature layers (additional layers can be added the same way)
+water_mean_monthly_1_layer = ClimateLayer(file_path=os.path.join(args.temperature_location, "tw31_01_2000.tif"), name_layer="MeanT_m1")
+climate_envelope_model.add_environmental_layer(water_mean_monthly_1_layer, discard_threshold=0)
+water_mean_monthly_2_layer = ClimateLayer(file_path=os.path.join(args.temperature_location, "tw29_02_2000.tif"), name_layer="MeanT_m2")
+climate_envelope_model.add_environmental_layer(water_mean_monthly_2_layer, discard_threshold=0)
+water_mean_monthly_3_layer = ClimateLayer(file_path=os.path.join(args.temperature_location, "tw31_03_2000.tif"), name_layer="MeanT_m3")
+climate_envelope_model.add_environmental_layer(water_mean_monthly_3_layer, discard_threshold=0)
+water_mean_monthly_4_layer = ClimateLayer(file_path=os.path.join(args.temperature_location, "tw30_04_2000.tif"), name_layer="MeanT_m4")
+climate_envelope_model.add_environmental_layer(water_mean_monthly_4_layer, discard_threshold=0)
+water_mean_monthly_5_layer = ClimateLayer(file_path=os.path.join(args.temperature_location, "tw31_05_2000.tif"), name_layer="MeanT_m5")
+climate_envelope_model.add_environmental_layer(water_mean_monthly_5_layer, discard_threshold=0)
+water_mean_monthly_6_layer = ClimateLayer(file_path=os.path.join(args.temperature_location, "tw30_06_2000.tif"), name_layer="MeanT_m6")
+climate_envelope_model.add_environmental_layer(water_mean_monthly_6_layer, discard_threshold=0)
+water_mean_monthly_7_layer = ClimateLayer(file_path=os.path.join(args.temperature_location, "tw31_07_2000.tif"), name_layer="MeanT_m7")
+climate_envelope_model.add_environmental_layer(water_mean_monthly_7_layer, discard_threshold=0)
+water_mean_monthly_8_layer = ClimateLayer(file_path=os.path.join(args.temperature_location, "tw31_08_2000.tif"), name_layer="MeanT_m8")
+climate_envelope_model.add_environmental_layer(water_mean_monthly_8_layer, discard_threshold=0)
+water_mean_monthly_9_layer = ClimateLayer(file_path=os.path.join(args.temperature_location, "tw30_09_2000.tif"), name_layer="MeanT_m9")
+climate_envelope_model.add_environmental_layer(water_mean_monthly_9_layer, discard_threshold=0)
+water_mean_monthly_10_layer = ClimateLayer(file_path=os.path.join(args.temperature_location, "tw31_10_2000.tif"), name_layer="MeanT_m10")
+climate_envelope_model.add_environmental_layer(water_mean_monthly_10_layer, discard_threshold=0)
+water_mean_monthly_11_layer = ClimateLayer(file_path=os.path.join(args.temperature_location, "tw30_11_2000.tif"), name_layer="MeanT_m11")
+climate_envelope_model.add_environmental_layer(water_mean_monthly_11_layer, discard_threshold=0)
+water_mean_monthly_12_layer = ClimateLayer(file_path=os.path.join(args.temperature_location, "tw31_12_2000.tif"), name_layer="MeanT_m12")
+climate_envelope_model.add_environmental_layer(water_mean_monthly_12_layer, discard_threshold=0)
 
-logger.info("STEP 4: LOADING Biogeographical realms layer")
+# 2. Biogeographic realms
+logger.info("STEP 2: LOADING Biogeographical realms layer")
 realms_layer = RealmsLayer(file_path=args.realms_location, source=Source.WWL, name_layer='Realm')
 realms_layer.set_classifier('realm')  # which category (column) to use for grouping the polygons
 realms_layer.set_raster_file(raster_file=os.path.join(args.realms_location, "realms_raster.tif"))  # destination raster file
 realms_layer.set_pixel_size(pixel_size=0.5)
-climate_envelope_model.add_layer(realms_layer)
+climate_envelope_model.add_environmental_layer(realms_layer)
 
 logger.info("Saving base_merged to a csv dataframe...")
 base_merged = climate_envelope_model.get_base_dataframe()
 base_merged.to_csv(open(os.path.join(args.output_location, "base_merged.csv"), "w"))
-# 5. Load entire fish IUCN data. (TODO: maybe we can load one by one, if the data grows beyond RAM)
+# 3. Load entire fish IUCN data. (TODO: maybe we can load one by one, if the data grows beyond RAM)
 # download from Google Drive: https://drive.google.com/open?id=0B9cazFzBtPuCSFp3YWE1V2JGdnc
-logger.info("STEP 5: LOADING all species rangemaps.")
+logger.info("STEP 3: LOADING all species rangemaps.")
 fish = IUCNSpecies(name_species='All')
-fish.load_shapefile(args.species_location)   # warning, 2GB of data will be loaded, may take a while!!
-# 5.1 Get the list of non-extinct binomials, for looping through individual species
+fish.load_shapefile(args.species_location)   # warning, all species data will be loaded, may take a while!!
+# 3.1 Get the list of non-extinct binomials, for looping through individual species
 fish_data = fish.get_data()
 fish.drop_extinct_species()
 non_extinct_fish = fish.get_data()
@@ -119,7 +145,7 @@ except OSError as e:
 
 # rasterized_species = IUCNSpecies(name_species="Temporary name")
 
-# 5.2 LOOP/RASTERIZE/STORE_RASTER/MERGE_WITH_BASE_DATAFRAME
+# 3.2 LOOP/RASTERIZE/STORE_RASTER/MERGE_WITH_BASE_DATAFRAME
 logger.info(">>>>>>>>>>>>>>>>>Looping through species!<<<<<<<<<<<<<<<<")
 for idx, name_species in enumerate(non_extinct_binomials):
     fish.set_data(fish_data[fish_data.binomial == name_species])
@@ -137,7 +163,8 @@ for idx, name_species in enumerate(non_extinct_binomials):
     else:
         logger.info("%s Rasterizing species: %s " % (idx, name_species))
         rasterized = fish.rasterize(raster_file=os.path.join(args.output_location, "rasterized", name_species + ".tif"), pixel_size=0.5)
-    # special case with blank map
+    # special case with blank map after rasterizing species (could be too small region)
+    # we attempt to rasterize it with all_touched=True which means any pixel touching a geometry will be burned
     if not (isinstance(rasterized, np.ndarray)) or not (set(np.unique(rasterized)) == set({0, 1})):
         logger.warning("%s Rasterizing very small area, will use all_touched=True to avoid blank raster for species %s " % (idx, name_species))
         rasterized = fish.rasterize(raster_file=os.path.join(args.output_location, "rasterized", name_species + ".tif"), pixel_size=0.5, all_touched=True)
