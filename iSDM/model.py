@@ -52,7 +52,7 @@ class Model(object):
     def fit(self):
         pass
 
-    def add_layer(self, layer, discard_threshold=None):
+    def add_environmental_layer(self, layer, discard_threshold=None):
         logger.info("Loading environmental layer from %s " % layer.file_path)
         if isinstance(layer, RasterEnvironmentalLayer):
             layer_reader = layer.load_data()
