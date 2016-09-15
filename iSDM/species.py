@@ -156,7 +156,7 @@ class Species(object):
             if method == "msgpack":
                 self.data_full = pd.read_msgpack(file_path)
             elif method == "pickle":
-                self.data_full = pd. read_pickle(file_path)
+                self.data_full = pd.read_pickle(file_path)
             else:
                 logger.error("Unknown method of serializing: %s " % method)
                 return
