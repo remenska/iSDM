@@ -1,10 +1,8 @@
 
 """
-Another interesting module
+A module for preparing all layers used for fitting a model, into a single dataframe.
 
-:synopsis: Another useful module indeed, model.
-
-.. moduleauthor:: Daniela Remenska <remenska@gmail.com>
+      .. moduleauthor:: Daniela Remenska <remenska@gmail.com>
 
 """
 from enum import Enum
@@ -34,11 +32,12 @@ class Model(object):
     def __init__(self, pixel_size=0.5, **kwargs):
         logger.info("Preparing a base dataframe...")
         x_min, y_min, x_max, y_max = -180, -90, 180, 90  # global
-        x_res = int((x_max - x_min) / pixel_size)
-        y_res = int((y_max - y_min) / pixel_size)
+        self.pixel_size = pixel_size
+        self.x_res = int((x_max - x_min) / pixel_size)
+        self.y_res = int((y_max - y_min) / pixel_size)
         self.base_layer = RasterEnvironmentalLayer()
         logger.info("Base layer: Computing world coordinates...")
-        all_coordinates = self.base_layer.pixel_to_world_coordinates(raster_data=np.zeros((y_res, x_res)), filter_no_data_value=False)
+        all_coordinates = self.base_layer.pixel_to_world_coordinates(raster_data=np.zeros((self.y_res, self.x_res)), filter_no_data_value=False)
         self.base_dataframe = pd.DataFrame([all_coordinates[0], all_coordinates[1]]).T
         self.base_dataframe.columns = ['decimallatitude', 'decimallongitude']
         self.base_dataframe.set_index(['decimallatitude', 'decimallongitude'], inplace=True, drop=True)
@@ -85,16 +84,16 @@ class Model(object):
             del layer_dataframe
         elif isinstance(layer, VectorEnvironmentalLayer):
             layer.load_data()
-            if not hasattr(layer, 'pixel_size'):
-                logger.error("Please provide a pixel size to use for rasterizing the vector layer.")
-                return
+            # if not hasattr(layer, 'pixel_size'):
+            #     logger.error("Please provide a pixel size to use for rasterizing the vector layer.")
+            #     return
             if not hasattr(layer, 'raster_file'):
                 logger.error("Please provide a target raster_file location.")
                 return
             if not hasattr(layer, 'classifier_column'):
                 logger.info("No classifier column specified; will rasterize everything in one band...")
                 layer.set_classifier(classifier_column=None)
-            raster_data = layer.rasterize(raster_file=layer.get_raster_file(), pixel_size=layer.get_pixel_size(), classifier_column=layer.get_classifier())
+            raster_data = layer.rasterize(raster_file=layer.get_raster_file(), pixel_size=self.pixel_size, classifier_column=layer.get_classifier())
             logger.info("Raster data has shape: %s " % (raster_data.shape,))
             self.base_dataframe[layer.name_layer] = np.nan
             for idx, band in enumerate(raster_data):

@@ -72,7 +72,8 @@ fh.setFormatter(formatter)
 logger.addHandler(fh)
 
 logger.info("Preparing a Model base dataframe")
-climate_envelope_model = Model()
+pixel_size = 0.5
+climate_envelope_model = Model(pixel_size=pixel_size)
 base_dataframe = climate_envelope_model.get_base_dataframe()
 logger.info("Saving base dataframe to csv")
 base_dataframe.to_csv(os.path.join(args.output_location, "base.csv"))
@@ -115,22 +116,21 @@ logger.info("STEP 2: LOADING Biogeographical realms layer")
 realms_layer = RealmsLayer(file_path=args.realms_location, source=Source.WWL, name_layer='Realm')
 realms_layer.set_classifier('realm')  # which category (column) to use for grouping the polygons
 realms_layer.set_raster_file(raster_file=os.path.join(args.realms_location, "realms_raster.tif"))  # destination raster file
-realms_layer.set_pixel_size(pixel_size=0.5)
 climate_envelope_model.add_environmental_layer(realms_layer)
 
 logger.info("Saving base_merged to a csv dataframe...")
 base_merged = climate_envelope_model.get_base_dataframe()
 base_merged.to_csv(open(os.path.join(args.output_location, "base_merged.csv"), "w"))
-# 3. Load entire fish IUCN data. (TODO: maybe we can load one by one, if the data grows beyond RAM)
-# download from Google Drive: https://drive.google.com/open?id=0B9cazFzBtPuCSFp3YWE1V2JGdnc
+# 3. Load entire IUCN data. (TODO: maybe we can load one by one, if the data grows beyond RAM)
+# download fish data from Google Drive: https://drive.google.com/open?id=0B9cazFzBtPuCSFp3YWE1V2JGdnc
 logger.info("STEP 3: LOADING all species rangemaps.")
-fish = IUCNSpecies(name_species='All')
-fish.load_shapefile(args.species_location)   # warning, all species data will be loaded, may take a while!!
+species = IUCNSpecies(name_species='All')
+species.load_shapefile(args.species_location)   # warning, all species data will be loaded, may take a while!!
 # 3.1 Get the list of non-extinct binomials, for looping through individual species
-fish_data = fish.get_data()
-fish.drop_extinct_species()
-non_extinct_fish = fish.get_data()
-non_extinct_binomials = non_extinct_fish.binomial.unique().tolist()
+species_data = species.get_data()
+species.drop_extinct_species()
+non_extinct_species = species.get_data()
+non_extinct_binomials = non_extinct_species.binomial.unique().tolist()
 
 try:
     os.makedirs(os.path.join(args.output_location, "rasterized"))
@@ -148,8 +148,8 @@ except OSError as e:
 # 3.2 LOOP/RASTERIZE/STORE_RASTER/MERGE_WITH_BASE_DATAFRAME
 logger.info(">>>>>>>>>>>>>>>>>Looping through species!<<<<<<<<<<<<<<<<")
 for idx, name_species in enumerate(non_extinct_binomials):
-    fish.set_data(fish_data[fish_data.binomial == name_species])
-    fish.name_species = name_species
+    species.set_data(species_data[species_data.binomial == name_species])
+    species.name_species = name_species
     logger.info("ID=%s Processing species: %s " % (idx, name_species))
 
     if args.reprocess:
@@ -158,16 +158,16 @@ for idx, name_species in enumerate(non_extinct_binomials):
         if not os.path.exists(full_location_raster_file):
             logger.error("%s Raster file does NOT exist for species: %s " % (idx, name_species))
             continue
-        raster_reader = fish.load_raster_data(raster_file=full_location_raster_file)
-        rasterized = fish.raster_reader.read(1)
+        raster_reader = species.load_raster_data(raster_file=full_location_raster_file)
+        rasterized = species.raster_reader.read(1)
     else:
         logger.info("%s Rasterizing species: %s " % (idx, name_species))
-        rasterized = fish.rasterize(raster_file=os.path.join(args.output_location, "rasterized", name_species + ".tif"), pixel_size=0.5)
+        rasterized = species.rasterize(raster_file=os.path.join(args.output_location, "rasterized", name_species + ".tif"), pixel_size=pixel_size)
     # special case with blank map after rasterizing species (could be too small region)
     # we attempt to rasterize it with all_touched=True which means any pixel touching a geometry will be burned
     if not (isinstance(rasterized, np.ndarray)) or not (set(np.unique(rasterized)) == set({0, 1})):
         logger.warning("%s Rasterizing very small area, will use all_touched=True to avoid blank raster for species %s " % (idx, name_species))
-        rasterized = fish.rasterize(raster_file=os.path.join(args.output_location, "rasterized", name_species + ".tif"), pixel_size=0.5, all_touched=True)
+        rasterized = species.rasterize(raster_file=os.path.join(args.output_location, "rasterized", name_species + ".tif"), pixel_size=pixel_size, all_touched=True)
         if not (isinstance(rasterized, np.ndarray)) or not (set(np.unique(rasterized)) == set({0, 1})):
             logger.error("%s Rasterizing did not succeed for species %s , (raster is empty)    " % (idx, name_species))
             continue
@@ -179,12 +179,12 @@ for idx, name_species in enumerate(non_extinct_binomials):
     logger.info("%s Finished selecting pseudo-absences for species: %s " % (idx, name_species))
 
     logger.info("%s Pixel-to-world coordinates transformation of presences for species: %s " % (idx, name_species))
-    presence_coordinates = fish.pixel_to_world_coordinates(raster_data=rasterized)
+    presence_coordinates = species.pixel_to_world_coordinates(raster_data=rasterized)
     logger.info("%s Finished pixel-to-world coordinates transformation of presences for species: %s " % (idx, name_species))
     logger.info("%s Constructing a data frame for presences and merging with base data frame." % idx)
     presences_dataframe = pd.DataFrame([presence_coordinates[0], presence_coordinates[1]]).T
     presences_dataframe.columns = ['decimallatitude', 'decimallongitude']
-    presences_dataframe[fish.name_species] = 1   # fill presences with 1's
+    presences_dataframe[species.name_species] = 1   # fill presences with 1's
     presences_dataframe.set_index(['decimallatitude', 'decimallongitude'], inplace=True, drop=True)
     # merged = base_dataframe.combine_first(presences_dataframe)
     merged = pd.merge(base_dataframe, presences_dataframe, how='left', left_index=True, right_index=True)
@@ -193,12 +193,12 @@ for idx, name_species in enumerate(non_extinct_binomials):
 
     if pseudo_absences is not None:
         logger.info("%s Pixel-to-world coordinates transformation of pseudo-absences for species: %s " % (idx, name_species))
-        pseudo_absence_coordinates = fish.pixel_to_world_coordinates(raster_data=pseudo_absences)
+        pseudo_absence_coordinates = species.pixel_to_world_coordinates(raster_data=pseudo_absences)
         logger.info("%s Finished pixel-to-world coordinates transformation of pseudo-absences for species: %s " % (idx, name_species))
         logger.info("%s Constructing a data frame for pseudo-absences and merging with base data frame." % idx)
         pseudo_absences_dataframe = pd.DataFrame([pseudo_absence_coordinates[0], pseudo_absence_coordinates[1]]).T
         pseudo_absences_dataframe.columns = ['decimallatitude', 'decimallongitude']
-        pseudo_absences_dataframe[fish.name_species] = 0   # fill pseudo-absences with 0
+        pseudo_absences_dataframe[species.name_species] = 0   # fill pseudo-absences with 0
         pseudo_absences_dataframe.set_index(['decimallatitude', 'decimallongitude'], inplace=True, drop=True)
         # merged = merged.combine_first(pseudo_absences_dataframe)
         merged.update(pseudo_absences_dataframe, overwrite=False)
