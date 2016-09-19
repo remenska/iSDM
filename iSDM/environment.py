@@ -182,8 +182,7 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
                                    raster_data=None,
                                    no_data_value=0,
                                    filter_no_data_value=True,
-                                   band_number=1,
-                                   raster_affine=Affine(0.5, 0.0, -180.0, 0.0, -0.5, 90)):
+                                   band_number=1):
         """
         Map the pixel coordinates to world coordinates. The affine transformation matrix is used for this purpose.
         The convention is to reference the pixel corner. To reference the pixel center instead, we translate each pixel by 50%.
@@ -224,7 +223,14 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
         if hasattr(self, "raster_affine"):
             T0 = self.raster_affine
         else:   # default from arguments
-            T0 = raster_affine
+            # try to deduce it
+            logger.info("No Affine translation defined for this layer, trying to deduce it.")
+            x_min, y_min, x_max, y_max = -180, -90, 180, 90
+            pixel_size = (x_max - x_min) / raster_data.shape[1]
+            if pixel_size != (y_max - y_min) / raster_data.shape[0]:
+                logger.error("Could not deduce Affine transformation...possibly the pixel is not a square.")
+                return
+            T0 = Affine(pixel_size, 0.0, x_min, 0.0, -pixel_size, y_max)
         # convert it to gdal format (it is otherwise flipped)
         T0 = Affine(*reversed(T0.to_gdal()))
         logger.debug("Affine transformation T0:\n %s " % (T0,))
