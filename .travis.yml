@@ -29,7 +29,7 @@ install:
   - conda info -a # Useful for debugging any issues with conda
   - conda config --add channels http://conda.anaconda.org/NLeSC
   - conda config --add channels defaults
-  - conda create -q -n biodiversity six pandas ipython-notebook scikit-learn git basemap matplotlib xlrd numba rasterio gdal geos libgdal=2.0.0=0 krb5 python=${PYTHON}
+  - conda create -q -n biodiversity six pandas ipython-notebook scikit-learn git basemap matplotlib xlrd numba rasterio gdal geos libgdal=2.0.0=0 krb5 python=${PYTHON} pyqt=4
 
   - source activate biodiversity
 
