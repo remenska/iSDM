@@ -9,6 +9,7 @@ from enum import Enum
 from iSDM.environment import RasterEnvironmentalLayer, VectorEnvironmentalLayer
 import pandas as pd
 import numpy as np
+from rasterio.transform import Affine
 
 import logging
 logger = logging.getLogger('iSDM.model')
@@ -29,13 +30,14 @@ class Evaluation(Enum):
 
 
 class Model(object):
-    def __init__(self, pixel_size=0.5, **kwargs):
+    def __init__(self, pixel_size, **kwargs):
         logger.info("Preparing a base dataframe...")
         x_min, y_min, x_max, y_max = -180, -90, 180, 90  # global
         self.pixel_size = pixel_size
-        self.x_res = int((x_max - x_min) / pixel_size)
-        self.y_res = int((y_max - y_min) / pixel_size)
+        self.x_res = int((x_max - x_min) / self.pixel_size)
+        self.y_res = int((y_max - y_min) / self.pixel_size)
         self.base_layer = RasterEnvironmentalLayer()
+        self.base_layer.raster_affine = Affine(pixel_size, 0.0, x_min, 0.0, -pixel_size, y_max)
         logger.info("Base layer: Computing world coordinates...")
         all_coordinates = self.base_layer.pixel_to_world_coordinates(raster_data=np.zeros((self.y_res, self.x_res)), filter_no_data_value=False)
         self.base_dataframe = pd.DataFrame([all_coordinates[0], all_coordinates[1]]).T
