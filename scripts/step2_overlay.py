@@ -21,7 +21,7 @@ parser.add_argument('-r', '--realms-location', default=os.path.join(os.getcwd(),
 parser.add_argument('-l', '--habitat-location', default=os.path.join(os.getcwd(), "data", "GLWD", "downscaled"), help="The folder where the temperature raster files are.")
 parser.add_argument('-s', '--species-location', default=os.path.join(os.getcwd(), "data", "fish"), help="The folder where the IUCN species shapefiles are located.")
 parser.add_argument('-o', '--output-location', default=os.path.join(os.getcwd(), "data", "fish"), help="Output location (folder) for storing the output of the processing.")
-parser.add_argument('-p', '--pixel-size', default=0.083333333, help="Resolution (in target georeferenced units, i.e., the pixel size). Assumed to be square, so only one value needed.")
+parser.add_argument('-p', '--pixel-size', type=float, default=0.083333333, help="Resolution (in target georeferenced units, i.e., the pixel size). Assumed to be square, so only one value needed.")
 parser.add_argument('--reprocess', action='store_true', help="Reprocess the data, using the already-rasterized individual species rangemaps. Assumes these files are all available.")
 parser.set_defaults(reprocess=False)
 args = parser.parse_args()
