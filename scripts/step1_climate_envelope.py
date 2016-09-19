@@ -49,6 +49,7 @@ parser.add_argument('-r', '--realms-location', default=os.path.join(os.getcwd(),
 parser.add_argument('-t', '--temperature-location', default=os.path.join(os.getcwd(), "data", "watertemp"), help="The folder where the temperature raster files are.")
 parser.add_argument('-s', '--species-location', default=os.path.join(os.getcwd(), "data", "fish"), help="The folder where the IUCN species shapefiles are located.")
 parser.add_argument('-o', '--output-location', default=os.path.join(os.getcwd(), "data", "fish"), help="Output location (folder) for storing the output of the processing.")
+parser.add_argument('-p', '--pixel-size', default=0.5, help="Resolution (in target georeferenced units, i.e., the pixel size). Assumed to be square, so only one value needed.")
 parser.add_argument('--reprocess', action='store_true', help="Reprocess the data, using the already-rasterized individual species rangemaps. Assumes these files are all available.")
 parser.set_defaults(reprocess=False)
 args = parser.parse_args()
@@ -72,7 +73,7 @@ fh.setFormatter(formatter)
 logger.addHandler(fh)
 
 logger.info("Preparing a Model base dataframe")
-pixel_size = 0.5
+pixel_size = args.pixel_size
 climate_envelope_model = Model(pixel_size=pixel_size)
 base_dataframe = climate_envelope_model.get_base_dataframe()
 logger.info("Saving base dataframe to csv")
