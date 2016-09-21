@@ -183,8 +183,11 @@ for idx, name_species in enumerate(non_extinct_binomials):
     presence_coordinates = species.pixel_to_world_coordinates(raster_data=rasterized)
     logger.info("%s Finished pixel-to-world coordinates transformation of presences for species: %s " % (idx, name_species))
     logger.info("%s Constructing a data frame for presences and merging with base data frame." % idx)
-    presences_dataframe = pd.DataFrame([presence_coordinates[0], presence_coordinates[1]]).T
-    presences_dataframe.columns = ['decimallatitude', 'decimallongitude']
+    # presences_dataframe = pd.DataFrame([presence_coordinates[0], presence_coordinates[1]]).T
+    # presences_dataframe.columns = ['decimallatitude', 'decimallongitude']
+    presences_dataframe = pd.DataFrame(columns=['decimallatitude', 'decimallongitude'])
+    presences_dataframe['decimallatitude'] = np.array(presence_coordinates[0])
+    presences_dataframe['decimallongitude'] = np.array(presence_coordinates[1])
     presences_dataframe[species.name_species] = 1   # fill presences with 1's
     presences_dataframe.set_index(['decimallatitude', 'decimallongitude'], inplace=True, drop=True)
     # merged = base_dataframe.combine_first(presences_dataframe)
@@ -197,8 +200,11 @@ for idx, name_species in enumerate(non_extinct_binomials):
         pseudo_absence_coordinates = species.pixel_to_world_coordinates(raster_data=pseudo_absences)
         logger.info("%s Finished pixel-to-world coordinates transformation of pseudo-absences for species: %s " % (idx, name_species))
         logger.info("%s Constructing a data frame for pseudo-absences and merging with base data frame." % idx)
-        pseudo_absences_dataframe = pd.DataFrame([pseudo_absence_coordinates[0], pseudo_absence_coordinates[1]]).T
-        pseudo_absences_dataframe.columns = ['decimallatitude', 'decimallongitude']
+        # pseudo_absences_dataframe = pd.DataFrame([pseudo_absence_coordinates[0], pseudo_absence_coordinates[1]]).T
+        # pseudo_absences_dataframe.columns = ['decimallatitude', 'decimallongitude']
+        pseudo_absences_dataframe = pd.DataFrame(columns=['decimallatitude', 'decimallongitude'])
+        pseudo_absences_dataframe['decimallatitude'] = np.array(pseudo_absence_coordinates[0])
+        pseudo_absences_dataframe['decimallongitude'] = np.array(pseudo_absence_coordinates[1])
         pseudo_absences_dataframe[species.name_species] = 0   # fill pseudo-absences with 0
         pseudo_absences_dataframe.set_index(['decimallatitude', 'decimallongitude'], inplace=True, drop=True)
         # merged = merged.combine_first(pseudo_absences_dataframe)

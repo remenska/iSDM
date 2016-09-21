@@ -40,8 +40,11 @@ class Model(object):
         self.base_layer.raster_affine = Affine(pixel_size, 0.0, x_min, 0.0, -pixel_size, y_max)
         logger.info("Base layer: Computing world coordinates...")
         all_coordinates = self.base_layer.pixel_to_world_coordinates(raster_data=np.zeros((self.y_res, self.x_res)), filter_no_data_value=False)
-        self.base_dataframe = pd.DataFrame([all_coordinates[0], all_coordinates[1]]).T
-        self.base_dataframe.columns = ['decimallatitude', 'decimallongitude']
+        # self.base_dataframe = pd.DataFrame([all_coordinates[0], all_coordinates[1]]).T
+        # self.base_dataframe.columns = ['decimallatitude', 'decimallongitude']
+        self.base_dataframe = pd.DataFrame(columns=['decimallatitude', 'decimallongitude'])
+        self.base_dataframe['decimallatitude'] = np.array(all_coordinates[0])
+        self.base_dataframe['decimallongitude'] = np.array(all_coordinates[1])
         self.base_dataframe.set_index(['decimallatitude', 'decimallongitude'], inplace=True, drop=True)
 
     def cross_validate(self, percentage, random_seed):
@@ -53,7 +56,7 @@ class Model(object):
     def fit(self):
         pass
 
-    def add_environmental_layer(self, layer, discard_threshold=None):
+    def add_environmental_layer(self, layer, discard_threshold=None, discard_nodata_value=True):
         logger.info("Loading environmental layer from %s " % layer.file_path)
         if isinstance(layer, RasterEnvironmentalLayer):
             layer_reader = layer.load_data()
@@ -61,19 +64,29 @@ class Model(object):
             if discard_threshold is not None:
                 logger.info("Discarding values below %s " % discard_threshold)
                 layer_data[layer_data < discard_threshold] = 0
+            if discard_nodata_value:
+                logger.info("Discarding nodata values...")
+                layer_data[layer_data == layer_reader.nodata] = 0
             logger.info("Computing world coordinates...")
             layer_coordinates = layer.pixel_to_world_coordinates(raster_data=layer_data,
-                                                                 filter_no_data_value=True)
+                                                                 filter_no_data_value=discard_nodata_value,
+                                                                 no_data_value=layer_reader.nodata)
 
             logger.info("Constructing dataframe for %s  ..." % layer.name_layer)
-            layer_dataframe = pd.DataFrame([layer_coordinates[0], layer_coordinates[1]]).T
-            layer_dataframe.columns = ['decimallatitude', 'decimallongitude']
+            # layer_dataframe = pd.DataFrame([layer_coordinates[0], layer_coordinates[1]]).T
+            # layer_dataframe.columns = ['decimallatitude', 'decimallongitude']
+            layer_dataframe = pd.DataFrame(columns=['decimallatitude', 'decimallongitude'])
+            layer_dataframe['decimallatitude'] = np.array(layer_coordinates[0])
+            layer_dataframe['decimallongitude'] = np.array(layer_coordinates[1])
             flattened_data = layer_data.reshape(np.product(layer_data.shape))
             if discard_threshold is not None:
                 logger.info("Ignoring values below %s " % discard_threshold)
-                layer_dataframe[layer.name_layer] = flattened_data[flattened_data != discard_threshold]
-            else:
-                layer_dataframe[layer.name_layer] = flattened_data
+                flattened_data = flattened_data[flattened_data > discard_threshold]
+            # probably not necessary as we already filter above
+            if discard_nodata_value:
+                logger.info("Discarding nodata values...")
+                flattened_data = flattened_data[flattened_data != layer_reader.nodata]
+            layer_dataframe[layer.name_layer] = flattened_data
             layer_dataframe.set_index(['decimallatitude', 'decimallongitude'], inplace=True, drop=True)
             logger.info("Shape of layer_dataframe: % s " % (layer_dataframe.shape, ))
             logger.info("Finished constructing dataframe for %s ..." % layer.name_layer)
@@ -102,8 +115,11 @@ class Model(object):
                 logger.info("Computing world coordinates for band number %s " % idx)
                 band_coordinates = self.base_layer.pixel_to_world_coordinates(raster_data=band)
                 logger.info("Constructing dataframe for band number %s " % idx)
-                band_dataframe = pd.DataFrame([band_coordinates[0], band_coordinates[1]]).T
-                band_dataframe.columns = ['decimallatitude', 'decimallongitude']
+                # band_dataframe = pd.DataFrame([band_coordinates[0], band_coordinates[1]]).T
+                # band_dataframe.columns = ['decimallatitude', 'decimallongitude']
+                band_dataframe = pd.DataFrame(columns=['decimallatitude', 'decimallongitude'])
+                band_dataframe['decimallatitude'] = np.array(band_coordinates[0])
+                band_dataframe['decimallongitude'] = no.array(band_coordinates[1])
                 band_dataframe[layer.name_layer] = idx + 1
                 band_dataframe.set_index(['decimallatitude', 'decimallongitude'], inplace=True, drop=True)
                 logger.info("Finished constructing dataframe for band number %s " % idx)
