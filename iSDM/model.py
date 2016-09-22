@@ -39,7 +39,7 @@ class Model(object):
         self.base_layer = RasterEnvironmentalLayer()
         self.base_layer.raster_affine = Affine(pixel_size, 0.0, x_min, 0.0, -pixel_size, y_max)
         logger.info("Base layer: Computing world coordinates...")
-        all_coordinates = self.base_layer.pixel_to_world_coordinates(raster_data=np.zeros((self.y_res, self.x_res)), filter_no_data_value=False)
+        all_coordinates = self.base_layer.pixel_to_world_coordinates(raster_data=np.ones((self.y_res, self.x_res), dtype=np.uint8), filter_no_data_value=False)
         # self.base_dataframe = pd.DataFrame([all_coordinates[0], all_coordinates[1]]).T
         # self.base_dataframe.columns = ['decimallatitude', 'decimallongitude']
         self.base_dataframe = pd.DataFrame(columns=['decimallatitude', 'decimallongitude'])
@@ -61,13 +61,14 @@ class Model(object):
         if isinstance(layer, RasterEnvironmentalLayer):
             layer_reader = layer.load_data()
             layer_data = layer_reader.read(1)
+            logger.info("Computing world coordinates...")
+            if discard_nodata_value:
+                logger.info("Filtering out no_data pixels.")
+                layer_data = np.where(layer_data != layer_reader.nodata, layer_data, np.nan)
             if discard_threshold is not None:
                 logger.info("Discarding values below %s " % discard_threshold)
-                layer_data[layer_data < discard_threshold] = 0
-            if discard_nodata_value:
-                logger.info("Discarding nodata values...")
-                layer_data[layer_data == layer_reader.nodata] = 0
-            logger.info("Computing world coordinates...")
+                layer_data = np.where(layer_data > discard_threshold, layer_data, np.nan)
+
             layer_coordinates = layer.pixel_to_world_coordinates(raster_data=layer_data,
                                                                  filter_no_data_value=discard_nodata_value,
                                                                  no_data_value=layer_reader.nodata)
@@ -79,13 +80,9 @@ class Model(object):
             layer_dataframe['decimallatitude'] = np.array(layer_coordinates[0])
             layer_dataframe['decimallongitude'] = np.array(layer_coordinates[1])
             flattened_data = layer_data.reshape(np.product(layer_data.shape))
-            if discard_threshold is not None:
-                logger.info("Ignoring values below %s " % discard_threshold)
-                flattened_data = flattened_data[flattened_data > discard_threshold]
-            # probably not necessary as we already filter above
-            if discard_nodata_value:
-                logger.info("Discarding nodata values...")
-                flattened_data = flattened_data[flattened_data != layer_reader.nodata]
+            # if discard_threshold:
+            #     logger.info("Ignoring values below %s " % discard_threshold)
+            #     flattened_data = flattened_data[flattened_data > discard_threshold]
             layer_dataframe[layer.name_layer] = flattened_data
             layer_dataframe.set_index(['decimallatitude', 'decimallongitude'], inplace=True, drop=True)
             logger.info("Shape of layer_dataframe: % s " % (layer_dataframe.shape, ))
@@ -119,7 +116,7 @@ class Model(object):
                 # band_dataframe.columns = ['decimallatitude', 'decimallongitude']
                 band_dataframe = pd.DataFrame(columns=['decimallatitude', 'decimallongitude'])
                 band_dataframe['decimallatitude'] = np.array(band_coordinates[0])
-                band_dataframe['decimallongitude'] = no.array(band_coordinates[1])
+                band_dataframe['decimallongitude'] = np.array(band_coordinates[1])
                 band_dataframe[layer.name_layer] = idx + 1
                 band_dataframe.set_index(['decimallatitude', 'decimallongitude'], inplace=True, drop=True)
                 logger.info("Finished constructing dataframe for band number %s " % idx)

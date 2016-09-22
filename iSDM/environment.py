@@ -180,8 +180,8 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
 
     def pixel_to_world_coordinates(self,
                                    raster_data=None,
-                                   no_data_value=0,
                                    filter_no_data_value=True,
+                                   no_data_value=0,
                                    band_number=1):
         """
         Map the pixel coordinates to world coordinates. The affine transformation matrix is used for this purpose.
@@ -239,14 +239,10 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
         # apply the shift, filtering out no_data_value values
         logger.debug("Raster data shape: %s " % (raster_data.shape,))
         logger.debug("Affine transformation T1:\n %s " % (T1,))
-        # raster_data[raster_data == no_data_value] = 0  # reset the nodata values to 0, easier to manipulate
         if filter_no_data_value:
             logger.info("Filtering out no_data pixels.")
-            coordinates = (T1 * np.where(raster_data != no_data_value))
-        else:
-            logger.info("Not filtering any no_data pixels.")
-            coordinates = (T1 * np.where(np.ones_like(raster_data)))
-
+            raster_data = np.where(raster_data != no_data_value, raster_data, np.nan)
+        coordinates = (T1 * np.where(raster_data))
         logger.info("Transformation to world coordinates completed.")
         return coordinates
 
