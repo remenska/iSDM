@@ -210,6 +210,7 @@ for idx, name_species in enumerate(non_extinct_binomials):
         logger.warning("%s No pseudo absences sampled for species %s " % (idx, name_species))
         merged = presences_dataframe
     logger.info("%s Shape of merged dataframe: %s " % (idx, merged.shape,))
+    merged.sortlevel(level=[0, 1], axis=0, ascending=[False, True], inplace=True)
     logger.info("%s Finished processing species: %s " % (idx, name_species))
     logger.info("%s Serializing to storage." % idx)
     merged.to_csv(open(os.path.join(args.output_location, "csv", name_species + ".csv"), "w"))
