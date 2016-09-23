@@ -196,6 +196,97 @@ class Species(object):
         else:
             self.data_full = data_frame
 
+    def pixel_to_world_coordinates(self,
+                                   raster_data=None,
+                                   no_data_value=0,
+                                   filter_no_data_value=True,
+                                   band_number=1):
+        """
+        Map the pixel coordinates to world coordinates. The affine transformation matrix is used for this purpose.
+        The convention is to reference the pixel corner. To reference the pixel center instead, we translate each pixel by 50%.
+        The "no value" pixels (cells) can be filtered out.
+
+        A dataset's pixel coordinate system has its origin at the "upper left" (imagine it displayed on your screen).
+        Column index increases to the right, and row index increases downward. The mapping of these coordinates to
+        "world" coordinates in the dataset's reference system is done with an affine transformation matrix.
+
+        :param string raster_data: the raster data (2-dimensional array) to translate to world coordinates. If not provided, \
+        it tries to load existing rasterized data from the IUCNSpeices object.
+
+        :param int no_data_value: The pixel values depicting non-burned cells. Default is 0.
+
+        :param bool filter_no_data_value: Whether to filter-out the no-data pixel values. Default is true. If set to \
+        false, all pixels in a 2-dimensional array will be converted to world coordinates. Typically this option is used \
+        to get a "base" map of the coordinates of all pixels in an image (map).
+
+        :param int band_number: The index of the band from which to load raster data.
+
+        :returns: A tuple of numpy ndarrays. The first array contains the latitude values for each \
+        non-zero cell, the second array contains the longitude values for each non-zero cell.
+
+        :rtype: tuple(np.ndarray, np.ndarray)
+
+        """
+        if raster_data is None:
+            logger.info("No raster data provided, attempting to load default...")
+            try:
+                raster_data = self.load_raster_data(self.raster_file).read(band_number)
+                logger.info("Succesfully loaded existing raster data from %s." % self.raster_file)
+            except AttributeError as e:
+                logger.error("Could not open raster file. %s " % str(e))
+                raise AttributeError(e)
+
+        # first get the original Affine transformation matrix
+        T0 = self.raster_affine
+        # convert it to gdal format (it is otherwise flipped)
+        T0 = Affine(*reversed(T0.to_gdal()))
+        logger.debug("Affine transformation T0:\n %s " % (T0,))
+        # shift by 50% to get the pixel center
+        T1 = T0 * Affine.translation(0.5, 0.5)
+        # apply the shift, filtering out no_data_value values
+        logger.debug("Raster data shape: %s " % (raster_data.shape,))
+        logger.debug("Affine transformation T1:\n %s " % (T1,))
+        if filter_no_data_value:
+            logger.info("Filtering out no_data pixels.")
+            raster_data = np.where(raster_data != no_data_value, raster_data, np.nan)
+
+        coordinates = (T1 * np.where(~np.isnan(raster_data)))
+        logger.info("Transformation to world coordinates completed.")
+        return coordinates
+
+    def load_raster_data(self, raster_file=None):
+        """
+        Loads the raster data from a previously-saved raster file. Provides information about the
+        loaded data, and returns a rasterio file reader.
+
+        :param string raster_file: The full path to the targed GeoTIFF raster file (including the directory and filename in one string).
+
+        :returns: Rasterio RasterReader file object which can be used to read individual bands from the raster file.
+
+        :rtype: rasterio._io.RasterReader
+
+        """
+        if raster_file:
+            self.raster_file = raster_file
+        if not self.raster_file:
+            raise AttributeError("Please provide a raster_file to read raster data from.")
+
+        src = rasterio.open(self.raster_file)
+        logger.info("Loaded raster data from %s " % self.raster_file)
+        logger.info("Driver name: %s " % src.driver)
+        pp = pprint.PrettyPrinter(depth=5)
+        self.metadata = src.meta
+        logger.info("Metadata: %s " % pp.pformat(self.metadata))
+        logger.info("Resolution: x_res={0} y_res={1}.".format(src.width, src.height))
+        logger.info("Bounds: %s " % (src.bounds,))
+        logger.info("Coordinate reference system: %s " % src.crs)
+        logger.info("Affine transformation: %s " % (src.affine.to_gdal(),))
+        logger.info("Number of layers: %s " % src.count)
+        logger.info("Dataset loaded. Use .read() or .read_masks() to access the layers.")
+        self.raster_affine = src.affine
+        self.raster_reader = src
+        return self.raster_reader
+
     def plot_species_occurrence(self, figsize=(16, 12), projection='merc', facecolor='crimson'):
         """
         Visually plots the species data on a `Basemap <http://matplotlib.org/basemap/api/basemap_api.html#module-mpl_toolkits.basemap>`_.
@@ -893,97 +984,6 @@ class IUCNSpecies(Species):
     #         logger.info("Number of layers: %s " % src.count)
     #         self.raster_affine = src.affine
     #         return src.read()
-
-    def load_raster_data(self, raster_file=None):
-        """
-        Loads the raster data from a previously-saved raster file. Provides information about the
-        loaded data, and returns a rasterio file reader.
-
-        :param string raster_file: The full path to the targed GeoTIFF raster file (including the directory and filename in one string).
-
-        :returns: Rasterio RasterReader file object which can be used to read individual bands from the raster file.
-
-        :rtype: rasterio._io.RasterReader
-
-        """
-        if raster_file:
-            self.raster_file = raster_file
-        if not self.raster_file:
-            raise AttributeError("Please provide a raster_file to read raster data from.")
-
-        src = rasterio.open(self.raster_file)
-        logger.info("Loaded raster data from %s " % self.raster_file)
-        logger.info("Driver name: %s " % src.driver)
-        pp = pprint.PrettyPrinter(depth=5)
-        self.metadata = src.meta
-        logger.info("Metadata: %s " % pp.pformat(self.metadata))
-        logger.info("Resolution: x_res={0} y_res={1}.".format(src.width, src.height))
-        logger.info("Bounds: %s " % (src.bounds,))
-        logger.info("Coordinate reference system: %s " % src.crs)
-        logger.info("Affine transformation: %s " % (src.affine.to_gdal(),))
-        logger.info("Number of layers: %s " % src.count)
-        logger.info("Dataset loaded. Use .read() or .read_masks() to access the layers.")
-        self.raster_affine = src.affine
-        self.raster_reader = src
-        return self.raster_reader
-
-    def pixel_to_world_coordinates(self,
-                                   raster_data=None,
-                                   no_data_value=0,
-                                   filter_no_data_value=True,
-                                   band_number=1):
-        """
-        Map the pixel coordinates to world coordinates. The affine transformation matrix is used for this purpose.
-        The convention is to reference the pixel corner. To reference the pixel center instead, we translate each pixel by 50%.
-        The "no value" pixels (cells) can be filtered out.
-
-        A dataset's pixel coordinate system has its origin at the "upper left" (imagine it displayed on your screen).
-        Column index increases to the right, and row index increases downward. The mapping of these coordinates to
-        "world" coordinates in the dataset's reference system is done with an affine transformation matrix.
-
-        :param string raster_data: the raster data (2-dimensional array) to translate to world coordinates. If not provided, \
-        it tries to load existing rasterized data from the IUCNSpeices object.
-
-        :param int no_data_value: The pixel values depicting non-burned cells. Default is 0.
-
-        :param bool filter_no_data_value: Whether to filter-out the no-data pixel values. Default is true. If set to \
-        false, all pixels in a 2-dimensional array will be converted to world coordinates. Typically this option is used \
-        to get a "base" map of the coordinates of all pixels in an image (map).
-
-        :param int band_number: The index of the band from which to load raster data.
-
-        :returns: A tuple of numpy ndarrays. The first array contains the latitude values for each \
-        non-zero cell, the second array contains the longitude values for each non-zero cell.
-
-        :rtype: tuple(np.ndarray, np.ndarray)
-
-        """
-        if raster_data is None:
-            logger.info("No raster data provided, attempting to load default...")
-            try:
-                raster_data = self.load_raster_data(self.raster_file).read(band_number)
-                logger.info("Succesfully loaded existing raster data from %s." % self.raster_file)
-            except AttributeError as e:
-                logger.error("Could not open raster file. %s " % str(e))
-                raise AttributeError(e)
-
-        # first get the original Affine transformation matrix
-        T0 = self.raster_affine
-        # convert it to gdal format (it is otherwise flipped)
-        T0 = Affine(*reversed(T0.to_gdal()))
-        logger.debug("Affine transformation T0:\n %s " % (T0,))
-        # shift by 50% to get the pixel center
-        T1 = T0 * Affine.translation(0.5, 0.5)
-        # apply the shift, filtering out no_data_value values
-        logger.debug("Raster data shape: %s " % (raster_data.shape,))
-        logger.debug("Affine transformation T1:\n %s " % (T1,))
-        if filter_no_data_value:
-            logger.info("Filtering out no_data pixels.")
-            raster_data = np.where(raster_data != no_data_value, raster_data, np.nan)
-
-        coordinates = (T1 * np.where(~np.isnan(raster_data)))
-        logger.info("Transformation to world coordinates completed.")
-        return coordinates
 
     def random_pseudo_absence_points(self,
                                      buffer_distance=2,

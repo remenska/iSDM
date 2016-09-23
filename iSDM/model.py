@@ -10,7 +10,7 @@ from iSDM.environment import RasterEnvironmentalLayer, VectorEnvironmentalLayer
 import pandas as pd
 import numpy as np
 from rasterio.transform import Affine
-
+import gc
 import logging
 logger = logging.getLogger('iSDM.model')
 logger.setLevel(logging.DEBUG)
@@ -30,7 +30,7 @@ class Evaluation(Enum):
 
 
 class Model(object):
-    def __init__(self, pixel_size, **kwargs):
+    def __init__(self, pixel_size, raster_data=None, **kwargs):
         logger.info("Preparing a base dataframe...")
         x_min, y_min, x_max, y_max = -180, -90, 180, 90  # global
         self.pixel_size = pixel_size
@@ -39,13 +39,18 @@ class Model(object):
         self.base_layer = RasterEnvironmentalLayer()
         self.base_layer.raster_affine = Affine(pixel_size, 0.0, x_min, 0.0, -pixel_size, y_max)
         logger.info("Base layer: Computing world coordinates...")
-        all_coordinates = self.base_layer.pixel_to_world_coordinates(raster_data=np.ones((self.y_res, self.x_res), dtype=np.uint8), filter_no_data_value=False)
+        if raster_data is not None:
+            all_coordinates = self.base_layer.pixel_to_world_coordinates(raster_data=raster_data)
+        else:
+            all_coordinates = self.base_layer.pixel_to_world_coordinates(raster_data=np.ones((self.y_res, self.x_res), dtype=np.uint8))
         # self.base_dataframe = pd.DataFrame([all_coordinates[0], all_coordinates[1]]).T
         # self.base_dataframe.columns = ['decimallatitude', 'decimallongitude']
         self.base_dataframe = pd.DataFrame(columns=['decimallatitude', 'decimallongitude'])
         self.base_dataframe['decimallatitude'] = np.array(all_coordinates[0])
         self.base_dataframe['decimallongitude'] = np.array(all_coordinates[1])
         self.base_dataframe.set_index(['decimallatitude', 'decimallongitude'], inplace=True, drop=True)
+        del all_coordinates
+        gc.collect()
 
     def cross_validate(self, percentage, random_seed):
         pass
@@ -61,6 +66,9 @@ class Model(object):
         if isinstance(layer, RasterEnvironmentalLayer):
             layer_reader = layer.load_data()
             layer_data = layer_reader.read(1)
+            if layer_data.shape != (self.y_res, self.x_res):
+                logger.error("The layer is not at the proper resolution! Layer shape:%s " % (layer_data.shape, ))
+                return
             logger.info("Computing world coordinates...")
             if discard_nodata_value:
                 logger.info("Filtering out no_data pixels.")
@@ -74,16 +82,18 @@ class Model(object):
                                                                  no_data_value=layer_reader.nodata)
 
             logger.info("Constructing dataframe for %s  ..." % layer.name_layer)
-            # layer_dataframe = pd.DataFrame([layer_coordinates[0], layer_coordinates[1]]).T
+            # layer_dataframe = pd.DataFrame([layer_coordinates[0], layer_coordi                                                            nates[1]]).T
             # layer_dataframe.columns = ['decimallatitude', 'decimallongitude']
             layer_dataframe = pd.DataFrame(columns=['decimallatitude', 'decimallongitude'])
             layer_dataframe['decimallatitude'] = np.array(layer_coordinates[0])
             layer_dataframe['decimallongitude'] = np.array(layer_coordinates[1])
+            del layer_coordinates
+            gc.collect()
             flattened_data = layer_data.reshape(np.product(layer_data.shape))
             # if discard_threshold:
             #     logger.info("Ignoring values below %s " % discard_threshold)
             #     flattened_data = flattened_data[flattened_data > discard_threshold]
-            layer_dataframe[layer.name_layer] = flattened_data
+            layer_dataframe[layer.name_layer] = flattened_data[~np.isnan(flattened_data)]
             layer_dataframe.set_index(['decimallatitude', 'decimallongitude'], inplace=True, drop=True)
             logger.info("Shape of layer_dataframe: % s " % (layer_dataframe.shape, ))
             logger.info("Finished constructing dataframe for %s ..." % layer.name_layer)
@@ -94,6 +104,7 @@ class Model(object):
                                            right_index=True)
             logger.info("Shape of base_dataframe: %s " % (self.base_dataframe.shape, ))
             del layer_dataframe
+            gc.collect()
         elif isinstance(layer, VectorEnvironmentalLayer):
             layer.load_data()
             # if not hasattr(layer, 'pixel_size'):
@@ -125,6 +136,7 @@ class Model(object):
                 logger.info("Shape of base_dataframe: %s " % (self.base_dataframe.shape, ))
                 logger.info("Finished processing band number %s " % idx)
                 del band_dataframe
+                gc.collect()
 
     def get_base_dataframe(self):
         return self.base_dataframe
