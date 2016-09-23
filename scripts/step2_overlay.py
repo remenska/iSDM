@@ -15,10 +15,12 @@ import os
 import argparse
 import errno
 import rasterio
+import gc
+import sys
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-r', '--realms-location', default=os.path.join(os.getcwd(), "data", "terrestrial_ecoregions"), help='The full path to the folder where the biogeographic realms shapefiles are located.')
-parser.add_argument('-l', '--habitat-location', default=os.path.join(os.getcwd(), "data", "GLWD", "downscaled"), help="The folder where the GLWD raster files are.")
+parser.add_argument('-r', '--realms-location', default=os.path.join(os.getcwd(), "data", "freshwater_ecoregions"), help='The full path to the folder where the realms/ecoregions raster file is located.')
+parser.add_argument('-l', '--habitat-location', default=os.path.join(os.getcwd(), "data", "GLWD", "downscaled"), help="The folder where the suitable-habitat raster file is.")
 parser.add_argument('-s', '--species-location', default=os.path.join(os.getcwd(), "data", "fish"), help="The folder where the IUCN species shapefiles are located.")
 parser.add_argument('-g', '--gbif-location', default=os.path.join(os.getcwd(), "data", "fish", "selection", "gbif"), help="The folder where the GBIF species observations are located.")
 parser.add_argument('-o', '--output-location', default=os.path.join(os.getcwd(), "data", "fish"), help="Output location (folder) for storing the output of the processing.")
@@ -50,27 +52,43 @@ x_min, y_min, x_max, y_max = -180, -90, 180, 90
 x_res = int((x_max - x_min) / pixel_size)
 y_res = int((y_max - y_min) / pixel_size)
 
-habitat_model = Model(pixel_size=pixel_size)
-base_dataframe = habitat_model.get_base_dataframe()
+freshwater_layer = RasterEnvironmentalLayer(file_path=os.path.join(args.realms_location, "freshwater_ecoregions_lowres.tif"), name_layer="Freshwater_Ecoregion")
+logger.info("Opening layer: %s " % freshwater_layer.name_layer)
+freshwater_reader = freshwater_layer.load_data()
+freshwater_data = freshwater_reader.read(1)
+freshwater_data[freshwater_data == freshwater_reader.nodata] = 0  # cutoff any nodata values (like here 255)
 
+logger.info("%s data has %s data pixels. " % (freshwater_layer.name_layer, np.count_nonzero(freshwater_data)))
+if freshwater_data.shape != (y_res, x_res):
+    logger.error("The layer is not at the proper resolution! Layer shape:%s " % (freshwater_data.shape, ))
+    sys.exit("The layer is not at the proper resolution! Layer shape:%s " % (freshwater_data.shape, ))
+
+logger.info("Using %s as a base frame." % freshwater_layer.name_layer)
+habitat_model = Model(pixel_size=pixel_size, raster_data=freshwater_data)  # use freshwater ecoregions as a "base". optionally, all pixels will be taken if no raster_data provided
+# base_dataframe = habitat_model.get_base_dataframe()
 # Load suitable habitat layer
-logger.info("Adding GLWD layer:")
+habitat_model.add_environmental_layer(freshwater_layer)  # not needed?
 glwd_layer = RasterEnvironmentalLayer(file_path=os.path.join(args.habitat_location, "downscaled_bilinear_again_lowres.tif"), name_layer="GLWD")
+logger.info("Adding layer: %s " % glwd_layer.name_layer)
 glwd_reader = glwd_layer.load_data()
 glwd_data = glwd_reader.read(1)
 # hmmm this below is useless, as the data is read from scratch again when adding the layer :-/
 # better prepare the layer in the expected form
 glwd_data[glwd_data != glwd_reader.nodata] = 1  # unify all pixel values (now ranging [1,..,12])
-glwd_data[glwd_data == glwd_reader.nodata] = 0  # cutoff any nodata values (like here 255)
-logger.info("GWLD data has %s data pixels. " % np.count_nonzero(glwd_data))
+glwd_data[glwd_data == glwd_reader.nodata] = 0  # any nodata values (like here 255)
+logger.info("%s data has %s data pixels. " % (glwd_layer.name_layer, np.count_nonzero(glwd_data)))
 if glwd_data.shape != (y_res, x_res):
     logger.error("The layer is not at the proper resolution! Layer shape:%s " % (glwd_data.shape, ))
+    sys.exit("The layer is not at the proper resolution! Layer shape:%s " % (glwd_data.shape, ))
 
-habitat_model.add_environmental_layer(glwd_layer)   # not needed to keep the whole layer?
+habitat_model.add_environmental_layer(glwd_layer)
 logger.info("Saving base_merged dataframe to csv")
 base_merged = habitat_model.get_base_dataframe()
+logger.info("Base_merged has shape %s " % (base_merged.shape, ))
 base_merged.to_csv(os.path.join(args.output_location, "base_merged.csv"))
 del base_merged
+gc.collect()
+
 logger.info("STEP 3: LOADING all species rangemaps.")
 species = IUCNSpecies(name_species='All')
 species.load_shapefile(args.species_location)   # warning, all species data will be loaded, may take a while!!
@@ -124,22 +142,21 @@ for idx, name_species in enumerate(non_extinct_binomials):
             continue
     logger.info("%s Finished rasterizing species: %s " % (idx, name_species))
 
-    # FILTER OUT UNSUITABLE HABITAT (OVERLAY SPECIES RASTER WITH THE GLWD)
-    expert_range_suitable = glwd_data * iucn_rasterized
+    # select the suitable ecoregions (those touched by the IUCN rangemap)
+    potential_ecoregions = freshwater_data * iucn_rasterized
 
     # TODO: we will not need this; just for sanity check
-    crs = {'init': "EPSG:4326"}
-    transform = Affine.translation(x_min, y_max) * Affine.scale(pixel_size, -pixel_size)
-    with rasterio.open(os.path.join(args.output_location, "rasterized", name_species + "_suitable.tif"), 'w', driver='GTiff', width=x_res, height=y_res,
-                       count=1,
-                       dtype=np.uint8,
-                       nodata=0,
-                       transform=transform,
-                       crs=crs) as out:
-        out.write(expert_range_suitable.astype(np.uint8), indexes=1)
-        out.close()
-
-    # TODO rasterize the corresponding GBIF records and overlay
+    # crs = {'init': "EPSG:4326"}
+    # transform = Affine.translation(x_min, y_max) * Affine.scale(pixel_size, -pixel_size)
+    # with rasterio.open(os.path.join(args.output_location, "rasterized", name_species + "_suitable.tif"), 'w', driver='GTiff', width=x_res, height=y_res,
+    #                    count=1,
+    #                    dtype=np.uint8,
+    #                    nodata=0,
+    #                    transform=transform,
+    #                    crs=crs) as out:
+    #     out.write(expert_range_suitable.astype(np.uint8), indexes=1)
+    #     out.close()
+    # TODO remove until here, not needed to store rasters (or maybe optional for reprocessing? Now rasterizing is much more CPU intensive)
     # probably will not need this column either, first we need to overlay with rasterized GBIF records to filter out more pixels
     # DATAFRAME COLUMN ON SUITABLLE HABITAT
     logger.info("%s Pixel-to-world coordinates transformation of suitable habitat for species: %s " % (idx, name_species))
@@ -165,7 +182,26 @@ for idx, name_species in enumerate(non_extinct_binomials):
     if len(prefixed) != 1:
         logger.error("%s Could NOT find the appropriate GBIF file, OR found more than one matching the name for species: %s." % (idx, name_species))
         continue
+    # load the corresponding GBIF file for species
     species_gbif.load_data(os.path.join(args.gbif_location, prefixed[0]))
+    # filter out only GBIF records according to criteria (with lat/long, not older than 1990, AND tyoe of observation is HUMAN_OBSERVATION/OBSERVATION/MACHINE_OBSERVATION)
+    gbif_df = species_fbif.get_data()
+    if not ("decimallatitude" in gbif_df.columns.tolist() and "decimallongitude" in gbif_df.columns.tolist()):
+        logger.error("%s Species %s has no GBIF records! " % (idx, name_species))
+        continue
+
+    gbif_df = gbif_df[gbif_df.decimallatitude.notnull() &
+                      gbif_df.decimallongitude.notnull() &
+                      ((gbif_df.year > 1990) | (gbif_df.eventdate > "1990")) &
+                      ((gbif_df.basisofrecord == 'OBSERVATION') |
+                      (gbif_df.basisofrecord == 'HUMAN_OBSERVATION') |
+                      (gbif_df.basisofrecord == 'MACHINE_OBSERVATION'))]
+    if gbif_df.shape[0]==0:
+        logger.error("%s After filtering out, no good GBIF records for species %s !" % (idx, name_species))
+        continue
+    species_gbif.set_data(gbif_df)
+    gc.collect()
+
     logger.info("%s Rasterizing GBIF species %s " % (idx, name_species))
     gbif_rasterized = species_gbif.rasterize(raster_file=os.path.join(args.output_location, "rasterized", name_species + "_gbif.tif"), pixel_size=pixel_size)
     if not (isinstance(gbif_rasterized, np.ndarray)) or not (set(np.unique(gbif_rasterized)) == set({0, 1})):
@@ -193,6 +229,7 @@ for idx, name_species in enumerate(non_extinct_binomials):
     # merged = pd.merge(base_dataframe, filtered_gbif_dataframe, how='left', left_index=True, right_index=True)
     # merged.update(filtered_gbif_dataframe, overwrite=True)  # Here it will overwrite the 2s with 1s.
     del filtered_gbif_dataframe
+    gc.collect()
     logger.info("%s Finished constructing a data frame for filtered GBIF presences and merging with base data frame." % idx)
     # logger.info("%s Shape of merged dataframe: %s " % (idx, merged.shape,))
     logger.info("%s Serializing to storage." % idx)
