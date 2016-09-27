@@ -16,6 +16,7 @@ Input:
  - Full location of the folder where the temperature raster layers (files) are location.
  - Full location of the folder where the IUCN species shapefiles are located.
  - Output location (folder) for storing the individual dataframes (csv output of the processing)
+ - Pixel size (unless the default is used.)
 
 This script does the following:
  1. Loads the environment layers (biogeographical realms, temperature). In case of shapefile input, it is rasterized at the same fixed resolution as
