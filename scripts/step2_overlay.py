@@ -93,8 +93,8 @@ glwd_layer = RasterEnvironmentalLayer(file_path=os.path.join(args.habitat_locati
 logger.info("Adding layer: %s " % glwd_layer.name_layer)
 glwd_reader = glwd_layer.load_data()
 glwd_data = glwd_reader.read(1)
-# glwd_data[glwd_data != glwd_reader.nodata] = 1  # unify all pixel values (now ranging [1,..,12])
-# glwd_data[glwd_data == glwd_reader.nodata] = 0  # any nodata values (like here 255)
+glwd_data[glwd_data != glwd_reader.nodata] = 1  # unify all pixel values (now ranging [1,..,12])
+glwd_data[glwd_data == glwd_reader.nodata] = 0  # any nodata values (like here 255)
 # logger.info("%s data has %s data pixels. " % (glwd_layer.name_layer, np.count_nonzero(glwd_data)))
 if glwd_data.shape != (y_res, x_res):
     logger.error("The %s layer is not at the proper resolution! Layer shape:%s " % (glwd_layer.name_layer, glwd_data.shape, ))
@@ -219,6 +219,7 @@ for idx, name_species in enumerate(non_extinct_binomials):
         logger.info("%s Shape of filtered GBIF presences dataframe: %s " % (idx, filtered_gbif_dataframe.shape,))
         logger.info("%s Selecting pseudo-absences for species: %s " % (idx, name_species))
         selected_layers, pseudo_absences = freshwater_layer.sample_pseudo_absences(species_raster_data=gbif_rasterized,
+                                                                                   suitable_habitat=glwd_data,
                                                                                    number_of_pseudopoints=1000)
         logger.info("%s Finished selecting pseudo-absences for species: %s " % (idx, name_species))
         if pseudo_absences is not None:

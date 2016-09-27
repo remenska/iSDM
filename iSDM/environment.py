@@ -577,6 +577,7 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
     def sample_pseudo_absences(self,
                                species_raster_data,
                                realms_raster_data=None,
+                               suitable_habitat=None,
                                band_number=1,
                                number_of_pseudopoints=1000):
         """
@@ -674,6 +675,13 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
             selected_realms[selected_realms > 1] = 1
             # finally, clip the pixels_to_sample_from, to the selected realms
             pixels_to_sample_from = pixels_to_sample_from * selected_realms
+
+        # next: narrow the area to sample from, to the suitable habitat, if raster data is provided
+        if suitable_habitat is not None:
+            logger.info("Will limit sampling area to suitable habitat.")
+            # Multiplying the suitable habitat layer (with 1s and 0s) with the
+            # previously selected pixels, will narrow to those common for both.
+            pixels_to_sample_from = pixels_to_sample_from * suitable_habitat
 
         # These are x/y positions of pixels to sample from. Tuple of arrays.
         (x, y) = np.where(pixels_to_sample_from > 0)
