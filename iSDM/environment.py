@@ -643,7 +643,7 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
         if len(unique_regions) == 0:
             logger.info("There are no environmental layers to sample pseudo-absences from. ")
             return (None, None)
-        logger.debug("The following unique (pixel) values will be taken into account for sampling pseudo-absences")
+        logger.debug("The following unique (region ID) values will be taken into account for sampling pseudo-absences")
         logger.debug(unique_regions)
         # add the pixels of all these regions to a layer array
         regions = []
