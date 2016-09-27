@@ -42,6 +42,7 @@ parser.add_argument('-r', '--realms-location', default=os.path.join(os.getcwd(),
 parser.add_argument('-l', '--habitat-location', default=os.path.join(os.getcwd(), "data", "GLWD"), help="The folder where the suitable-habitat raster file is.")
 parser.add_argument('-s', '--species-location', default=os.path.join(os.getcwd(), "data", "fish"), help="The folder where the IUCN species shapefiles are located.")
 parser.add_argument('-g', '--gbif-location', default=os.path.join(os.getcwd(), "data", "fish", "selection", "gbif"), help="The folder where the GBIF species observations are located.")
+parser.add_argument('-b', '--biasgrid-location', default=os.path.join(os.getcwd(), "data", "bias_grid"), help="The folder where the bias grid file is stored.")
 parser.add_argument('-o', '--output-location', default=os.path.join(os.getcwd(), "data", "fish"), help="Output location (folder) for storing the output of the processing.")
 parser.add_argument('-p', '--pixel-size', type=float, default=0.0083333333, help="Resolution (in target georeferenced units, i.e., the pixel size). Assumed to be square, so only one value needed.")
 parser.add_argument('-m', '--min-occurrences', type=int, default=0, help="Minimum number of filtered GBIF presence occurrences per species, necessary for producing a CSV dataframe. Default (0) means do not filter.")
@@ -74,7 +75,6 @@ x_res = int((x_max - x_min) / pixel_size)
 y_res = int((y_max - y_min) / pixel_size)
 
 freshwater_layer = RasterEnvironmentalLayer(file_path=os.path.join(args.realms_location, "freshwater_ecoregions.tif"), name_layer="Freshwater_Ecoregion")
-# freshwater_layer = RasterEnvironmentalLayer(file_path=os.path.join(args.realms_location, "freshwater_ecoregions_lowres.tif"), name_layer="Freshwater_Ecoregion")
 logger.info("Opening layer: %s " % freshwater_layer.name_layer)
 freshwater_reader = freshwater_layer.load_data()
 freshwater_data = freshwater_reader.read(1)
@@ -100,6 +100,16 @@ if glwd_data.shape != (y_res, x_res):
     logger.error("The %s layer is not at the proper resolution! Layer shape:%s " % (glwd_layer.name_layer, glwd_data.shape, ))
     sys.exit("The %s layer is not at the proper resolution! Layer shape:%s " % (glwd_layer.name_layer, glwd_data.shape, ))
 
+# stored as a memory-mapped file, to keep memory usage low
+# TODO: Could have that option for all raster env. layers, say one argument when opening.
+# But a bit involved to change it now. And makes sense (speed vs memory) only for very large files
+# that need to be loaded into memory. Low lever stuff.
+logger.info("Opening bias_grid.")
+bias_grid_memmap = np.memmap(os.path.join(args.biasgrid_location, "bias_grid_mm.dat"), dtype='int32', mode='r', shape=(y_res, x_res))
+if bias_grid_memmap.shape != (y_res, x_res):
+    logger.error("The bias_grid layer is not at the proper resolution! Layer shape:%s " % (glwd_data.shape, ))
+    sys.exit("The bias_grid layer is not at the proper resolution! Layer shape:%s " % (glwd_data.shape, ))
+logger.info("Successfully opened bias_grid.")
 # habitat_model.add_environmental_layer(glwd_layer)
 # logger.info("Saving base_merged dataframe to csv")
 # base_merged = habitat_model.get_base_dataframe()

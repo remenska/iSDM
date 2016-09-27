@@ -609,22 +609,22 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
         if not (isinstance(species_raster_data, np.ndarray)) or not (set(np.unique(species_raster_data)) == set({0, 1})):
             logger.error("Please provide the species raster data as a numpy array with pixel values 1 and 0 (presence/absence).")
             return
-        try:
-            env_raster_data = self.read(band_number)
-            logger.info("Succesfully loaded existing raster data from %s." % self.file_path)
-        except AttributeError as e:
-            logger.error("Could not open raster file. %s " % str(e))
-
-        if species_raster_data.shape != env_raster_data.shape:
+        if self.raster_reader.closed or not hasattr(self, 'env_raster_data'):
+            try:
+                self.env_raster_data = self.read(band_number)
+                logger.info("Succesfully loaded existing raster data from %s." % self.file_path)
+            except AttributeError as e:
+                logger.error("Could not open raster file. %s " % str(e))
+        if species_raster_data.shape != self.env_raster_data.shape:
             logger.error("Please provide (global) species raster data at the same resolution as the environment")
-            logger.error("Environment data has the following shape %s " % (env_raster_data.shape, ))
+            logger.error("Environment data has the following shape %s " % (self.env_raster_data.shape, ))
             return
 
         if realms_raster_data is not None:
             logger.info("Will use the realms/biogeographic raster data for further clipping of the pseudo-absence regions. ")
-            if realms_raster_data.shape[1:] != env_raster_data.shape:
+            if realms_raster_data.shape[1:] != self.env_raster_data.shape:
                 logger.error("Please provide (global) biogeographic raster data at the same resolution as the environment")
-                logger.error("Environment data has the following shape %s " % (env_raster_data.shape, ))
+                logger.error("Environment data has the following shape %s " % (self.env_raster_data.shape, ))
                 return
             if not (isinstance(realms_raster_data, np.ndarray)) or not (set(np.unique(realms_raster_data)) == set({0, 1})):
                 logger.error("Please provide the biogeographic raster data as a numpy array with pixel values 1 and 0 (presence/absence).")
@@ -634,9 +634,9 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
 
         logger.info("Sampling %s pseudo-absence points from environmental layer." % number_of_pseudopoints)
         # first set to zero all pixels that have "nodata" values in the environmental raster
-        env_raster_data[env_raster_data == self.raster_reader.nodata] = 0
+        self.env_raster_data[self.env_raster_data == self.raster_reader.nodata] = 0
         # next get all the overlapping pixels between the species raster and the environment data
-        presences_pixels = env_raster_data * species_raster_data
+        presences_pixels = self.env_raster_data * species_raster_data
         # what are the unique values left? (these are the distinct "regions" that need to be taken into account)
         # Do NOT take into account the 0-value pixel, which we assigned to all "nodata" pixels
         unique_regions = np.unique(presences_pixels[presences_pixels != 0])
@@ -648,13 +648,13 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
         # add the pixels of all these regions to a layer array
         regions = []
         for region in unique_regions:
-            regions.append(np.where(env_raster_data == region))
+            regions.append(np.where(self.env_raster_data == region))
         # now "regions" contains a list of tuples, each tuple with separate x/y indexes (arrays thereof) of the pixels
         # make an empty "base" matrix and fill it with the selected regions pixel values
-        selected_pixels = np.zeros_like(env_raster_data)
+        selected_pixels = np.zeros_like(self.env_raster_data)
         # pick out only those layers that have been selected and fill in the matrix
         for layer in regions:
-            selected_pixels[layer] = env_raster_data[layer]
+            selected_pixels[layer] = self.env_raster_data[layer]
 
         # sample from those pixels which are in the selected raster regions, minus those of the species presences
         pixels_to_sample_from = selected_pixels - presences_pixels
