@@ -24,6 +24,7 @@ from descartes import PolygonPatch
 import shapely
 from rasterio import features
 from shapely.geometry import Polygon
+import gc
 
 logger = logging.getLogger('iSDM.environment')
 logger.setLevel(logging.DEBUG)
@@ -588,11 +589,7 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
         as pseudo-absence points, and no random sampling is done.
 
         Otherwise, :attr:`number_of_pseudopoints` pixels positions (indices) are randomly chosen at once (for speed),
-        rather than randomly sampling one by one until the desired number of pseudo-absences is reached. Due to this,
-        it could be that some random pixel positions repeat, and the resulting number of unique pixels is slightly smaller
-        than the required one.
-        *For instance, experiments show that around 980 unique pixels are drawn when the random
-        samples requested is 1000.*
+        rather than randomly sampling one by one until the desired number of pseudo-absences is reached.
 
         :param np.ndarray species_raster_data: A raster map containing the species presence pixels. If not provided,
         by default the one loaded previously (if available, otherwise .load_data() should be used before) is used.
@@ -659,7 +656,8 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
 
         # sample from those pixels which are in the selected raster regions, minus those of the species presences
         pixels_to_sample_from = selected_pixels - presences_pixels
-
+        del presences_pixels
+        gc.collect()
         # Next: narrow the pixels to sample from, to the realms area,, if the realms/biogeographic regions raster is present.
         if realms_raster_data is not None:
             logger.info("Overlaying with realms data.")
@@ -685,6 +683,8 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
             logger.error("covers the entire range from which it was intended to sample.")
             return (pixels_to_sample_from, None)
         sampled_pixels = np.zeros_like(selected_pixels)
+        del selected_pixels
+        gc.collect()
 
         if number_pixels_to_sample_from < number_of_pseudopoints:
             logger.warning("There are less pixels to sample from, than the desired number of pseudo-absences")
@@ -707,7 +707,8 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
             sampled_pixels[x[position]][y[position]] = pixels_to_sample_from[x[position], y[position]]
 
         logger.info("Sampled %s unique pixels as pseudo-absences." % sampled_pixels.nonzero()[0].shape[0])
-
+        del random_indices
+        gc.collect()
         return (pixels_to_sample_from, sampled_pixels)
 
 
@@ -1080,7 +1081,10 @@ class RealmsLayer(VectorEnvironmentalLayer):
                                species_raster_data,
                                number_of_pseudopoints=1000):
         """
-        Samples a :attr:`number_of_pseudopoints` points from the ``RasterEnvironmentalLayer`` data (raster map),
+        NOTE: Should probably be deprecated, in favor of the RasterEnvironmentalLayer method for this. It is expected
+        that the environmental data format is such that all values are in one raster band. This method, however
+        expects the raster with separate band for each "realm".
+        Samples a :attr:`number_of_pseudopoints` points from the ``RealmsLayer`` data (raster map),
         based on a given species raster map which is assumed to contain species presence points.
         The :attr:`species_raster_data` is used to determine which distinct regions (cell values) from the entire
         environmental raster map, should be taken into account for potential pseudo-absence sampling regions.

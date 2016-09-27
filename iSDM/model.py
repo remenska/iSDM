@@ -82,7 +82,7 @@ class Model(object):
                                                                  no_data_value=layer_reader.nodata)
 
             logger.info("Constructing dataframe for %s  ..." % layer.name_layer)
-            # layer_dataframe = pd.DataFrame([layer_coordinates[0], layer_coordi                                                            nates[1]]).T
+            # layer_dataframe = pd.DataFrame([layer_coordinates[0], layer_coordinates[1]]).T
             # layer_dataframe.columns = ['decimallatitude', 'decimallongitude']
             layer_dataframe = pd.DataFrame(columns=['decimallatitude', 'decimallongitude'])
             layer_dataframe['decimallatitude'] = np.array(layer_coordinates[0])

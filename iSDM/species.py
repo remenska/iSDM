@@ -248,9 +248,10 @@ class Species(object):
         logger.debug("Affine transformation T1:\n %s " % (T1,))
         if filter_no_data_value:
             logger.info("Filtering out no_data pixels.")
-            raster_data = np.where(raster_data != no_data_value, raster_data, np.nan)
+            # raster_data = np.where(raster_data != no_data_value, raster_data, np.nan)
+            raster_data[raster_data == no_data_value] = 0
 
-        coordinates = (T1 * np.where(~np.isnan(raster_data)))
+        coordinates = (T1 * np.where(raster_data > 0))
         logger.info("Transformation to world coordinates completed.")
         return coordinates
 
