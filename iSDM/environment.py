@@ -578,6 +578,7 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
                                species_raster_data,
                                realms_raster_data=None,
                                suitable_habitat=None,
+                               bias_grid=None,
                                band_number=1,
                                number_of_pseudopoints=1000):
         """
@@ -682,6 +683,9 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
             # Multiplying the suitable habitat layer (with 1s and 0s) with the
             # previously selected pixels, will narrow to those common for both.
             pixels_to_sample_from = pixels_to_sample_from * suitable_habitat
+        
+        if bias_grid is not None:
+            logger.info("Will use the provided bias_grid for sampling.")
 
         # These are x/y positions of pixels to sample from. Tuple of arrays.
         (x, y) = np.where(pixels_to_sample_from > 0)

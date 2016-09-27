@@ -101,7 +101,7 @@ if glwd_data.shape != (y_res, x_res):
     sys.exit("The %s layer is not at the proper resolution! Layer shape:%s " % (glwd_layer.name_layer, glwd_data.shape, ))
 
 # stored as a memory-mapped file, to keep memory usage low
-# TODO: Could have that option for all raster env. layers, say one argument when opening.
+# TODO: Could have that option for all raster env. layers, say pass one argument (low_mem) when opening.
 # But a bit involved to change it now. And makes sense (speed vs memory) only for very large files
 # that need to be loaded into memory. Low lever stuff.
 logger.info("Opening bias_grid.")
@@ -220,6 +220,7 @@ for idx, name_species in enumerate(non_extinct_binomials):
         logger.info("%s Selecting pseudo-absences for species: %s " % (idx, name_species))
         selected_layers, pseudo_absences = freshwater_layer.sample_pseudo_absences(species_raster_data=gbif_rasterized,
                                                                                    suitable_habitat=glwd_data,
+                                                                                   bias_grid=bias_grid_memmap,
                                                                                    number_of_pseudopoints=1000)
         logger.info("%s Finished selecting pseudo-absences for species: %s " % (idx, name_species))
         if pseudo_absences is not None:
