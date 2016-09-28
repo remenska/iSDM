@@ -92,7 +92,7 @@ class TestEnvironment(unittest.TestCase):
         some_species = np.ones_like(self.biomes_layer.read(1))
         some_species[0][0] = 0  # only one pixel set to zero, species covers entire range
         pixels_to_sample_from, sampled_pixels = self.biomes_layer.sample_pseudo_absences(species_raster_data=some_species)
-        self.assertIsNone(sampled_pixels)
+        self.assertFalse(sampled_pixels.any())
 
         # set half of the pixels to 0, now the species covers about half of the map
         for index in range(int(some_species.shape[0] / 2)):
