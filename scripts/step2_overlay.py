@@ -46,8 +46,10 @@ parser.add_argument('-b', '--biasgrid-location', default=os.path.join(os.getcwd(
 parser.add_argument('-o', '--output-location', default=os.path.join(os.getcwd(), "data", "fish"), help="Output location (folder) for storing the output of the processing.")
 parser.add_argument('-p', '--pixel-size', type=float, default=0.0083333333, help="Resolution (in target georeferenced units, i.e., the pixel size). Assumed to be square, so only one value needed.")
 parser.add_argument('-m', '--min-occurrences', type=int, default=0, help="Minimum number of filtered GBIF presence occurrences per species, necessary for producing a CSV dataframe. Default (0) means do not filter.")
-parser.add_argument('--reprocess', action='store_true', help="Reprocess the data, using the already-rasterized individual species rangemaps. Assumes these files are all available.")
-parser.set_defaults(reprocess=False)
+parser.add_argument('--noiucnfilter', action='store_true', help="A priori filtering of records based on the IUCN range as option that can be turned on and off.")
+parser.set_defaults(noiucnfilter=False)
+# parser.add_argument('--reprocess', action='store_true', help="Reprocess the data, using the already-rasterized individual species rangemaps. Assumes these files are all available.")
+# parser.set_defaults(reprocess=False)
 args = parser.parse_args()
 
 # 0. logging
@@ -192,12 +194,13 @@ for idx, name_species in enumerate(non_extinct_binomials):
     gc.collect()
 
     # overlay GBIF records with IUCN rangemap
-    logger.info("%s Overlaying GBIF records to the IUCN rangemap area for species %s." % (idx, name_species))
-    species_gbif.overlay(species_iucn)
-    if species_gbif.get_data().shape[0] == 0:
-        logger.error("%s After overlaying with IUCN rangemap, no GBIF records left for species %s ! Skipping..." % (idx, name_species))
-        continue
-    logger.info("%s After overlaying with IUCN rangemap, %s GBIF records left for species %s." % (idx, species_gbif.get_data().shape[0], name_species))
+    if not args.noiucnfilter:
+        logger.info("%s Overlaying GBIF records to the IUCN rangemap area for species %s." % (idx, name_species))
+        species_gbif.overlay(species_iucn)
+        if species_gbif.get_data().shape[0] == 0:
+            logger.error("%s After overlaying with IUCN rangemap, no GBIF records left for species %s ! Skipping..." % (idx, name_species))
+            continue
+        logger.info("%s After overlaying with IUCN rangemap, %s GBIF records left for species %s." % (idx, species_gbif.get_data().shape[0], name_species))
     if (species_gbif.get_data().shape[0] - args.min_occurrences) > 0:
         logger.info("%s Rasterizing remaining GBIF species %s " % (idx, name_species))
         # gbif_rasterized = species_gbif.rasterize(raster_file=os.path.join(args.output_location, "rasterized", name_species + "_gbif.tif"), pixel_size=pixel_size)
