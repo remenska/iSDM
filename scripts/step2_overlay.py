@@ -93,6 +93,8 @@ glwd_layer = RasterEnvironmentalLayer(file_path=os.path.join(args.habitat_locati
 logger.info("Adding layer: %s " % glwd_layer.name_layer)
 glwd_reader = glwd_layer.load_data()
 glwd_data = glwd_reader.read(1)
+# simplifty the data with just 1s and 0s, it's easier to filter-out when used as a suitable-habitat layer
+# in the sample_pseudo_absences() function
 glwd_data[glwd_data != glwd_reader.nodata] = 1  # unify all pixel values (now ranging [1,..,12])
 glwd_data[glwd_data == glwd_reader.nodata] = 0  # any nodata values (like here 255)
 # logger.info("%s data has %s data pixels. " % (glwd_layer.name_layer, np.count_nonzero(glwd_data)))

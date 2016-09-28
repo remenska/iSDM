@@ -661,6 +661,8 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
         # sample from those pixels which are in the selected raster regions, minus those of the species presences
         pixels_to_sample_from = selected_pixels - presences_pixels
         del presences_pixels
+        sampled_pixels = np.zeros_like(selected_pixels)
+        del selected_pixels
         gc.collect()
         # Next: narrow the pixels to sample from, to the realms area,, if the realms/biogeographic regions raster is present.
         if realms_raster_data is not None:
@@ -686,19 +688,46 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
 
         if bias_grid is not None:
             logger.info("Will use the provided bias_grid for sampling.")
-
+            # TODO: overlay with pixels_to_sample_from, and select those
+            # that are > 0 (until you reach 1000 points?). One way would be
+            # to multiply pixels_to_sample_from with the bias_grid.
+            # Then take the > 0 values like below. If there are no 1000 points
+            # continue like below. Before you do that, remove from pixels_to_sample_from
+            # those that are taken already. What do we do if there are more than 1000
+            # positions? Just take top 1000?
+            (x, y) = np.where(pixels_to_sample_from * bias_grid > 0)
+            number_pixels_to_sample_from_bias_grid = x.shape[0]
+            logger.info("There are %s nonzero pixels from bias grid to use for sampling." % number_pixels_to_sample_from_bias_grid)
+            if number_pixels_to_sample_from_bias_grid == 0:
+                logger.info("No non-zero pixels from bias grid to sample.")
+            if number_pixels_to_sample_from_bias_grid < number_of_pseudopoints:
+                logger.info("Will sample all %s nonzero pixels from bias grid." % number_pixels_to_sample_from_bias_grid)
+                random_indices = np.arange(0, number_pixels_to_sample_from_bias_grid)
+                for position in random_indices:
+                    sampled_pixels[x[position]][y[position]] = pixels_to_sample_from[x[position], y[position]]
+                pixels_to_sample_from = pixels_to_sample_from - sampled_pixels
+                number_of_pseudopoints = number_of_pseudopoints - number_pixels_to_sample_from_bias_grid
+                logger.info("Number of pseudo-points left to sample after bias_grid sampling: %s " % number_of_pseudopoints)
+            elif number_pixels_to_sample_from_bias_grid > number_of_pseudopoints:
+                # hopefully this will rarely happen, as it is very compute-intensive and memory-hungry
+                logger.info("More pixels available to sample from bias grid, than necessary. Selecting top %s" % number_of_pseudopoints)
+                pixels_to_sample_from_bias_grid = np.where(pixels_to_sample_from * bias_grid > 0, bias_grid, 0)
+                flat_indices = np.argpartition(pixels_to_sample_from_bias_grid.ravel(), -number_of_pseudopoints - 1)[-number_of_pseudopoints:]
+                row_indices, col_indices = np.unravel_index(flat_indices, pixels_to_sample_from_bias_grid.shape)
+                sampled_pixels[row_indices, col_indices] = pixels_to_sample_from[row_indices, col_indices]
+                del pixels_to_sample_from_bias_grid
+                del row_indices, col_indices, flat_indices
+                gc.collect()
+                return (pixels_to_sample_from, sampled_pixels)
         # These are x/y positions of pixels to sample from. Tuple of arrays.
         (x, y) = np.where(pixels_to_sample_from > 0)
         number_pixels_to_sample_from = x.shape[0]  # == y.shape[0] since every pixel has (x,y) position.
-        logger.info("There are %s pixels to sample from..." % (number_pixels_to_sample_from))
+        logger.info("There are %s pixels left to sample from..." % (number_pixels_to_sample_from))
 
         if number_pixels_to_sample_from == 0:
             logger.error("There are no pixels left to sample from. Perhaps the species raster data")
             logger.error("covers the entire range from which it was intended to sample.")
             return (pixels_to_sample_from, None)
-        sampled_pixels = np.zeros_like(selected_pixels)
-        del selected_pixels
-        gc.collect()
 
         if number_pixels_to_sample_from < number_of_pseudopoints:
             logger.warning("There are less pixels to sample from, than the desired number of pseudo-absences")
