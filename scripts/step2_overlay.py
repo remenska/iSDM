@@ -142,8 +142,12 @@ except OSError as e:
     if e.errno != errno.EEXIST:
         raise
 
-
+logger.info("Locating the list of files with GBIF records...")
 list_gbif_files = [filename for filename in os.listdir(args.gbif_location)]
+if len(list_gbif_files)==0:
+    logger.error("There are no GBIF records files in the folder you specifed with --gbif-location !")
+    sys.exit("There are no GBIF records files in the folder you specifed with --gbif-location !")
+
 species_gbif = GBIFSpecies(name_species='All')   # create only one object and update it in the loop
 
 # LOOP THROUGH IUCN SPECIES
