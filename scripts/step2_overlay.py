@@ -225,7 +225,8 @@ for idx, name_species in enumerate(non_extinct_binomials):
                                                                                    bias_grid=bias_grid_memmap,
                                                                                    number_of_pseudopoints=1000)
         logger.info("%s Finished selecting pseudo-absences for species: %s " % (idx, name_species))
-        if pseudo_absences is not None:
+        # if the pseudo_absences does not contain all zeros
+        if pseudo_absences.any():
             logger.info("%s Pixel-to-world coordinates transformation of pseudo-absences for species: %s " % (idx, name_species))
             pseudo_absence_coordinates = species_gbif.pixel_to_world_coordinates(raster_data=pseudo_absences)
             logger.info("%s Finished pixel-to-world coordinates transformation of pseudo-absences for species: %s " % (idx, name_species))

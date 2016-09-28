@@ -191,7 +191,8 @@ for idx, name_species in enumerate(non_extinct_binomials):
     presences_dataframe.set_index(['decimallatitude', 'decimallongitude'], inplace=True, drop=True)
     logger.info("%s Finished constructing a data frame for presences." % idx)
     logger.info("%s Shape of presences dataframe: %s " % (idx, presences_dataframe.shape,))
-    if pseudo_absences is not None:
+    # if the pseudo_absences does not contain all zeros
+    if pseudo_absences.any():
         logger.info("%s Pixel-to-world coordinates transformation of pseudo-absences for species: %s " % (idx, name_species))
         pseudo_absence_coordinates = species.pixel_to_world_coordinates(raster_data=pseudo_absences)
         logger.info("%s Finished pixel-to-world coordinates transformation of pseudo-absences for species: %s " % (idx, name_species))

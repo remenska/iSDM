@@ -686,33 +686,35 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
             # previously selected pixels, will narrow to those common for both.
             pixels_to_sample_from = pixels_to_sample_from * suitable_habitat
 
+        # magic, don't touch :P
         if bias_grid is not None:
             logger.info("Will use the provided bias_grid for sampling.")
-            # TODO: overlay with pixels_to_sample_from, and select those
-            # that are > 0 (until you reach 1000 points?). One way would be
-            # to multiply pixels_to_sample_from with the bias_grid.
-            # Then take the > 0 values like below. If there are no 1000 points
-            # continue like below. Before you do that, remove from pixels_to_sample_from
-            # those that are taken already. What do we do if there are more than 1000
-            # positions? Just take top 1000?
+            # common x/y coordinates wheere bias_grid overlaps with pixels_to_sample_from
             (x, y) = np.where(pixels_to_sample_from * bias_grid > 0)
+            # how many we have?
             number_pixels_to_sample_from_bias_grid = x.shape[0]
             logger.info("There are %s nonzero pixels from bias grid to use for sampling." % number_pixels_to_sample_from_bias_grid)
             if number_pixels_to_sample_from_bias_grid == 0:
                 logger.info("No non-zero pixels from bias grid to sample.")
             if number_pixels_to_sample_from_bias_grid < number_of_pseudopoints:
                 logger.info("Will sample all %s nonzero pixels from bias grid." % number_pixels_to_sample_from_bias_grid)
+                # "random" is not so random as we will select all of them, i.e., the entire range
                 random_indices = np.arange(0, number_pixels_to_sample_from_bias_grid)
                 for position in random_indices:
                     sampled_pixels[x[position]][y[position]] = pixels_to_sample_from[x[position], y[position]]
+                # remove already sampled pixels
                 pixels_to_sample_from = pixels_to_sample_from - sampled_pixels
+                # Subtract from number of pseudo-points left to sample
                 number_of_pseudopoints = number_of_pseudopoints - number_pixels_to_sample_from_bias_grid
                 logger.info("Number of pseudo-points left to sample after bias_grid sampling: %s " % number_of_pseudopoints)
             elif number_pixels_to_sample_from_bias_grid > number_of_pseudopoints:
                 # hopefully this will rarely happen, as it is very compute-intensive and memory-hungry
                 logger.info("More pixels available to sample from bias grid, than necessary. Selecting top %s" % number_of_pseudopoints)
+                # make a grid of all pixels from bias_grid that overlap with the pixels_to_sample_from
                 pixels_to_sample_from_bias_grid = np.where(pixels_to_sample_from * bias_grid > 0, bias_grid, 0)
+                # find the top number_of_pseudopoints (heighest values)
                 flat_indices = np.argpartition(pixels_to_sample_from_bias_grid.ravel(), -number_of_pseudopoints - 1)[-number_of_pseudopoints:]
+                # some logic to get the indices of the matrix ...
                 row_indices, col_indices = np.unravel_index(flat_indices, pixels_to_sample_from_bias_grid.shape)
                 sampled_pixels[row_indices, col_indices] = pixels_to_sample_from[row_indices, col_indices]
                 del pixels_to_sample_from_bias_grid
@@ -726,8 +728,8 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
 
         if number_pixels_to_sample_from == 0:
             logger.error("There are no pixels left to sample from. Perhaps the species raster data")
-            logger.error("covers the entire range from which it was intended to sample.")
-            return (pixels_to_sample_from, None)
+            logger.error("covers the entire range from which it was intended to sample further.")
+            return (pixels_to_sample_from, sampled_pixels)
 
         if number_pixels_to_sample_from < number_of_pseudopoints:
             logger.warning("There are less pixels to sample from, than the desired number of pseudo-absences")
