@@ -24,6 +24,7 @@ from descartes import PolygonPatch
 import shapely
 from rasterio import features
 from shapely.geometry import Polygon
+import gc
 
 logger = logging.getLogger('iSDM.environment')
 logger.setLevel(logging.DEBUG)
@@ -180,10 +181,9 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
 
     def pixel_to_world_coordinates(self,
                                    raster_data=None,
-                                   no_data_value=0,
                                    filter_no_data_value=True,
-                                   band_number=1,
-                                   raster_affine=Affine(0.5, 0.0, -180.0, 0.0, -0.5, 90)):
+                                   no_data_value=0,
+                                   band_number=1):
         """
         Map the pixel coordinates to world coordinates. The affine transformation matrix is used for this purpose.
         The convention is to reference the pixel corner. To reference the pixel center instead, we translate each pixel by 50%.
@@ -224,7 +224,14 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
         if hasattr(self, "raster_affine"):
             T0 = self.raster_affine
         else:   # default from arguments
-            T0 = raster_affine
+            # try to deduce it
+            logger.info("No Affine translation defined for this layer, trying to deduce it.")
+            x_min, y_min, x_max, y_max = -180, -90, 180, 90
+            pixel_size = (x_max - x_min) / raster_data.shape[1]
+            if pixel_size != (y_max - y_min) / raster_data.shape[0]:
+                logger.error("Could not deduce Affine transformation...possibly the pixel is not a square.")
+                return
+            T0 = Affine(pixel_size, 0.0, x_min, 0.0, -pixel_size, y_max)
         # convert it to gdal format (it is otherwise flipped)
         T0 = Affine(*reversed(T0.to_gdal()))
         logger.debug("Affine transformation T0:\n %s " % (T0,))
@@ -233,14 +240,12 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
         # apply the shift, filtering out no_data_value values
         logger.debug("Raster data shape: %s " % (raster_data.shape,))
         logger.debug("Affine transformation T1:\n %s " % (T1,))
-        # raster_data[raster_data == no_data_value] = 0  # reset the nodata values to 0, easier to manipulate
         if filter_no_data_value:
             logger.info("Filtering out no_data pixels.")
-            coordinates = (T1 * np.where(raster_data != no_data_value))
+            raster_data = np.where(raster_data != no_data_value, raster_data, np.nan)
+            coordinates = (T1 * np.where(~np.isnan(raster_data)))
         else:
-            logger.info("Not filtering any no_data pixels.")
-            coordinates = (T1 * np.where(np.ones_like(raster_data)))
-
+            coordinates = (T1 * np.where(raster_data))
         logger.info("Transformation to world coordinates completed.")
         return coordinates
 
@@ -572,6 +577,8 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
     def sample_pseudo_absences(self,
                                species_raster_data,
                                realms_raster_data=None,
+                               suitable_habitat=None,
+                               bias_grid=None,
                                band_number=1,
                                number_of_pseudopoints=1000):
         """
@@ -586,11 +593,7 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
         as pseudo-absence points, and no random sampling is done.
 
         Otherwise, :attr:`number_of_pseudopoints` pixels positions (indices) are randomly chosen at once (for speed),
-        rather than randomly sampling one by one until the desired number of pseudo-absences is reached. Due to this,
-        it could be that some random pixel positions repeat, and the resulting number of unique pixels is slightly smaller
-        than the required one.
-        *For instance, experiments show that around 980 unique pixels are drawn when the random
-        samples requested is 1000.*
+        rather than randomly sampling one by one until the desired number of pseudo-absences is reached.
 
         :param np.ndarray species_raster_data: A raster map containing the species presence pixels. If not provided,
         by default the one loaded previously (if available, otherwise .load_data() should be used before) is used.
@@ -608,22 +611,22 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
         if not (isinstance(species_raster_data, np.ndarray)) or not (set(np.unique(species_raster_data)) == set({0, 1})):
             logger.error("Please provide the species raster data as a numpy array with pixel values 1 and 0 (presence/absence).")
             return
-        try:
-            env_raster_data = self.read(band_number)
-            logger.info("Succesfully loaded existing raster data from %s." % self.file_path)
-        except AttributeError as e:
-            logger.error("Could not open raster file. %s " % str(e))
-
-        if species_raster_data.shape != env_raster_data.shape:
+        if self.raster_reader.closed or not hasattr(self, 'env_raster_data'):
+            try:
+                self.env_raster_data = self.read(band_number)
+                logger.info("Succesfully loaded existing raster data from %s." % self.file_path)
+            except AttributeError as e:
+                logger.error("Could not open raster file. %s " % str(e))
+        if species_raster_data.shape != self.env_raster_data.shape:
             logger.error("Please provide (global) species raster data at the same resolution as the environment")
-            logger.error("Environment data has the following shape %s " % (env_raster_data.shape, ))
+            logger.error("Environment data has the following shape %s " % (self.env_raster_data.shape, ))
             return
 
         if realms_raster_data is not None:
             logger.info("Will use the realms/biogeographic raster data for further clipping of the pseudo-absence regions. ")
-            if realms_raster_data.shape[1:] != env_raster_data.shape:
+            if realms_raster_data.shape[1:] != self.env_raster_data.shape:
                 logger.error("Please provide (global) biogeographic raster data at the same resolution as the environment")
-                logger.error("Environment data has the following shape %s " % (env_raster_data.shape, ))
+                logger.error("Environment data has the following shape %s " % (self.env_raster_data.shape, ))
                 return
             if not (isinstance(realms_raster_data, np.ndarray)) or not (set(np.unique(realms_raster_data)) == set({0, 1})):
                 logger.error("Please provide the biogeographic raster data as a numpy array with pixel values 1 and 0 (presence/absence).")
@@ -633,31 +636,34 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
 
         logger.info("Sampling %s pseudo-absence points from environmental layer." % number_of_pseudopoints)
         # first set to zero all pixels that have "nodata" values in the environmental raster
-        env_raster_data[env_raster_data == self.raster_reader.nodata] = 0
+        self.env_raster_data[self.env_raster_data == self.raster_reader.nodata] = 0
         # next get all the overlapping pixels between the species raster and the environment data
-        presences_pixels = env_raster_data * species_raster_data
+        presences_pixels = self.env_raster_data * species_raster_data
         # what are the unique values left? (these are the distinct "regions" that need to be taken into account)
         # Do NOT take into account the 0-value pixel, which we assigned to all "nodata" pixels
         unique_regions = np.unique(presences_pixels[presences_pixels != 0])
         if len(unique_regions) == 0:
             logger.info("There are no environmental layers to sample pseudo-absences from. ")
             return (None, None)
-        logger.debug("The following unique (pixel) values will be taken into account for sampling pseudo-absences")
+        logger.debug("The following unique (region ID) values will be taken into account for sampling pseudo-absences")
         logger.debug(unique_regions)
         # add the pixels of all these regions to a layer array
         regions = []
         for region in unique_regions:
-            regions.append(np.where(env_raster_data == region))
+            regions.append(np.where(self.env_raster_data == region))
         # now "regions" contains a list of tuples, each tuple with separate x/y indexes (arrays thereof) of the pixels
         # make an empty "base" matrix and fill it with the selected regions pixel values
-        selected_pixels = np.zeros_like(env_raster_data)
+        selected_pixels = np.zeros_like(self.env_raster_data)
         # pick out only those layers that have been selected and fill in the matrix
         for layer in regions:
-            selected_pixels[layer] = env_raster_data[layer]
+            selected_pixels[layer] = self.env_raster_data[layer]
 
         # sample from those pixels which are in the selected raster regions, minus those of the species presences
         pixels_to_sample_from = selected_pixels - presences_pixels
-
+        del presences_pixels
+        sampled_pixels = np.zeros_like(selected_pixels)
+        del selected_pixels
+        gc.collect()
         # Next: narrow the pixels to sample from, to the realms area,, if the realms/biogeographic regions raster is present.
         if realms_raster_data is not None:
             logger.info("Overlaying with realms data.")
@@ -673,16 +679,57 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
             # finally, clip the pixels_to_sample_from, to the selected realms
             pixels_to_sample_from = pixels_to_sample_from * selected_realms
 
+        # next: narrow the area to sample from, to the suitable habitat, if raster data is provided
+        if suitable_habitat is not None:
+            logger.info("Will limit sampling area to suitable habitat.")
+            # Multiplying the suitable habitat layer (with 1s and 0s) with the
+            # previously selected pixels, will narrow to those common for both.
+            pixels_to_sample_from = pixels_to_sample_from * suitable_habitat
+
+        # magic, don't touch :P
+        if bias_grid is not None:
+            logger.info("Will use the provided bias_grid for sampling.")
+            # common x/y coordinates wheere bias_grid overlaps with pixels_to_sample_from
+            (x, y) = np.where(pixels_to_sample_from * bias_grid > 0)
+            # how many we have?
+            number_pixels_to_sample_from_bias_grid = x.shape[0]
+            logger.info("There are %s nonzero pixels from bias grid to use for sampling." % number_pixels_to_sample_from_bias_grid)
+            if number_pixels_to_sample_from_bias_grid == 0:
+                logger.info("No non-zero pixels from bias grid to sample.")
+            if number_pixels_to_sample_from_bias_grid < number_of_pseudopoints:
+                logger.info("Will sample all %s nonzero pixels from bias grid." % number_pixels_to_sample_from_bias_grid)
+                # "random" is not so random as we will select all of them, i.e., the entire range
+                random_indices = np.arange(0, number_pixels_to_sample_from_bias_grid)
+                for position in random_indices:
+                    sampled_pixels[x[position]][y[position]] = pixels_to_sample_from[x[position], y[position]]
+                # remove already sampled pixels
+                pixels_to_sample_from = pixels_to_sample_from - sampled_pixels
+                # Subtract from number of pseudo-points left to sample
+                number_of_pseudopoints = number_of_pseudopoints - number_pixels_to_sample_from_bias_grid
+                logger.info("Number of pseudo-points left to sample after bias_grid sampling: %s " % number_of_pseudopoints)
+            elif number_pixels_to_sample_from_bias_grid > number_of_pseudopoints:
+                # hopefully this will rarely happen, as it is very compute-intensive and memory-hungry
+                logger.info("More pixels available to sample from bias grid, than necessary. Selecting top %s" % number_of_pseudopoints)
+                # make a grid of all pixels from bias_grid that overlap with the pixels_to_sample_from
+                pixels_to_sample_from_bias_grid = np.where(pixels_to_sample_from * bias_grid > 0, bias_grid, 0)
+                # find the top number_of_pseudopoints (heighest values)
+                flat_indices = np.argpartition(pixels_to_sample_from_bias_grid.ravel(), -number_of_pseudopoints - 1)[-number_of_pseudopoints:]
+                # some logic to get the indices of the matrix ...
+                row_indices, col_indices = np.unravel_index(flat_indices, pixels_to_sample_from_bias_grid.shape)
+                sampled_pixels[row_indices, col_indices] = pixels_to_sample_from[row_indices, col_indices]
+                del pixels_to_sample_from_bias_grid
+                del row_indices, col_indices, flat_indices
+                gc.collect()
+                return (pixels_to_sample_from, sampled_pixels)
         # These are x/y positions of pixels to sample from. Tuple of arrays.
         (x, y) = np.where(pixels_to_sample_from > 0)
         number_pixels_to_sample_from = x.shape[0]  # == y.shape[0] since every pixel has (x,y) position.
-        logger.info("There are %s pixels to sample from..." % (number_pixels_to_sample_from))
+        logger.info("There are %s pixels left to sample from..." % (number_pixels_to_sample_from))
 
         if number_pixels_to_sample_from == 0:
             logger.error("There are no pixels left to sample from. Perhaps the species raster data")
-            logger.error("covers the entire range from which it was intended to sample.")
-            return (pixels_to_sample_from, None)
-        sampled_pixels = np.zeros_like(selected_pixels)
+            logger.error("covers the entire range from which it was intended to sample further.")
+            return (pixels_to_sample_from, sampled_pixels)
 
         if number_pixels_to_sample_from < number_of_pseudopoints:
             logger.warning("There are less pixels to sample from, than the desired number of pseudo-absences")
@@ -705,7 +752,8 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
             sampled_pixels[x[position]][y[position]] = pixels_to_sample_from[x[position], y[position]]
 
         logger.info("Sampled %s unique pixels as pseudo-absences." % sampled_pixels.nonzero()[0].shape[0])
-
+        del random_indices
+        gc.collect()
         return (pixels_to_sample_from, sampled_pixels)
 
 
@@ -1078,7 +1126,10 @@ class RealmsLayer(VectorEnvironmentalLayer):
                                species_raster_data,
                                number_of_pseudopoints=1000):
         """
-        Samples a :attr:`number_of_pseudopoints` points from the ``RasterEnvironmentalLayer`` data (raster map),
+        NOTE: Should probably be deprecated, in favor of the RasterEnvironmentalLayer method for this. It is expected
+        that the environmental data format is such that all values are in one raster band. This method, however
+        expects the raster with separate band for each "realm".
+        Samples a :attr:`number_of_pseudopoints` points from the ``RealmsLayer`` data (raster map),
         based on a given species raster map which is assumed to contain species presence points.
         The :attr:`species_raster_data` is used to determine which distinct regions (cell values) from the entire
         environmental raster map, should be taken into account for potential pseudo-absence sampling regions.

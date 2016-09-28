@@ -16,6 +16,7 @@ Input:
  - Full location of the folder where the temperature raster layers (files) are location.
  - Full location of the folder where the IUCN species shapefiles are located.
  - Output location (folder) for storing the individual dataframes (csv output of the processing)
+ - Pixel size (unless the default is used.)
 
 This script does the following:
  1. Loads the environment layers (biogeographical realms, temperature). In case of shapefile input, it is rasterized at the same fixed resolution as
@@ -49,6 +50,7 @@ parser.add_argument('-r', '--realms-location', default=os.path.join(os.getcwd(),
 parser.add_argument('-t', '--temperature-location', default=os.path.join(os.getcwd(), "data", "watertemp"), help="The folder where the temperature raster files are.")
 parser.add_argument('-s', '--species-location', default=os.path.join(os.getcwd(), "data", "fish"), help="The folder where the IUCN species shapefiles are located.")
 parser.add_argument('-o', '--output-location', default=os.path.join(os.getcwd(), "data", "fish"), help="Output location (folder) for storing the output of the processing.")
+parser.add_argument('-p', '--pixel-size', default=0.5, type=float, help="Resolution (in target georeferenced units, i.e., the pixel size). Assumed to be square, so only one value needed.")
 parser.add_argument('--reprocess', action='store_true', help="Reprocess the data, using the already-rasterized individual species rangemaps. Assumes these files are all available.")
 parser.set_defaults(reprocess=False)
 args = parser.parse_args()
@@ -72,7 +74,7 @@ fh.setFormatter(formatter)
 logger.addHandler(fh)
 
 logger.info("Preparing a Model base dataframe")
-pixel_size = 0.5
+pixel_size = args.pixel_size
 climate_envelope_model = Model(pixel_size=pixel_size)
 base_dataframe = climate_envelope_model.get_base_dataframe()
 logger.info("Saving base dataframe to csv")
@@ -145,7 +147,7 @@ except OSError as e:
 
 # rasterized_species = IUCNSpecies(name_species="Temporary name")
 
-# 3.2 LOOP/RASTERIZE/STORE_RASTER/MERGE_WITH_BASE_DATAFRAME
+# 3.2 LOOP/RASTERIZE/STORE_RASTER/SAMPLE_PSEUDO_ABSENCES/STORE_DATAFRAME
 logger.info(">>>>>>>>>>>>>>>>>Looping through species!<<<<<<<<<<<<<<<<")
 for idx, name_species in enumerate(non_extinct_binomials):
     species.set_data(species_data[species_data.binomial == name_species])
@@ -181,38 +183,40 @@ for idx, name_species in enumerate(non_extinct_binomials):
     logger.info("%s Pixel-to-world coordinates transformation of presences for species: %s " % (idx, name_species))
     presence_coordinates = species.pixel_to_world_coordinates(raster_data=rasterized)
     logger.info("%s Finished pixel-to-world coordinates transformation of presences for species: %s " % (idx, name_species))
-    logger.info("%s Constructing a data frame for presences and merging with base data frame." % idx)
-    presences_dataframe = pd.DataFrame([presence_coordinates[0], presence_coordinates[1]]).T
-    presences_dataframe.columns = ['decimallatitude', 'decimallongitude']
+    logger.info("%s Constructing a data frame for presences." % idx)
+    presences_dataframe = pd.DataFrame(columns=['decimallatitude', 'decimallongitude'])
+    presences_dataframe['decimallatitude'] = np.array(presence_coordinates[0])
+    presences_dataframe['decimallongitude'] = np.array(presence_coordinates[1])
     presences_dataframe[species.name_species] = 1   # fill presences with 1's
     presences_dataframe.set_index(['decimallatitude', 'decimallongitude'], inplace=True, drop=True)
-    # merged = base_dataframe.combine_first(presences_dataframe)
-    merged = pd.merge(base_dataframe, presences_dataframe, how='left', left_index=True, right_index=True)
-    del presences_dataframe
-    logger.info("%s Finished constructing a data frame for presences and merging with base data frame." % idx)
-
-    if pseudo_absences is not None:
+    logger.info("%s Finished constructing a data frame for presences." % idx)
+    logger.info("%s Shape of presences dataframe: %s " % (idx, presences_dataframe.shape,))
+    # if the pseudo_absences does not contain all zeros
+    if pseudo_absences.any():
         logger.info("%s Pixel-to-world coordinates transformation of pseudo-absences for species: %s " % (idx, name_species))
         pseudo_absence_coordinates = species.pixel_to_world_coordinates(raster_data=pseudo_absences)
         logger.info("%s Finished pixel-to-world coordinates transformation of pseudo-absences for species: %s " % (idx, name_species))
-        logger.info("%s Constructing a data frame for pseudo-absences and merging with base data frame." % idx)
-        pseudo_absences_dataframe = pd.DataFrame([pseudo_absence_coordinates[0], pseudo_absence_coordinates[1]]).T
-        pseudo_absences_dataframe.columns = ['decimallatitude', 'decimallongitude']
+        logger.info("%s Constructing a data frame for pseudo-absences" % idx)
+        pseudo_absences_dataframe = pd.DataFrame(columns=['decimallatitude', 'decimallongitude'])
+        pseudo_absences_dataframe['decimallatitude'] = np.array(pseudo_absence_coordinates[0])
+        pseudo_absences_dataframe['decimallongitude'] = np.array(pseudo_absence_coordinates[1])
         pseudo_absences_dataframe[species.name_species] = 0   # fill pseudo-absences with 0
         pseudo_absences_dataframe.set_index(['decimallatitude', 'decimallongitude'], inplace=True, drop=True)
-        # merged = merged.combine_first(pseudo_absences_dataframe)
-        merged.update(pseudo_absences_dataframe, overwrite=False)
+        logger.info("%s Finished constructing a data frame for pseudo-absences." % idx)
+        logger.info("%s Shape of pseudo-absences dataframe: %s " % (idx, pseudo_absences_dataframe.shape,))
+        # merge with presences
+        logger.info("%s Merging presences and pseudo-absences..." % idx)
+        merged = pd.merge(presences_dataframe, pseudo_absences_dataframe, how='outer', left_index=True, right_index=True, on=species.name_species)
         del pseudo_absences_dataframe
-        logger.info("%s Finished constructing a data frame for pseudo-absences and merging with base data frame." % idx)
     else:
         logger.warning("%s No pseudo absences sampled for species %s " % (idx, name_species))
-
+        merged = presences_dataframe
+    logger.info("%s Shape of merged dataframe: %s " % (idx, merged.shape,))
+    merged.sortlevel(level=[0, 1], axis=0, ascending=[False, True], inplace=True)
     logger.info("%s Finished processing species: %s " % (idx, name_species))
-    if base_dataframe.shape[0] < merged.shape[0]:
-        logger.warning("%s Something is fishy with species %s : merged.shape = %s " % (idx, name_species, merged.shape[0]))
     logger.info("%s Serializing to storage." % idx)
     merged.to_csv(open(os.path.join(args.output_location, "csv", name_species + ".csv"), "w"))
     logger.info("%s Finished serializing to storage." % idx)
-    logger.info("%s Shape of dataframe: %s " % (idx, merged.shape,))
+    del presences_dataframe
     del merged
 logger.info("DONE!")
