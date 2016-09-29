@@ -12,7 +12,7 @@ Description: Creates a species-by-species dataframe to be used as input for step
              The index of the dataframe is (decimallatitude, decimallongitude)
 
 Input:
- - Full location of the folder where the biogeographic realms (terrestrial ecoregions) shapefiles are stored.
+ - Full location of the folder where the biogeographic realms (terrestrial ecoregions) raster data is stored.
  - Full location of the folder where the temperature raster layers (files) are location.
  - Full location of the folder where the IUCN species shapefiles are located.
  - Output location (folder) for storing the individual dataframes (csv output of the processing)

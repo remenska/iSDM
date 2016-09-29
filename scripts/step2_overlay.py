@@ -18,22 +18,13 @@ Input:
 
 """
 import logging
-# import timeit
 import pandas as pd
 import numpy as np
-# from iSDM.environment import RasterEnvironmentalLayer
 from iSDM.environment import RasterEnvironmentalLayer
-# from iSDM.environment import Source
-# from iSDM.environment import ClimateLayer
 from iSDM.species import IUCNSpecies, GBIFSpecies
-# from iSDM.model import Model
-# from rasterio.transform import Affine
-
-# from iSDM.model import Algorithm
 import os
 import argparse
 import errno
-# import rasterio
 import gc
 import sys
 
