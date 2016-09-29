@@ -144,7 +144,7 @@ except OSError as e:
 
 logger.info("Locating the list of files with GBIF records...")
 list_gbif_files = [filename for filename in os.listdir(args.gbif_location)]
-if len(list_gbif_files)==0:
+if len(list_gbif_files) == 0:
     logger.error("There are no GBIF records files in the folder you specifed with --gbif-location !")
     sys.exit("There are no GBIF records files in the folder you specifed with --gbif-location !")
 
@@ -260,6 +260,7 @@ for idx, name_species in enumerate(non_extinct_binomials):
         logger.info("%s Finished serializing to storage." % idx)
         del filtered_gbif_dataframe
         del merged
+        gc.collect()
     else:
         logger.info("%s Species %s has insufficient minimal number of occurrences (%s), skipping..."
                     % (idx, name_species, args.min_occurrences))
