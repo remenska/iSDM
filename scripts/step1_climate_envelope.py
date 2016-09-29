@@ -12,7 +12,7 @@ Description: Creates a species-by-species dataframe to be used as input for step
              The index of the dataframe is (decimallatitude, decimallongitude)
 
 Input:
- - Full location of the folder where the biogeographic realms (terrestrial ecoregions) shapefiles are stored.
+ - Full location of the folder where the biogeographic realms (terrestrial ecoregions) raster data is stored.
  - Full location of the folder where the temperature raster layers (files) are location.
  - Full location of the folder where the IUCN species shapefiles are located.
  - Output location (folder) for storing the individual dataframes (csv output of the processing)
@@ -34,8 +34,8 @@ import logging
 # import timeit
 import pandas as pd
 import numpy as np
-# from iSDM.environment import RasterEnvironmentalLayer
-from iSDM.environment import RealmsLayer
+from iSDM.environment import RasterEnvironmentalLayer
+# from iSDM.environment import RealmsLayer
 from iSDM.environment import Source
 from iSDM.environment import ClimateLayer
 from iSDM.species import IUCNSpecies
@@ -46,7 +46,7 @@ import argparse
 import errno
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-r', '--realms-location', default=os.path.join(os.getcwd(), "data", "terrestrial_ecoregions"), help='The full path to the folder where the biogeographic realms shapefiles are located.')
+parser.add_argument('-r', '--realms-location', default=os.path.join(os.getcwd(), "data", "terrestrial_ecoregions", "terrestrial_ecoregions_30arcmin_final.tif"), help='The full path to the file where the biogeographic realms raster data is located.')
 parser.add_argument('-t', '--temperature-location', default=os.path.join(os.getcwd(), "data", "watertemp"), help="The folder where the temperature raster files are.")
 parser.add_argument('-s', '--species-location', default=os.path.join(os.getcwd(), "data", "fish"), help="The folder where the IUCN species shapefiles are located.")
 parser.add_argument('-o', '--output-location', default=os.path.join(os.getcwd(), "data", "fish"), help="Output location (folder) for storing the output of the processing.")
@@ -115,9 +115,7 @@ climate_envelope_model.add_environmental_layer(water_mean_monthly_12_layer, disc
 
 # 2. Biogeographic realms
 logger.info("STEP 2: LOADING Biogeographical realms layer")
-realms_layer = RealmsLayer(file_path=args.realms_location, source=Source.WWL, name_layer='Realm')
-realms_layer.set_classifier('realm')  # which category (column) to use for grouping the polygons
-realms_layer.set_raster_file(raster_file=os.path.join(args.realms_location, "realms_raster.tif"))  # destination raster file
+realms_layer = RasterEnvironmentalLayer(file_path=args.realms_location, source=Source.WWL, name_layer='Realm')
 climate_envelope_model.add_environmental_layer(realms_layer)
 
 logger.info("Saving base_merged to a csv dataframe...")

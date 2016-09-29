@@ -18,22 +18,13 @@ Input:
 
 """
 import logging
-# import timeit
 import pandas as pd
 import numpy as np
-# from iSDM.environment import RasterEnvironmentalLayer
 from iSDM.environment import RasterEnvironmentalLayer
-# from iSDM.environment import Source
-# from iSDM.environment import ClimateLayer
 from iSDM.species import IUCNSpecies, GBIFSpecies
-# from iSDM.model import Model
-# from rasterio.transform import Affine
-
-# from iSDM.model import Algorithm
 import os
 import argparse
 import errno
-# import rasterio
 import gc
 import sys
 
@@ -144,7 +135,7 @@ except OSError as e:
 
 logger.info("Locating the list of files with GBIF records...")
 list_gbif_files = [filename for filename in os.listdir(args.gbif_location)]
-if len(list_gbif_files)==0:
+if len(list_gbif_files) == 0:
     logger.error("There are no GBIF records files in the folder you specifed with --gbif-location !")
     sys.exit("There are no GBIF records files in the folder you specifed with --gbif-location !")
 
@@ -260,6 +251,7 @@ for idx, name_species in enumerate(non_extinct_binomials):
         logger.info("%s Finished serializing to storage." % idx)
         del filtered_gbif_dataframe
         del merged
+        gc.collect()
     else:
         logger.info("%s Species %s has insufficient minimal number of occurrences (%s), skipping..."
                     % (idx, name_species, args.min_occurrences))
