@@ -3,8 +3,7 @@ script: step1_climate_envelope.py
 Description: Creates a species-by-species dataframe to be used as input for step 2/3 of the 3-step approach to modeling species distributions.
              For this step, all non-extinct binomials from IUCN, are taken into account. GBIF filtered (according to multiple criteria)
              point records are overlayed with the species IUCN rangemap, and further rasterized. 1000 random pseudo-absences are selected according
-             to the following criteria:  all freshwater ecoregions covered by
-             the species point records are taken into account for sampling pseudo-absences.
+             to the following criteria:  all freshwater ecoregions covered by the species point records are taken into account for sampling pseudo-absences.
              All the layers should be at the same resolution (30 arcsec). The dataframe contains a column with the individual species
              presences/absences. (1s/0s respecively) The index of the dataframe is (decimallatitude, decimallongitude) column.
 

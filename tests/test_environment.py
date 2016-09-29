@@ -2,19 +2,10 @@ import unittest
 from iSDM.environment import ClimateLayer
 from iSDM.environment import RasterEnvironmentalLayer
 from iSDM.environment import Source
-# from iSDM.species import IUCNSpecies
-# import pandas as pd
 import geopandas as gp
 from shapely.geometry import Polygon
 from rasterio.transform import Affine
 import numpy as np
-# import logging
-# import sys
-
-# logger = logging.getLogger()
-# logger.level = logging.DEBUG
-# stream_handler = logging.StreamHandler(sys.stdout)
-# logger.addHandler(stream_handler)
 
 
 class TestEnvironment(unittest.TestCase):
