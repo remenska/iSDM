@@ -576,27 +576,33 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
 
     def sample_pseudo_absences(self,
                                species_raster_data,
-                               realms_raster_data=None,
                                suitable_habitat=None,
                                bias_grid=None,
                                band_number=1,
                                number_of_pseudopoints=1000):
         """
         Samples a :attr:`number_of_pseudopoints` points from the ``RasterEnvironmentalLayer`` data (raster map),
-        based on a given species raster map which is assumed to contain species presence points.
+        based on a given species raster map which is assumed to contain species presence points (or potential presence).
         The :attr:`species_raster_data` is used to determine which distinct regions (cell values) from the entire
-        environmental raster map, should be taken into account for potential pseudo-absence sampling regions.
-        Next, all the pixels from the environmental raster map whose values are in the distinct regions are
-        merged on a filtered environmental raster map. Finally, presence pixels are removed from this map, and
-        the resulting pixels are used as a base for sampling pseudo-absences. If the number of such resulting pixels
-        left is smaller than the number of requested pseudo-absence points, all pixels are automatically taken
-        as pseudo-absence points, and no random sampling is done.
+        environmental raster map, should be taken into account for potential pseudo-absence sampling regions. In other words,
+        which realms or ecoregions should be taken into account.
+        Optionally, suitable habitat raster (with binary, 0/1s values) can be provided to further limit the area of sampling.
+        Finally, presence pixels are removed from this map, and the resulting pixels are used as a base for sampling
+        pseudo-absences. Optionally, a bias grid can be provided to bias the "random" sampling of pseudo absences.
+        If the number of such resulting pixels left is smaller than the number of requested pseudo-absence
+        points, all pixels are automatically taken as pseudo-absence points, and no random sampling is done.
 
         Otherwise, :attr:`number_of_pseudopoints` pixels positions (indices) are randomly chosen at once (for speed),
         rather than randomly sampling one by one until the desired number of pseudo-absences is reached.
 
         :param np.ndarray species_raster_data: A raster map containing the species presence pixels. If not provided,
         by default the one loaded previously (if available, otherwise .load_data() should be used before) is used.
+
+        :param np.ndarray suitable_habitat: A raster map containing the species suitable habitat. It should contain only
+        values of 0 and 1, 1s depicting a suitable areas, while 0s unsuitable.
+
+        :param np.ndarray bias_grid: A raster map containing the sampling bias grid. It should contain integer values depicting
+        a sampling intensity at every pixel location.
 
         :param int band_number: The index of the band from the :attr:`species_raster_data` to use as input. Default is 1.
 
@@ -621,18 +627,6 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
             logger.error("Please provide (global) species raster data at the same resolution as the environment")
             logger.error("Environment data has the following shape %s " % (self.env_raster_data.shape, ))
             return
-
-        if realms_raster_data is not None:
-            logger.info("Will use the realms/biogeographic raster data for further clipping of the pseudo-absence regions. ")
-            if realms_raster_data.shape[1:] != self.env_raster_data.shape:
-                logger.error("Please provide (global) biogeographic raster data at the same resolution as the environment")
-                logger.error("Environment data has the following shape %s " % (self.env_raster_data.shape, ))
-                return
-            if not (isinstance(realms_raster_data, np.ndarray)) or not (set(np.unique(realms_raster_data)) == set({0, 1})):
-                logger.error("Please provide the biogeographic raster data as a numpy array with pixel values 1 and 0 (presence/absence).")
-                return
-        else:
-            logger.warning("You have not provided realms/biogeographical regions raster layer. Will sample pseudo-absences with no further narrowing/clipping.")
 
         logger.info("Sampling %s pseudo-absence points from environmental layer." % number_of_pseudopoints)
         # first set to zero all pixels that have "nodata" values in the environmental raster
@@ -664,20 +658,6 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
         sampled_pixels = np.zeros_like(selected_pixels)
         del selected_pixels
         gc.collect()
-        # Next: narrow the pixels to sample from, to the realms area,, if the realms/biogeographic regions raster is present.
-        if realms_raster_data is not None:
-            logger.info("Overlaying with realms data.")
-            overlayed_realms_species = realms_raster_data * species_raster_data
-            selected_realms = np.zeros_like(species_raster_data)
-
-            for idx, band in enumerate(overlayed_realms_species):
-                if band.max() == 1:  # species data overlaps at some pixels with the current realm band
-                    selected_realms += realms_raster_data[idx]
-
-            # for cases of overlap between realms, where the sum would be > 1
-            selected_realms[selected_realms > 1] = 1
-            # finally, clip the pixels_to_sample_from, to the selected realms
-            pixels_to_sample_from = pixels_to_sample_from * selected_realms
 
         # next: narrow the area to sample from, to the suitable habitat, if raster data is provided
         if suitable_habitat is not None:
