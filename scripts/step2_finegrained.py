@@ -39,7 +39,7 @@ parser.add_argument('-p', '--pixel-size', type=float, default=0.0083333333, help
 parser.add_argument('-m', '--min-occurrences', type=int, default=0, help="Minimum number of filtered GBIF presence occurrences per species, necessary for producing a CSV dataframe. Default (0) means do not filter.")
 parser.add_argument('--noiucnfilter', action='store_true', help="A priori filtering of records based on the IUCN range as option that can be turned on and off.")
 parser.set_defaults(noiucnfilter=False)
-parser.add_argument('--baseframe', action='store_true', help="Whether to compute the base dataframe or skip it. Default is OFF.")
+parser.add_argument('--baseframe', action='store_true', help="Whether to compute the base dataframe or skip it. Default is False(OFF).")
 parser.set_defaults(baseframe=False)
 # parser.add_argument('--reprocess', action='store_true', help="Reprocess the data, using the already-rasterized individual species rangemaps. Assumes these files are all available.")
 # parser.set_defaults(reprocess=False)
