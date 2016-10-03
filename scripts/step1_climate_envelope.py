@@ -80,8 +80,8 @@ if args.baseframe:
     logger.info("Preparing a Model base dataframe")
     climate_envelope_model = Model(pixel_size=pixel_size)
     base_dataframe = climate_envelope_model.get_base_dataframe()
-    #logger.info("Saving base dataframe to csv")
-    #base_dataframe.to_csv(os.path.join(args.output_location, "base.csv"))
+    # logger.info("Saving base dataframe to csv")
+    # base_dataframe.to_csv(os.path.join(args.output_location, "base.csv"))
     # 1. Temperature layers
     logger.info("STEP 1: LOADING Temperature layers.")
     water_min_layer = ClimateLayer(file_path=os.path.join(args.temperature_location, "min_wt_2000.tif"), name_layer="MinT")
