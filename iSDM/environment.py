@@ -652,6 +652,8 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
         for layer in regions:
             selected_pixels[layer] = self.env_raster_data[layer]
 
+        del regions
+        gc.collect()
         # sample from those pixels which are in the selected raster regions, minus those of the species presences
         pixels_to_sample_from = selected_pixels - presences_pixels
         del presences_pixels
