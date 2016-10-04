@@ -201,7 +201,7 @@ for idx, name_species in enumerate(non_extinct_binomials):
         logger.info("%s After overlaying with IUCN rangemap, %s GBIF records left for species %s." % (idx, species_gbif.get_data().shape[0], name_species))
     if (species_gbif.get_data().shape[0] - args.min_occurrences) > 0:
         logger.info("%s Rasterizing remaining GBIF species %s " % (idx, name_species))
-        # gbif_rasterized = species_gbif.rasterize(raster_file=os.path.join(args.output_location, "rasterized", name_species + "_gbif.tif"), pixel_size=pixel_size)
+        # gbif_rasterized = species_gbif.rasterize(raster_file=os.path.join(args.output_location, "rasterized", name_species + "_gbif.tif"), pixel_size=pixel_size, all_touched=True)
         gbif_rasterized = species_gbif.rasterize(pixel_size=pixel_size, all_touched=True)
         if not (isinstance(gbif_rasterized, np.ndarray)) or not (set(np.unique(gbif_rasterized)) == set({0, 1})):
             logger.error("%s Rsterizing GBIF records did not succeed for species %s , (raster is empty)    " % (idx, name_species))
