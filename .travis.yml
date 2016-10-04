@@ -42,7 +42,7 @@ install:
 script:  
   - python -m unittest discover -s tests -v
   - python scripts/step1_climate_envelope.py --species-location=data/fish/selection/astatotilapia_burtoni --output-location=data/step1
-  - python scripts/step2_overlay.py --output-location=data/step2 --species-location=data/fish/selection/dorosoma_cepedianum
+  - python scripts/step2_finegrained.py --output-location=data/step2 --species-location=data/fish/selection/dorosoma_cepedianum
                                                                  --realms-location=data/freshwater_ecoregions/freshwater_ecoregions_5arcmin.tif
                                                                  --habitat-location=data/GLWD/downscaled_cubic_spline_5arcmin.tif
                                                                  --biasgrid-location=data/bias_grid/bias_grid_mm_5arcmin.dat

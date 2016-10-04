@@ -3,8 +3,7 @@ script: step1_climate_envelope.py
 Description: Creates a species-by-species dataframe to be used as input for step 2/3 of the 3-step approach to modeling species distributions.
              For this step, all non-extinct binomials from IUCN, are taken into account. GBIF filtered (according to multiple criteria)
              point records are overlayed with the species IUCN rangemap, and further rasterized. 1000 random pseudo-absences are selected according
-             to the following criteria:  all freshwater ecoregions covered by
-             the species point records are taken into account for sampling pseudo-absences.
+             to the following criteria:  all freshwater ecoregions covered by the species point records are taken into account for sampling pseudo-absences.
              All the layers should be at the same resolution (30 arcsec). The dataframe contains a column with the individual species
              presences/absences. (1s/0s respecively) The index of the dataframe is (decimallatitude, decimallongitude) column.
 
@@ -22,6 +21,7 @@ import pandas as pd
 import numpy as np
 from iSDM.environment import RasterEnvironmentalLayer
 from iSDM.species import IUCNSpecies, GBIFSpecies
+from iSDM.model import Model
 import os
 import argparse
 import errno
@@ -39,6 +39,8 @@ parser.add_argument('-p', '--pixel-size', type=float, default=0.0083333333, help
 parser.add_argument('-m', '--min-occurrences', type=int, default=0, help="Minimum number of filtered GBIF presence occurrences per species, necessary for producing a CSV dataframe. Default (0) means do not filter.")
 parser.add_argument('--noiucnfilter', action='store_true', help="A priori filtering of records based on the IUCN range as option that can be turned on and off.")
 parser.set_defaults(noiucnfilter=False)
+parser.add_argument('--baseframe', action='store_true', help="Whether to compute the base dataframe or skip it. Default is False(OFF).")
+parser.set_defaults(baseframe=False)
 # parser.add_argument('--reprocess', action='store_true', help="Reprocess the data, using the already-rasterized individual species rangemaps. Assumes these files are all available.")
 # parser.set_defaults(reprocess=False)
 args = parser.parse_args()
@@ -77,11 +79,6 @@ if freshwater_data.shape != (y_res, x_res):
     logger.error("The %s layer is not at the proper resolution! Layer shape:%s " % (freshwater_layer.name_layer, freshwater_data.shape, ))
     sys.exit("The %s layer is not at the proper resolution! Layer shape:%s " % (freshwater_layer.name_layer, freshwater_data.shape, ))
 
-# logger.info("Using %s as a base frame." % freshwater_layer.name_layer)
-# habitat_model = Model(pixel_size=pixel_size, raster_data=freshwater_data)  # use freshwater ecoregions as a "base". optionally, all pixels will be taken if no raster_data provided
-# # base_dataframe = habitat_model.get_base_dataframe()
-# # Load suitable habitat layer
-# habitat_model.add_environmental_layer(freshwater_layer)  # not needed?
 glwd_layer = RasterEnvironmentalLayer(file_path=args.habitat_location, name_layer="GLWD")
 logger.info("Adding layer: %s " % glwd_layer.name_layer)
 glwd_reader = glwd_layer.load_data()
@@ -105,14 +102,20 @@ if bias_grid_memmap.shape != (y_res, x_res):
     logger.error("The bias_grid layer is not at the proper resolution! Layer shape:%s " % (glwd_data.shape, ))
     sys.exit("The bias_grid layer is not at the proper resolution! Layer shape:%s " % (glwd_data.shape, ))
 logger.info("Successfully opened bias_grid.")
-# habitat_model.add_environmental_layer(glwd_layer)
-# logger.info("Saving base_merged dataframe to csv")
-# base_merged = habitat_model.get_base_dataframe()
-# logger.info("Base_merged has shape %s " % (base_merged.shape, ))
-# base_merged.to_csv(os.path.join(args.output_location, "base_merged.csv"))
-# del base_merged
-gc.collect()
 
+if args.baseframe:
+    logger.info("Using %s as a base frame." % freshwater_layer.name_layer)
+    habitat_model = Model(pixel_size=pixel_size, raster_data=freshwater_data)  # use freshwater ecoregions as a "base". optionally, all pixels will be taken if no raster_data provided
+    base_dataframe = habitat_model.get_base_dataframe()
+    habitat_model.add_environmental_layer(freshwater_layer)
+    habitat_model.add_environmental_layer(glwd_layer)
+    logger.info("Saving base_merged dataframe to csv")
+    base_merged = habitat_model.get_base_dataframe()
+    logger.info("Base_merged has shape %s " % (base_merged.shape, ))
+    base_merged.to_csv(os.path.join(args.output_location, "base_merged.csv"))
+    del base_merged
+
+gc.collect()
 logger.info("STEP 3: LOADING all species rangemaps.")
 species_iucn = IUCNSpecies(name_species='All')
 species_iucn.load_shapefile(args.species_location)   # warning, all species data will be loaded, may take a while!!
