@@ -69,10 +69,10 @@ class TestIUCN(unittest.TestCase):
         self.assertEqual(coordinates[0][0], 89.5)
 
     def test_IUCN_drop_extinct_species(self):
-        self.test_species.load_shapefile("./data/FW_TURTLES/FW_TURTLES.shp")
+        self.test_species.load_shapefile("./data/fish/selection/acrocheilus_alutaceus/acrocheilus_alutaceus.shp")
         original_size = self.test_species.data_full.shape[0]
         self.test_species.drop_extinct_species()
-        self.assertGreater(original_size, self.test_species.data_full.shape[0])
+        self.assertGreaterEqual(original_size, self.test_species.data_full.shape[0])
 
     def tearDown(self):
         del self.test_species
