@@ -177,7 +177,10 @@ class Species(object):
         :rtype: geopandas.GeoDataFrame or pandas.DataFrame
 
         """
-        return self.data_full
+        if hasattr(self, 'data_full'):
+            return self.data_full
+        else:
+            return None
 
     def set_data(self, data_frame):
         """
@@ -423,7 +426,7 @@ class GBIFSpecies(Species):
             logger.warning("Will continue fetching 200000 results.")
             return
 
-        # results are paginated so we need a loop to fetch them all
+        # results are "paginated" so we need a loop to fetch them all
         # http://www.gbif.org/developer/occurrence
         # "This API provides services for searching occurrence records that have been indexed by GBIF. In order to retrieve all
         # results for a given search filter you need to issue individual requests for each page, which is limited to a maximum

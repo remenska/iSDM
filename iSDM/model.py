@@ -1,6 +1,6 @@
 
 """
-A module for preparing all layers used for fitting a model, into a single dataframe.
+A module for preparing all environmental layers used for fitting a model, into a single dataframe, of a convenient format.
 
       .. moduleauthor:: Daniela Remenska <remenska@gmail.com>
 
@@ -30,6 +30,30 @@ class Evaluation(Enum):
 
 
 class Model(object):
+    """
+    Model
+
+    A class for encapsulating the data preparation functionality for fitting a model. Makes sure all layers are at a consistent
+    resolution, global scale. Constructs the "base" dataframe and allows adding environmental layers data to this dataframe incrementally.
+
+    :ivar pixel_size: The size of the pixel in degrees, i.e., the resolution to use for rasterizing.
+
+    :ivar x_res: The number of pixels in the global-scale raster, along the x-axis.
+
+    :ivar y_res: The number of pixels in the global-scale raster, along the x-axis.
+
+    :ivar base_layer: A "base" raster environmental layer to use for deducing the world coordinates used as index in the base dataframe.
+    All burned pixels (value==1) will be converted to global-scale latitude/longitude coordinates (the index).
+
+    :vartype base_layer: RasterEnvironmentalLayer
+
+    :ivar base_dataframe: A base dataframe containing latitude/longitude columns as an index. Further environmental layers added
+    to the model will be merged with this base dataframe. Therefore, it is expected to contain all the necessary latitude/longitude combinations
+    that may show up in any further environmental layers. If raster_data is not provided as a base(see below), then all world coordinates
+    (at a particular resolution) are taken into account.
+
+    :vartype base_dataframe: pandas.DataFrame
+    """
     def __init__(self, pixel_size, raster_data=None, **kwargs):
         logger.info("Preparing a base dataframe...")
         x_min, y_min, x_max, y_max = -180, -90, 180, 90  # global
@@ -53,6 +77,7 @@ class Model(object):
         gc.collect()
 
     def cross_validate(self, percentage, random_seed):
+        # Needs to be implemented
         pass
 
     def evaluate_performance(self, method=Evaluation.ROC, **kwargs):
@@ -62,6 +87,23 @@ class Model(object):
         pass
 
     def add_environmental_layer(self, layer, discard_threshold=None, discard_nodata_value=True):
+        """
+        Adds an environmental layer (Raster or Vector) by converting its values to latitude/longitude decimals, and merging with the
+        base dataframe. If the added layer is already raster, the first band is expected to contain all the (pixel) data values.
+        The resolution of the provided raster needs to match the Model resolution. The pixels are then converted to world coordinates,
+        and merged with the base dataframe. If the environmental layer is vector, then it is first rasterized, and the logic proceeds
+        the same way as with a raster layer.
+
+        :param EnvironmentalLayer layer: The environmental layer to be added to the model dataframe.
+
+        :param int discard_threshold: Optional pixel value to use for discarding layer pixels below a certain value, before adding the layer.
+        Default is `pickle`. Another possibility is "msgpack", as it has shown as 10% more efficient in terms of time and memory, \
+        for the type of data we are dealing with.
+
+        :param bool discard_nodata_value: Optionally filter out "nodata" pixel values from the raster, when converting the layer
+        pixels to world coordinates.
+
+        """
         logger.info("Loading environmental layer from %s " % layer.file_path)
         if isinstance(layer, RasterEnvironmentalLayer):
             layer_reader = layer.load_data()
