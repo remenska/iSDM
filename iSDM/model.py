@@ -96,7 +96,7 @@ class Model(object):
 
         :param int discard_threshold: Optional pixel value to use for discarding layer pixels below a certain value, before adding the layer.
 
-        :param bool discard_nodata_value: Optionally filter out "nodata" pixel values from the raster, when converting the layer
+        :param bool discard_nodata_value: Optionally filter out "nodata" pixel values from the raster, when converting the layer \
         pixels to world coordinates.
 
         """
