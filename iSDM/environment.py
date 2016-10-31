@@ -77,9 +77,6 @@ class EnvironmentalLayer(object):
         self.source = source
 
     def get_source(self):
-        """
-        Needs to be implemented in a subclass.
-        """
         return self.source.name
 
     def save_data(self, full_name=None, dir_name=None, file_name=None):
@@ -120,34 +117,10 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
     def __init__(self, source=None, file_path=None, name_layer=None, **kwargs):
         EnvironmentalLayer.__init__(self, source, file_path, name_layer, **kwargs)
 
-    # def load_data(self, file_path=None):
-    #     """
-    #     Documentation pending on how to load environment raster data
-    #     """
-    #     if file_path:
-    #         self.file_path = file_path
-
-    #     if not self.file_path:
-    #         raise AttributeError("Please provide a file_path argument to load the data from.")
-
-    #     logger.info("Loading data from %s " % self.file_path)
-    #     raster_reader = rasterio.open(self.file_path, 'r')
-    #     self.metadata = raster_reader.meta
-    #     self.resolution = raster_reader.res
-    #     self.bounds = raster_reader.bounds
-    #     pp = pprint.PrettyPrinter(depth=5)
-
-    #     logger.info("Metadata: %s " % pp.pformat(self.metadata))
-    #     logger.info("Resolution: %s " % (self.resolution,))
-    #     logger.info("Bounds: %s " % (self.bounds,))
-    #     self.raster_reader = raster_reader
-    #     logger.info("Dataset loaded. Use .read() or .read_masks() to access the layers.")
-    #     return self.raster_reader
-
     def load_data(self, file_path=None):
         """
         Loads the raster data from a previously-saved raster file. Provides information about the
-        loaded data, and returns a rasterio file reader.
+        loaded data, and returns a rasterio file reader handle, which allows you to read individual raster bands.
 
         :param string file_path: The full path to the targed GeoTIFF raster file (including the directory and filename in one string).
 
@@ -595,13 +568,13 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
         Otherwise, :attr:`number_of_pseudopoints` pixels positions (indices) are randomly chosen at once (for speed),
         rather than randomly sampling one by one until the desired number of pseudo-absences is reached.
 
-        :param np.ndarray species_raster_data: A raster map containing the species presence pixels. If not provided,
+        :param np.ndarray species_raster_data: A raster map containing the species presence pixels. If not provided, \
         by default the one loaded previously (if available, otherwise .load_data() should be used before) is used.
 
-        :param np.ndarray suitable_habitat: A raster map containing the species suitable habitat. It should contain only
+        :param np.ndarray suitable_habitat: A raster map containing the species suitable habitat. It should contain only \
         values of 0 and 1, 1s depicting a suitable areas, while 0s unsuitable.
 
-        :param np.ndarray bias_grid: A raster map containing the sampling bias grid. It should contain integer values depicting
+        :param np.ndarray bias_grid: A raster map containing the sampling bias grid. It should contain integer values depicting \
         a sampling intensity at every pixel location.
 
         :param int band_number: The index of the band from the :attr:`species_raster_data` to use as input. Default is 1.
@@ -671,7 +644,7 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
         # magic, don't touch :P
         if bias_grid is not None:
             logger.info("Will use the provided bias_grid for sampling.")
-            # common x/y coordinates wheere bias_grid overlaps with pixels_to_sample_from
+            # common x/y coordinates where bias_grid overlaps with pixels_to_sample_from
             (x, y) = np.where(pixels_to_sample_from * bias_grid > 0)
             # how many we have?
             number_pixels_to_sample_from_bias_grid = x.shape[0]
@@ -680,7 +653,7 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
                 logger.info("No non-zero pixels from bias grid to sample.")
             if number_pixels_to_sample_from_bias_grid < number_of_pseudopoints:
                 logger.info("Will sample all %s nonzero pixels from bias grid." % number_pixels_to_sample_from_bias_grid)
-                # "random" is not so random as we will select all of them, i.e., the entire range
+                # "random" here is not so random as we will select all of them, i.e., the entire range
                 random_indices = np.arange(0, number_pixels_to_sample_from_bias_grid)
                 for position in random_indices:
                     sampled_pixels[x[position]][y[position]] = pixels_to_sample_from[x[position], y[position]]
@@ -705,7 +678,7 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
                 return (pixels_to_sample_from, sampled_pixels)
         # These are x/y positions of pixels to sample from. Tuple of arrays.
         (x, y) = np.where(pixels_to_sample_from > 0)
-        number_pixels_to_sample_from = x.shape[0]  # == y.shape[0] since every pixel has (x,y) position.
+        number_pixels_to_sample_from = x.shape[0]  # == y.shape[0], since every pixel has (x,y) position.
         logger.info("There are %s pixels left to sample from..." % (number_pixels_to_sample_from))
 
         if number_pixels_to_sample_from == 0:
@@ -729,7 +702,7 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
                                               replace=False)
             logger.info("Filling %s random pixel positions..." % (len(random_indices)))
 
-            # fill in those indices with the pixel values of the environment layer
+        # fill in those indices with the pixel values of the environment layer
         for position in random_indices:
             sampled_pixels[x[position]][y[position]] = pixels_to_sample_from[x[position], y[position]]
 
@@ -737,14 +710,6 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
         del random_indices
         gc.collect()
         return (pixels_to_sample_from, sampled_pixels)
-
-
-class ClimateLayer(RasterEnvironmentalLayer):
-    pass
-
-
-class DEMLayer(RasterEnvironmentalLayer):
-    pass
 
 
 class VectorEnvironmentalLayer(EnvironmentalLayer):
@@ -1016,3 +981,11 @@ class VectorEnvironmentalLayer(EnvironmentalLayer):
 
     def get_pixel_size(self):
         return self.pixel_size
+
+
+class ClimateLayer(RasterEnvironmentalLayer):
+    pass
+
+
+class DEMLayer(RasterEnvironmentalLayer):
+    pass

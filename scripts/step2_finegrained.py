@@ -3,7 +3,10 @@ script: step1_climate_envelope.py
 Description: Creates a species-by-species dataframe to be used as input for step 2/3 of the 3-step approach to modeling species distributions.
              For this step, all non-extinct binomials from IUCN, are taken into account. GBIF filtered (according to multiple criteria)
              point records are overlayed with the species IUCN rangemap, and further rasterized. 1000 random pseudo-absences are selected according
-             to the following criteria:  all freshwater ecoregions covered by the species point records are taken into account for sampling pseudo-absences.
+             to the following criteria:  all freshwater ecoregions covered by the species IUCN range are taken into account as potential regions
+             for sampling pseudo-absences. The regions without any GBIF records are further discarded. From the remaining regions, pixels are
+             sampled giving priority based on a bias-grid given as additional input. Optionally, the suitable habitat can be further restricted.
+             In the case of freshwater fish, the GLWD data is used. The suitable habitat raster data is expected in a single band, binary data format (0s/1s).
              All the layers should be at the same resolution (30 arcsec). The dataframe contains a column with the individual species
              presences/absences. (1s/0s respecively) The index of the dataframe is (decimallatitude, decimallongitude) column.
 
@@ -105,7 +108,8 @@ logger.info("Successfully opened bias_grid.")
 
 if args.baseframe:
     logger.info("Using %s as a base frame." % freshwater_layer.name_layer)
-    habitat_model = Model(pixel_size=pixel_size, raster_data=freshwater_data)  # use freshwater ecoregions as a "base". optionally, all pixels will be taken if no raster_data provided
+    #  use freshwater ecoregions as a "base". optionally, all pixels will be taken if no raster_data provided.
+    habitat_model = Model(pixel_size=pixel_size, raster_data=freshwater_data)
     base_dataframe = habitat_model.get_base_dataframe()
     habitat_model.add_environmental_layer(freshwater_layer)
     habitat_model.add_environmental_layer(glwd_layer)

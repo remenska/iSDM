@@ -16,7 +16,7 @@ if six.PY2:
 
 setup(
     name='iSDM',
-    version='0.0.1',
+    version='0.0.2',
     url='http://github.com/remenska/iSDM/',
     description='interacting Species Distribution Modeling framework.',
     author='Daniela Remenska',
