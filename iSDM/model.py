@@ -42,16 +42,14 @@ class Model(object):
 
     :ivar y_res: The number of pixels in the global-scale raster, along the x-axis.
 
-    :ivar base_layer: A "base" raster environmental layer to use for deducing the world coordinates used as index in the base dataframe.
+    :ivar base_layer: A "base" raster environmental layer to use for deducing the world coordinates used as index in the base dataframe. \
     All burned pixels (value==1) will be converted to global-scale latitude/longitude coordinates (the index).
-
     :vartype base_layer: RasterEnvironmentalLayer
 
-    :ivar base_dataframe: A base dataframe containing latitude/longitude columns as an index. Further environmental layers added
-    to the model will be merged with this base dataframe. Therefore, it is expected to contain all the necessary latitude/longitude combinations
-    that may show up in any further environmental layers. If raster_data is not provided as a base(see below), then all world coordinates
+    :ivar base_dataframe: A base dataframe containing latitude/longitude columns as an index. Further environmental layers added \
+    to the model will be merged with this base dataframe. Therefore, it is expected to contain all the necessary latitude/longitude combinations \
+    that may show up in any further environmental layers. If raster_data is not provided as a base(see below), then all world coordinates \
     (at a particular resolution) are taken into account.
-
     :vartype base_dataframe: pandas.DataFrame
     """
     def __init__(self, pixel_size, raster_data=None, **kwargs):
@@ -97,8 +95,6 @@ class Model(object):
         :param EnvironmentalLayer layer: The environmental layer to be added to the model dataframe.
 
         :param int discard_threshold: Optional pixel value to use for discarding layer pixels below a certain value, before adding the layer.
-        Default is `pickle`. Another possibility is "msgpack", as it has shown as 10% more efficient in terms of time and memory, \
-        for the type of data we are dealing with.
 
         :param bool discard_nodata_value: Optionally filter out "nodata" pixel values from the raster, when converting the layer
         pixels to world coordinates.

@@ -981,3 +981,11 @@ class VectorEnvironmentalLayer(EnvironmentalLayer):
 
     def get_pixel_size(self):
         return self.pixel_size
+
+
+class ClimateLayer(RasterEnvironmentalLayer):
+    pass
+
+
+class DEMLayer(RasterEnvironmentalLayer):
+    pass
