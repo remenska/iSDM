@@ -568,13 +568,13 @@ class RasterEnvironmentalLayer(EnvironmentalLayer):
         Otherwise, :attr:`number_of_pseudopoints` pixels positions (indices) are randomly chosen at once (for speed),
         rather than randomly sampling one by one until the desired number of pseudo-absences is reached.
 
-        :param np.ndarray species_raster_data: A raster map containing the species presence pixels. If not provided,
+        :param np.ndarray species_raster_data: A raster map containing the species presence pixels. If not provided, \
         by default the one loaded previously (if available, otherwise .load_data() should be used before) is used.
 
-        :param np.ndarray suitable_habitat: A raster map containing the species suitable habitat. It should contain only
+        :param np.ndarray suitable_habitat: A raster map containing the species suitable habitat. It should contain only \
         values of 0 and 1, 1s depicting a suitable areas, while 0s unsuitable.
 
-        :param np.ndarray bias_grid: A raster map containing the sampling bias grid. It should contain integer values depicting
+        :param np.ndarray bias_grid: A raster map containing the sampling bias grid. It should contain integer values depicting \
         a sampling intensity at every pixel location.
 
         :param int band_number: The index of the band from the :attr:`species_raster_data` to use as input. Default is 1.
