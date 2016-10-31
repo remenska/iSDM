@@ -284,6 +284,40 @@ The original species data is un-altered.</p>
 </table>
 </dd></dl>
 
+<dl class="method">
+<dt id="iSDM.species.GBIFSpecies.rasterize">
+<code class="descname">rasterize</code><span class="sig-paren">(</span><em>raster_file=None</em>, <em>pixel_size=None</em>, <em>all_touched=False</em>, <em>no_data_value=0</em>, <em>default_value=1</em>, <em>crs=None</em>, <em>cropped=False</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.species.GBIFSpecies.rasterize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Rasterize (burn) the species point-record occurrences into pixels (cells), i.e., a 2-dimensional image array
+of type numpy ndarray. Uses the <a class="reference external" href="https://mapbox.github.io/rasterio/_modules/rasterio/features.html">Rasterio</a> library
+for this purpose. If the dataframe does not contain a <cite>geometry</cite> column (GeoDataFrame), <a class="reference internal" href="#iSDM.species.GBIFSpecies.geometrize" title="iSDM.species.GBIFSpecies.geometrize"><code class="xref py py-func docutils literal"><span class="pre">geometrize()</span></code></a> is called, to
+convert the decimallatitude/decimallongitude columns into a geometry column containing Point geometrical shapes.
+All the point-records are burned in a single &#8220;band&#8221; of the image. (point to grid)
+Rasterio datasets can generally have one or more bands, or layers. Following the GDAL convention, these are indexed starting with 1.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>raster_file</strong> (<em>string</em>) &#8211; The full path to the targed GeoTIFF raster file (including the directory and filename in one string).</li>
+<li><strong>pixel_size</strong> (<em>int</em>) &#8211; The size of the pixel in degrees, i.e., the resolution to use for rasterizing.</li>
+<li><strong>all_touched</strong> (<em>bool</em>) &#8211; If true, all pixels touched by geometries, will be burned in. If false, only pixels         whose center is within the polygon or that are selected by <em>Bresenham&#8217;s line algorithm</em>, will be burned in.</li>
+<li><strong>no_data_value</strong> (<em>int</em>) &#8211; Used as value of the pixels which are not burned in. Default is 0.</li>
+<li><strong>default_value</strong> (<em>int</em>) &#8211; Used as value of the pixels which are burned in. Default is 1.</li>
+<li><strong>crs</strong> (<em>dict</em>) &#8211; The Coordinate Reference System to use. Default is &#8220;ESPG:4326&#8221;</li>
+<li><strong>cropped</strong> (<em>bool</em>) &#8211; If true, the resulting pixel array (image) is cropped to the region borders, which contain         the burned pixels (i.e., an envelope within the range). Otherwise, a &#8220;global world map&#8221; is used, i.e., the boundaries         are set to (-180, -90, 180, 90) for the resulting array.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Rasterio RasterReader file object which can be used to read individual bands from the raster file.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">rasterio._io.RasterReader</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="class">
@@ -384,25 +418,6 @@ Such species are kept, and only species for which all areas are extinct, are fil
 </dd></dl>
 
 <dl class="method">
-<dt id="iSDM.species.IUCNSpecies.load_raster_data">
-<code class="descname">load_raster_data</code><span class="sig-paren">(</span><em>raster_file=None</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.species.IUCNSpecies.load_raster_data" title="Permalink to this definition">¶</a></dt>
-<dd><p>Loads the raster data from a previously-saved raster file. Provides information about the
-loaded data, and returns a rasterio file reader.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>raster_file</strong> (<em>string</em>) &#8211; The full path to the targed GeoTIFF raster file (including the directory and filename in one string).</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Rasterio RasterReader file object which can be used to read individual bands from the raster file.</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">rasterio._io.RasterReader</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
 <dt id="iSDM.species.IUCNSpecies.load_shapefile">
 <code class="descname">load_shapefile</code><span class="sig-paren">(</span><em>file_path</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.species.IUCNSpecies.load_shapefile" title="Permalink to this definition">¶</a></dt>
 <dd><p>Loads the data from the provided <code class="xref py py-attr docutils literal"><span class="pre">file_path</span></code> shapefile into a geopandas.GeoDataFrame.
@@ -416,37 +431,6 @@ converted to a lower-case, for consistency.</p>
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>file_path</strong> (<em>string</em>) &#8211; The full path to the shapefile file (including the directory and filename in one string).</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">None</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
-<dt id="iSDM.species.IUCNSpecies.pixel_to_world_coordinates">
-<code class="descname">pixel_to_world_coordinates</code><span class="sig-paren">(</span><em>raster_data=None</em>, <em>no_data_value=0</em>, <em>filter_no_data_value=True</em>, <em>band_number=1</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.species.IUCNSpecies.pixel_to_world_coordinates" title="Permalink to this definition">¶</a></dt>
-<dd><p>Map the pixel coordinates to world coordinates. The affine transformation matrix is used for this purpose.
-The convention is to reference the pixel corner. To reference the pixel center instead, we translate each pixel by 50%.
-The &#8220;no value&#8221; pixels (cells) can be filtered out.</p>
-<p>A dataset&#8217;s pixel coordinate system has its origin at the &#8220;upper left&#8221; (imagine it displayed on your screen).
-Column index increases to the right, and row index increases downward. The mapping of these coordinates to
-&#8220;world&#8221; coordinates in the dataset&#8217;s reference system is done with an affine transformation matrix.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>raster_data</strong> (<em>string</em>) &#8211; the raster data (2-dimensional array) to translate to world coordinates. If not provided,         it tries to load existing rasterized data from the IUCNSpeices object.</li>
-<li><strong>no_data_value</strong> (<em>int</em>) &#8211; The pixel values depicting non-burned cells. Default is 0.</li>
-<li><strong>filter_no_data_value</strong> (<em>bool</em>) &#8211; Whether to filter-out the no-data pixel values. Default is true. If set to         false, all pixels in a 2-dimensional array will be converted to world coordinates. Typically this option is used         to get a &#8220;base&#8221; map of the coordinates of all pixels in an image (map).</li>
-<li><strong>band_number</strong> (<em>int</em>) &#8211; The index of the band from which to load raster data.</li>
-</ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A tuple of numpy ndarrays. The first array contains the latitude values for each         non-zero cell, the second array contains the longitude values for each non-zero cell.</p>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">tuple(np.ndarray, np.ndarray)</p>
-</td>
 </tr>
 </tbody>
 </table>
@@ -579,18 +563,74 @@ data was previously loaded.</p>
 
 <dl class="method">
 <dt id="iSDM.species.Species.load_data">
-<code class="descname">load_data</code><span class="sig-paren">(</span><em>file_path=None</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.species.Species.load_data" title="Permalink to this definition">¶</a></dt>
+<code class="descname">load_data</code><span class="sig-paren">(</span><em>file_path=None</em>, <em>method='pickle'</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.species.Species.load_data" title="Permalink to this definition">¶</a></dt>
 <dd><p>Loads the data from the serialized species file into a pandas DataFrame. If the <code class="xref py py-attr docutils literal"><span class="pre">file_path</span></code> parameter is not supplied,
 it will try to deduce the file name from the name of the species by default.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>file_path</strong> (<em>string</em>) &#8211; The full path to the file (including the directory and filename in one string), where the data is serialized to.</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>file_path</strong> (<em>string</em>) &#8211; The full path to the file (including the directory and filename in one string), where the data is serialized to.</li>
+<li><strong>method</strong> (<em>string</em>) &#8211; The type of serialization that was used to serialize the data in the data frame.         Default is <cite>pickle</cite>. Another possibility is &#8220;msgpack&#8221;, as it has shown as 10% more efficient in terms of time and memory,         for the type of data we are dealing with.</li>
+</ul>
+</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Data loaded into (geo)pandas Dataframe.</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">Data loaded into (geo)pandas Dataframe.</p>
+</td>
 </tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">geopandas.GeoDataFrame</td>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">geopandas.GeoDataFrame</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="iSDM.species.Species.load_raster_data">
+<code class="descname">load_raster_data</code><span class="sig-paren">(</span><em>raster_file=None</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.species.Species.load_raster_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loads the raster data from a previously-saved raster file. Provides information about the
+loaded data, and returns a rasterio file reader.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>raster_file</strong> (<em>string</em>) &#8211; The full path to the targed GeoTIFF raster file (including the directory and filename in one string).</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Rasterio RasterReader file object which can be used to read individual bands from the raster file.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">rasterio._io.RasterReader</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="iSDM.species.Species.pixel_to_world_coordinates">
+<code class="descname">pixel_to_world_coordinates</code><span class="sig-paren">(</span><em>raster_data=None</em>, <em>no_data_value=0</em>, <em>filter_no_data_value=True</em>, <em>band_number=1</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.species.Species.pixel_to_world_coordinates" title="Permalink to this definition">¶</a></dt>
+<dd><p>Map the pixel coordinates to world coordinates. The affine transformation matrix is used for this purpose.
+The convention is to reference the pixel corner. To reference the pixel center instead, we translate each pixel by 50%.
+The &#8220;no value&#8221; pixels (cells) can be filtered out.</p>
+<p>A dataset&#8217;s pixel coordinate system has its origin at the &#8220;upper left&#8221; (imagine it displayed on your screen).
+Column index increases to the right, and row index increases downward. The mapping of these coordinates to
+&#8220;world&#8221; coordinates in the dataset&#8217;s reference system is done with an affine transformation matrix.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>raster_data</strong> (<em>string</em>) &#8211; the raster data (2-dimensional array) to translate to world coordinates. If not provided,         it tries to load existing rasterized data from the IUCNSpeices object.</li>
+<li><strong>no_data_value</strong> (<em>int</em>) &#8211; The pixel values depicting non-burned cells. Default is 0.</li>
+<li><strong>filter_no_data_value</strong> (<em>bool</em>) &#8211; Whether to filter-out the no-data pixel values. Default is true. If set to         false, all pixels in a 2-dimensional array will be converted to world coordinates. Typically this option is used         to get a &#8220;base&#8221; map of the coordinates of all pixels in an image (map).</li>
+<li><strong>band_number</strong> (<em>int</em>) &#8211; The index of the band from which to load raster data.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A tuple of numpy ndarrays. The first array contains the latitude values for each         non-zero cell, the second array contains the longitude values for each non-zero cell.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">tuple(np.ndarray, np.ndarray)</p>
+</td>
 </tr>
 </tbody>
 </table>
@@ -627,30 +667,25 @@ The following geometrical (<a class="reference external" href="http://toblerity.
 <dl class="method">
 <dt id="iSDM.species.Species.save_data">
 <code class="descname">save_data</code><span class="sig-paren">(</span><em>full_name=None</em>, <em>dir_name=None</em>, <em>file_name=None</em>, <em>method='pickle'</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.species.Species.save_data" title="Permalink to this definition">¶</a></dt>
-<dd><blockquote>
-<div>Serializes the loaded species dataset (<a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/dsintro.html">pandas</a> or <a class="reference external" href="http://geopandas.org/user.html">geopandas</a> DataFrame)
-into a binary <a class="reference external" href="https://en.wikipedia.org/wiki/Pickle_%28Python%29">pickle</a>  (or <a class="reference external" href="http://msgpack.org/index.html">msgpack</a>) file.</div></blockquote>
+<dd><p>Serializes the loaded species dataset (<a class="reference external" href="http://pandas.pydata.org/pandas-docs/stable/dsintro.html">pandas</a> or <a class="reference external" href="http://geopandas.org/user.html">geopandas</a> DataFrame)
+into a binary <a class="reference external" href="https://en.wikipedia.org/wiki/Pickle_%28Python%29">pickle</a>  (or <a class="reference external" href="http://msgpack.org/index.html">msgpack</a>) file.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>full_name</strong> (<em>string</em>) &#8211; The full path of the file (including the directory and filename in one string),
-where the data will be saved.</li>
-<li><strong>dir_name</strong> (<em>string</em>) &#8211; The directory where the file will be stored.</li>
-</ul>
-</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>full_name</strong> (<em>string</em>) &#8211; The full path of the file (including the directory and filename in one string),</td>
 </tr>
 </tbody>
 </table>
-<p>If <code class="xref py py-attr docutils literal"><span class="pre">file_name</span></code> is not specified, the default one <code class="xref py py-attr docutils literal"><span class="pre">name_species</span></code> + <code class="docutils literal"><span class="pre">.pkl</span></code> (or <code class="docutils literal"><span class="pre">.msg</span></code>) is given by default.</p>
+<p>where the data will be saved.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>file_name</strong> (<em>string</em>) &#8211; The name of the file where the data will be saved.        If <code class="xref py py-attr docutils literal"><span class="pre">dir_name</span></code> is not specified, the current working directory is taken by default.</li>
-<li><strong>method</strong> (<em>string</em>) &#8211; The type of serialization to use for the data frame. Default is &#8220;pickle&#8221;. Another possibility is &#8220;msgpack&#8221;, as it has shown as 10% more efficient        in terms of time and memory, for the type of data we are dealing with.</li>
+<li><strong>dir_name</strong> (<em>string</em>) &#8211; The directory where the file will be stored.         If <code class="xref py py-attr docutils literal"><span class="pre">file_name</span></code> is not specified, the default one <code class="xref py py-attr docutils literal"><span class="pre">name_species</span></code> + <code class="docutils literal"><span class="pre">.pkl</span></code> (or <code class="docutils literal"><span class="pre">.msg</span></code>) is given by default.</li>
+<li><strong>file_name</strong> (<em>string</em>) &#8211; The name of the file where the data will be saved.         If <code class="xref py py-attr docutils literal"><span class="pre">dir_name</span></code> is not specified, the current working directory is taken by default.</li>
+<li><strong>method</strong> (<em>string</em>) &#8211; The type of serialization to use for the data frame. Default is <cite>pickle</cite>. Another possibility is <cite>msgpack</cite>, as it has shown as 10% more efficient         in terms of time and memory, for the type of data we are dealing with.</li>
 </ul>
 </td>
 </tr>

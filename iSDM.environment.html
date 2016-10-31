@@ -145,27 +145,6 @@
 </dd></dl>
 
 <dl class="class">
-<dt id="iSDM.environment.ContinentsLayer">
-<em class="property">class </em><code class="descclassname">iSDM.environment.</code><code class="descname">ContinentsLayer</code><span class="sig-paren">(</span><em>source=None</em>, <em>file_path=None</em>, <em>name_layer=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.ContinentsLayer" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#iSDM.environment.VectorEnvironmentalLayer" title="iSDM.environment.VectorEnvironmentalLayer"><code class="xref py py-class docutils literal"><span class="pre">iSDM.environment.VectorEnvironmentalLayer</span></code></a></p>
-<p>Continents Layer has a special treatment as a <code class="docutils literal"><span class="pre">VectorEnvironmentLayer</span></code>.
-This is mostly because, when rasterizing the continents shapefile, there are multiple shapes
-which should end up with a different pixel value for each continents. The typical rasterizing
-operation rather produces a raster with binary values (0s and 1s), on a single band.</p>
-<p>For overlaying selected pseudo-absence biomes (pixels) with continents, it is best to
-have one individual (raster band) matrix per continent, each filled with 0s and 1s, and loop through
-the list of continents (not many layers, so should be fast). Then &#8220;overlaying&#8221; or clipping
-with biomes would amount to simple arithmetics, like multiplying the matrices (element by element)
-to filter out anything with 0-valued pixels in any matrix.</p>
-<dl class="method">
-<dt id="iSDM.environment.ContinentsLayer.rasterize">
-<code class="descname">rasterize</code><span class="sig-paren">(</span><em>raster_file=None</em>, <em>pixel_size=None</em>, <em>all_touched=False</em>, <em>no_data_value=0</em>, <em>default_value=1</em>, <em>crs=None</em>, <em>cropped=False</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.ContinentsLayer.rasterize" title="Permalink to this definition">¶</a></dt>
-<dd><p>Documentation pending on how to rasterize continents</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="class">
 <dt id="iSDM.environment.DEMLayer">
 <em class="property">class </em><code class="descclassname">iSDM.environment.</code><code class="descname">DEMLayer</code><span class="sig-paren">(</span><em>source=None</em>, <em>file_path=None</em>, <em>name_layer=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.DEMLayer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#iSDM.environment.RasterEnvironmentalLayer" title="iSDM.environment.RasterEnvironmentalLayer"><code class="xref py py-class docutils literal"><span class="pre">iSDM.environment.RasterEnvironmentalLayer</span></code></a></p>
@@ -197,8 +176,7 @@ to filter out anything with 0-valued pixels in any matrix.</p>
 <dl class="method">
 <dt id="iSDM.environment.EnvironmentalLayer.get_source">
 <code class="descname">get_source</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.EnvironmentalLayer.get_source" title="Permalink to this definition">¶</a></dt>
-<dd><p>Needs to be implemented in a subclass.</p>
-</dd></dl>
+<dd></dd></dl>
 
 <dl class="method">
 <dt id="iSDM.environment.EnvironmentalLayer.load_data">
@@ -217,12 +195,6 @@ to filter out anything with 0-valued pixels in any matrix.</p>
 <code class="descname">set_source</code><span class="sig-paren">(</span><em>source</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.EnvironmentalLayer.set_source" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-</dd></dl>
-
-<dl class="class">
-<dt id="iSDM.environment.LandCoverlayer">
-<em class="property">class </em><code class="descclassname">iSDM.environment.</code><code class="descname">LandCoverlayer</code><span class="sig-paren">(</span><em>source=None</em>, <em>file_path=None</em>, <em>name_layer=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.LandCoverlayer" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#iSDM.environment.VectorEnvironmentalLayer" title="iSDM.environment.VectorEnvironmentalLayer"><code class="xref py py-class docutils literal"><span class="pre">iSDM.environment.VectorEnvironmentalLayer</span></code></a></p>
 </dd></dl>
 
 <dl class="class">
@@ -272,7 +244,7 @@ This class should be used when the expected layer data is in raster format, i.e.
 <dt id="iSDM.environment.RasterEnvironmentalLayer.load_data">
 <code class="descname">load_data</code><span class="sig-paren">(</span><em>file_path=None</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.RasterEnvironmentalLayer.load_data" title="Permalink to this definition">¶</a></dt>
 <dd><p>Loads the raster data from a previously-saved raster file. Provides information about the
-loaded data, and returns a rasterio file reader.</p>
+loaded data, and returns a rasterio file reader handle, which allows you to read individual raster bands.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -289,7 +261,7 @@ loaded data, and returns a rasterio file reader.</p>
 
 <dl class="method">
 <dt id="iSDM.environment.RasterEnvironmentalLayer.pixel_to_world_coordinates">
-<code class="descname">pixel_to_world_coordinates</code><span class="sig-paren">(</span><em>raster_data=None</em>, <em>no_data_value=0</em>, <em>filter_no_data_value=True</em>, <em>band_number=1</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.RasterEnvironmentalLayer.pixel_to_world_coordinates" title="Permalink to this definition">¶</a></dt>
+<code class="descname">pixel_to_world_coordinates</code><span class="sig-paren">(</span><em>raster_data=None</em>, <em>filter_no_data_value=True</em>, <em>no_data_value=0</em>, <em>band_number=1</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.RasterEnvironmentalLayer.pixel_to_world_coordinates" title="Permalink to this definition">¶</a></dt>
 <dd><p>Map the pixel coordinates to world coordinates. The affine transformation matrix is used for this purpose.
 The convention is to reference the pixel corner. To reference the pixel center instead, we translate each pixel by 50%.
 The &#8220;no value&#8221; pixels (cells) can be filtered out.</p>
@@ -307,11 +279,17 @@ Column index increases to the right, and row index increases downward. The mappi
 </ul>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A tuple of numpy ndarrays. The first array contains the latitude values for each         non-zero cell, the second array contains the longitude values for each non-zero cell.</p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A tuple of numpy ndarrays. The first array contains the latitude values for each         non-zero cell, the second array contains the longitude values for each non-zero cell.</p>
 </td>
 </tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">tuple(np.ndarray, np.ndarray)</p>
-</td>
+</tbody>
+</table>
+<p>TODO: document raster-affine</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">tuple(np.ndarray, np.ndarray)</td>
 </tr>
 </tbody>
 </table>
@@ -432,36 +410,27 @@ transform and dimensions.</p>
 
 <dl class="method">
 <dt id="iSDM.environment.RasterEnvironmentalLayer.sample_pseudo_absences">
-<code class="descname">sample_pseudo_absences</code><span class="sig-paren">(</span><em>species_raster_data</em>, <em>band_number=1</em>, <em>number_of_pseudopoints=1000</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.RasterEnvironmentalLayer.sample_pseudo_absences" title="Permalink to this definition">¶</a></dt>
+<code class="descname">sample_pseudo_absences</code><span class="sig-paren">(</span><em>species_raster_data</em>, <em>suitable_habitat=None</em>, <em>bias_grid=None</em>, <em>band_number=1</em>, <em>number_of_pseudopoints=1000</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.RasterEnvironmentalLayer.sample_pseudo_absences" title="Permalink to this definition">¶</a></dt>
 <dd><p>Samples a <code class="xref py py-attr docutils literal"><span class="pre">number_of_pseudopoints</span></code> points from the <code class="docutils literal"><span class="pre">RasterEnvironmentalLayer</span></code> data (raster map),
-based on a given species raster map which is assumed to contain species presence points.
+based on a given species raster map which is assumed to contain species presence points (or potential presence).
 The <code class="xref py py-attr docutils literal"><span class="pre">species_raster_data</span></code> is used to determine which distinct regions (cell values) from the entire
-environmental raster map, should be taken into account for potential pseudo-absence sampling regions.
-Next, all the pixels from the environmental raster map whose values are in the distinct regions are
-merged on a filtered environmental raster map. Finally, presence pixels are removed from this map, and
-the resulting pixels are used as a base for sampling pseudo-absences. If the number of such resulting pixels
-left is smaller than the number of requested pseudo-absence points, all pixels are automatically taken
-as pseudo-absence points, and no random sampling is done.</p>
+environmental raster map, should be taken into account for potential pseudo-absence sampling regions. In other words,
+which realms or ecoregions should be taken into account.
+Optionally, suitable habitat raster (with binary, 0/1s values) can be provided to further limit the area of sampling.
+Finally, presence pixels are removed from this map, and the resulting pixels are used as a base for sampling
+pseudo-absences. Optionally, a bias grid can be provided to bias the &#8220;random&#8221; sampling of pseudo absences.
+If the number of such resulting pixels left is smaller than the number of requested pseudo-absence
+points, all pixels are automatically taken as pseudo-absence points, and no random sampling is done.</p>
 <p>Otherwise, <code class="xref py py-attr docutils literal"><span class="pre">number_of_pseudopoints</span></code> pixels positions (indices) are randomly chosen at once (for speed),
-rather than randomly sampling one by one until the desired number of pseudo-absences is reached. Due to this,
-it could be that some random pixel positions repeat, and the resulting number of unique pixels is slightly smaller
-than the required one.
-<em>For instance, experiments show that around 980 unique pixels are drawn when the random
-samples requested is 1000.</em></p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>species_raster_data</strong> (<em>np.ndarray</em>) &#8211; A raster map containing the species presence pixels. If not provided,</td>
-</tr>
-</tbody>
-</table>
-<p>by default the one loaded previously (if available, otherwise .load_data() should be used before) is used.</p>
+rather than randomly sampling one by one until the desired number of pseudo-absences is reached.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>species_raster_data</strong> (<em>np.ndarray</em>) &#8211; A raster map containing the species presence pixels. If not provided,         by default the one loaded previously (if available, otherwise .load_data() should be used before) is used.</li>
+<li><strong>suitable_habitat</strong> (<em>np.ndarray</em>) &#8211; A raster map containing the species suitable habitat. It should contain only         values of 0 and 1, 1s depicting a suitable areas, while 0s unsuitable.</li>
+<li><strong>bias_grid</strong> (<em>np.ndarray</em>) &#8211; A raster map containing the sampling bias grid. It should contain integer values depicting         a sampling intensity at every pixel location.</li>
 <li><strong>band_number</strong> (<em>int</em>) &#8211; The index of the band from the <code class="xref py py-attr docutils literal"><span class="pre">species_raster_data</span></code> to use as input. Default is 1.</li>
 <li><strong>number_of_pseudopoints</strong> (<em>int</em>) &#8211; Number of pseudo-absence points to sample from the raster environmental layer data.</li>
 </ul>
@@ -507,6 +476,11 @@ samples requested is 1000.</em></p>
 </tbody>
 </table>
 <dl class="method">
+<dt id="iSDM.environment.VectorEnvironmentalLayer.get_classifier">
+<code class="descname">get_classifier</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.VectorEnvironmentalLayer.get_classifier" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
 <dt id="iSDM.environment.VectorEnvironmentalLayer.get_data">
 <code class="descname">get_data</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.VectorEnvironmentalLayer.get_data" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the (pre)loaded species data in a (geo)pandas DataFrame.</p>
@@ -521,6 +495,16 @@ samples requested is 1000.</em></p>
 </tbody>
 </table>
 </dd></dl>
+
+<dl class="method">
+<dt id="iSDM.environment.VectorEnvironmentalLayer.get_pixel_size">
+<code class="descname">get_pixel_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.VectorEnvironmentalLayer.get_pixel_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="iSDM.environment.VectorEnvironmentalLayer.get_raster_file">
+<code class="descname">get_raster_file</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.VectorEnvironmentalLayer.get_raster_file" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="method">
 <dt id="iSDM.environment.VectorEnvironmentalLayer.load_data">
@@ -562,7 +546,7 @@ loaded data, and returns a rasterio file reader.</p>
 
 <dl class="method">
 <dt id="iSDM.environment.VectorEnvironmentalLayer.rasterize">
-<code class="descname">rasterize</code><span class="sig-paren">(</span><em>raster_file=None</em>, <em>pixel_size=None</em>, <em>all_touched=True</em>, <em>no_data_value=0</em>, <em>default_value=1</em>, <em>crs=None</em>, <em>cropped=False</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.VectorEnvironmentalLayer.rasterize" title="Permalink to this definition">¶</a></dt>
+<code class="descname">rasterize</code><span class="sig-paren">(</span><em>raster_file=None</em>, <em>pixel_size=None</em>, <em>all_touched=False</em>, <em>no_data_value=0</em>, <em>default_value=1</em>, <em>crs=None</em>, <em>cropped=False</em>, <em>classifier_column=None</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.VectorEnvironmentalLayer.rasterize" title="Permalink to this definition">¶</a></dt>
 <dd><p>Rasterize (burn) the environment rangemaps (geometrical shapes) into pixels (cells), i.e., a 2-dimensional image array
 of type numpy ndarray. Uses the <a class="reference external" href="https://mapbox.github.io/rasterio/_modules/rasterio/features.html">Rasterio</a> library
 for this purpose. All the shapes from the <code class="docutils literal"><span class="pre">VectorEnvironmentalLayer</span></code> object data are burned in a single <em>band</em> of the image.
@@ -618,6 +602,11 @@ data was previously loaded.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="iSDM.environment.VectorEnvironmentalLayer.set_classifier">
+<code class="descname">set_classifier</code><span class="sig-paren">(</span><em>classifier_column</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.VectorEnvironmentalLayer.set_classifier" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
 <dt id="iSDM.environment.VectorEnvironmentalLayer.set_data">
 <code class="descname">set_data</code><span class="sig-paren">(</span><em>data_frame</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.VectorEnvironmentalLayer.set_data" title="Permalink to this definition">¶</a></dt>
 <dd><p>Set the species data to the contents of <code class="xref py py-attr docutils literal"><span class="pre">data_frame</span></code>. The data passed must be in a
@@ -634,6 +623,16 @@ pandas or geopandas DataFrame.
 </tbody>
 </table>
 </dd></dl>
+
+<dl class="method">
+<dt id="iSDM.environment.VectorEnvironmentalLayer.set_pixel_size">
+<code class="descname">set_pixel_size</code><span class="sig-paren">(</span><em>pixel_size</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.VectorEnvironmentalLayer.set_pixel_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="iSDM.environment.VectorEnvironmentalLayer.set_raster_file">
+<code class="descname">set_raster_file</code><span class="sig-paren">(</span><em>raster_file</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.environment.VectorEnvironmentalLayer.set_raster_file" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 </dd></dl>
 

@@ -136,15 +136,7 @@
             
   <div class="section" id="module-iSDM.model">
 <span id="isdm-model-module"></span><h1>iSDM.model module<a class="headerlink" href="#module-iSDM.model" title="Permalink to this headline">¶</a></h1>
-<p>Another interesting module</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">synopsis:</th><td class="field-body">Another useful module indeed, model.</td>
-</tr>
-</tbody>
-</table>
+<p>A module for preparing all environmental layers used for fitting a model, into a single dataframe, of a convenient format.</p>
 <dl class="class">
 <dt id="iSDM.model.Algorithm">
 <em class="property">class </em><code class="descclassname">iSDM.model.</code><code class="descname">Algorithm</code><a class="headerlink" href="#iSDM.model.Algorithm" title="Permalink to this definition">¶</a></dt>
@@ -159,12 +151,47 @@
 
 <dl class="class">
 <dt id="iSDM.model.Model">
-<em class="property">class </em><code class="descclassname">iSDM.model.</code><code class="descname">Model</code><span class="sig-paren">(</span><em>algorithm=&lt;Algorithm.GAM: 1&gt;</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.model.Model" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">iSDM.model.</code><code class="descname">Model</code><span class="sig-paren">(</span><em>pixel_size</em>, <em>raster_data=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.model.Model" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
-<dl class="attribute">
-<dt id="iSDM.model.Model.algorithm">
-<code class="descname">algorithm</code><em class="property"> = None</em><a class="headerlink" href="#iSDM.model.Model.algorithm" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<p>A class for encapsulating the data preparation functionality for fitting a model. Makes sure all layers are at a consistent
+resolution, global scale. Constructs the &#8220;base&#8221; dataframe and allows adding environmental layers data to this dataframe incrementally.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Variables:</th><td class="field-body"><ul class="first last simple">
+<li><strong>pixel_size</strong> &#8211; The size of the pixel in degrees, i.e., the resolution to use for rasterizing.</li>
+<li><strong>x_res</strong> &#8211; The number of pixels in the global-scale raster, along the x-axis.</li>
+<li><strong>y_res</strong> &#8211; The number of pixels in the global-scale raster, along the x-axis.</li>
+<li><strong>base_layer</strong> (<a class="reference internal" href="iSDM.environment.html#iSDM.environment.RasterEnvironmentalLayer" title="iSDM.environment.RasterEnvironmentalLayer"><em>RasterEnvironmentalLayer</em></a>) &#8211; A &#8220;base&#8221; raster environmental layer to use for deducing the world coordinates used as index in the base dataframe.     All burned pixels (value==1) will be converted to global-scale latitude/longitude coordinates (the index).</li>
+<li><strong>base_dataframe</strong> (<em>pandas.DataFrame</em>) &#8211; A base dataframe containing latitude/longitude columns as an index. Further environmental layers added     to the model will be merged with this base dataframe. Therefore, it is expected to contain all the necessary latitude/longitude combinations     that may show up in any further environmental layers. If raster_data is not provided as a base(see below), then all world coordinates     (at a particular resolution) are taken into account.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="method">
+<dt id="iSDM.model.Model.add_environmental_layer">
+<code class="descname">add_environmental_layer</code><span class="sig-paren">(</span><em>layer</em>, <em>discard_threshold=None</em>, <em>discard_nodata_value=True</em><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.model.Model.add_environmental_layer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds an environmental layer (Raster or Vector) by converting its values to latitude/longitude decimals, and merging with the
+base dataframe. If the added layer is already raster, the first band is expected to contain all the (pixel) data values.
+The resolution of the provided raster needs to match the Model resolution. The pixels are then converted to world coordinates,
+and merged with the base dataframe. If the environmental layer is vector, then it is first rasterized, and the logic proceeds
+the same way as with a raster layer.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>layer</strong> (<a class="reference internal" href="iSDM.environment.html#iSDM.environment.EnvironmentalLayer" title="iSDM.environment.EnvironmentalLayer"><em>EnvironmentalLayer</em></a>) &#8211; The environmental layer to be added to the model dataframe.</li>
+<li><strong>discard_threshold</strong> (<em>int</em>) &#8211; Optional pixel value to use for discarding layer pixels below a certain value, before adding the layer.</li>
+<li><strong>discard_nodata_value</strong> (<em>bool</em>) &#8211; Optionally filter out &#8220;nodata&#8221; pixel values from the raster, when converting the layer         pixels to world coordinates.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt id="iSDM.model.Model.cross_validate">
@@ -181,14 +208,9 @@
 <code class="descname">fit</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.model.Model.fit" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="attribute">
-<dt id="iSDM.model.Model.method">
-<code class="descname">method</code><em class="property"> = None</em><a class="headerlink" href="#iSDM.model.Model.method" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="attribute">
-<dt id="iSDM.model.Model.species">
-<code class="descname">species</code><em class="property"> = None</em><a class="headerlink" href="#iSDM.model.Model.species" title="Permalink to this definition">¶</a></dt>
+<dl class="method">
+<dt id="iSDM.model.Model.get_base_dataframe">
+<code class="descname">get_base_dataframe</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#iSDM.model.Model.get_base_dataframe" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
